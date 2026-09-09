@@ -11,6 +11,8 @@
     components: { GridBoard: GB() },
     data: () => ({
       alpha: 0.05,
+      seed: 42,                   // 随机种子固定：Reset 重训两轮轨迹逐点一致
+      rand: null,                 // reset() 时以 seed 重建（RLV.rng）
       theta: null, episodes: 0, returns: [],
       playing: false, timer: null,
     }),
@@ -48,7 +50,7 @@
         const traj = [];
         for (let t = 0; t < 60; t++) {
           const p = this.probs[s - 1];
-          let x = Math.random(), acc = 0, a = 5;
+          let x = this.rand(), acc = 0, a = 5;
           for (let i = 0; i < 5; i++) { acc += p[i]; if (x <= acc) { a = i + 1; break; } }
           const r = stepOnce(s, a, { size: 2, forbidden: [2], target: 4, mode: 'book' });
           traj.push({ s, a, r: r.reward });
@@ -86,6 +88,7 @@
       stop() { this.playing = false; if (this.timer) { clearInterval(this.timer); this.timer = null; } },
       reset() {
         this.stop();
+        this.rand = RLV.rng(this.seed);   // 同 seed → 重训可复现
         this.theta = Array.from({ length: 4 }, () => [0,0,0,0,0]);
         this.episodes = 0; this.returns = [];
       },

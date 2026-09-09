@@ -125,17 +125,6 @@
     },
     methods: {
       bi,
-      sr(s, a, rForbid) {
-        const size = this.cfg.size;
-        const A = [[0,-1],[1,0],[0,1],[-1,0],[0,0]][a-1];
-        const { r, c } = RLV.s2rc(s, size);
-        const nr = r + A[1], nc = c + A[0];
-        if (nr < 0 || nr >= size || nc < 0 || nc >= size) return { next: s, reward: -1 };
-        const next = RLV.rc2s(nr, nc, size);
-        if (next === this.cfg.target) return { next, reward: 1 };
-        if (this.cfg.forbidden.includes(next)) return { next, reward: rForbid };
-        return { next, reward: 0 };
-      },
       evaluate(pi, rForbid) {
         // PE 到收敛（内层迭代），返回 (v, 内层轮数)
         const n = 25;
@@ -148,7 +137,7 @@
             for (let a = 1; a <= 5; a++) {
               const pa = pi[s - 1][a - 1];
               if (!pa) continue;
-              const rr = this.sr(s, a, rForbid);
+              const rr = stepOnce(s, a, { ...this.cfg, rForbidden: rForbid });
               q += pa * (rr.reward + 0.9 * v[rr.next - 1]);
             }
             vn[s - 1] = q;
@@ -164,7 +153,7 @@
         for (let s = 1; s <= 25; s++) {
           let best = -Infinity, bestA = [];
           for (let a = 1; a <= 5; a++) {
-            const rr = this.sr(s, a, rForbid);
+            const rr = stepOnce(s, a, { ...this.cfg, rForbidden: rForbid });
             const q = rr.reward + 0.9 * v[rr.next - 1];
             if (q > best + 1e-9) { best = q; bestA = [a]; }
             else if (q > best - 1e-9) bestA.push(a);
@@ -225,7 +214,7 @@
           for (let s = 1; s <= n; s++) {
             let best = -Infinity;
             for (let a = 1; a <= 5; a++) {
-              const rr = this.sr(s, a, -10);
+              const rr = stepOnce(s, a, { ...this.cfg, rForbidden: -10 });
               best = Math.max(best, rr.reward + 0.9 * v[rr.next - 1]);
             }
             vn[s - 1] = best;
@@ -290,23 +279,12 @@
     },
     methods: {
       bi,
-      sr(s, a) {
-        const size = this.cfg.size;
-        const A = [[0,-1],[1,0],[0,1],[-1,0],[0,0]][a-1];
-        const { r, c } = RLV.s2rc(s, size);
-        const nr = r + A[1], nc = c + A[0];
-        if (nr < 0 || nr >= size || nc < 0 || nc >= size) return { next: s, reward: -1 };
-        const next = RLV.rc2s(nr, nc, size);
-        if (next === this.cfg.target) return { next, reward: 1 };
-        if (this.cfg.forbidden.includes(next)) return { next, reward: -1 };
-        return { next, reward: 0 };
-      },
       greedyM(v) {
         const M = [];
         for (let s = 1; s <= 16; s++) {
           let best = -Infinity, bestA = [];
           for (let a = 1; a <= 5; a++) {
-            const rr = this.sr(s, a);
+            const rr = stepOnce(s, a, this.cfg);
             const q = rr.reward + 0.9 * v[rr.next - 1];
             if (q > best + 1e-9) { best = q; bestA = [a]; }
             else if (q > best - 1e-9) bestA.push(a);
@@ -335,7 +313,7 @@
                   for (let a = 1; a <= 5; a++) {
                     const pa = pi[s-1][a-1];
                     if (!pa) continue;
-                    const rr = this.sr(s, a);
+                    const rr = stepOnce(s, a, this.cfg);
                     q += pa * (rr.reward + 0.9 * v[rr.next - 1]);
                   }
                   vn[s-1] = q;

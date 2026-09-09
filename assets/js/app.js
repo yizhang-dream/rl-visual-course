@@ -40,6 +40,7 @@
   const ICONS = { key: '🔑', warn: '⚠️', danger: '🚫', idea: '💡', done: '✅' };
 
   const app = createApp({
+    template: window.ROOT_TEMPLATE,   // 根模板在 root-template.js（先于本文件加载）
     data: () => ({
       section: 'home',            // 'home' | 'lesson'
       activeId: 'grid-world',
@@ -261,6 +262,6 @@
     console.error('[VueErr]', err && err.message, '| at:', name, '| hook:', info);
   };
 
-  // 挂载元素 #app 的 innerHTML 即为根模板（Vue 全局构建的默认行为）
+  // 根模板来自 window.ROOT_TEMPLATE（root-template.js）；#app 只是挂载点
   app.mount('#app');
 })();

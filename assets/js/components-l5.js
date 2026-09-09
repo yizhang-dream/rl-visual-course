@@ -3,7 +3,7 @@
    ═══════════════════════════════════════════════════════════ */
 (function () {
   const RLV = window.RLV;
-  const { bi } = RLV;
+  const { stepOnce, bi } = RLV;
   const GB = () => window.COMPONENTS.GridBoard;
 
   /* ---------- §5.1 均值估计 ---------- */
@@ -91,19 +91,10 @@
     methods: {
       bi,
       sr(s, a) {
-        const size = this.cfg.size;
-        const A = [[0,-1],[1,0],[0,1],[-1,0],[0,0]][a-1];
-        const { r, c } = RLV.s2rc(s, size);
-        const nr = r + A[1], nc = c + A[0];
+        // 唯一的本讲语义：刮风时 15% 概率动作打滑——环境随机性在选动作，步进规则统一走 stepOnce
         let action = a;
         if (this.wind && Math.random() < 0.15) action = 1 + Math.floor(Math.random() * 5);  // 大风：动作打滑
-        const A2 = [[0,-1],[1,0],[0,1],[-1,0],[0,0]][action-1];
-        const nr2 = r + A2[1], nc2 = c + A2[0];
-        if (nr2 < 0 || nr2 >= size || nc2 < 0 || nc2 >= size) return { next: s, reward: -1 };
-        const next = RLV.rc2s(nr2, nc2, size);
-        if (next === this.cfg.target) return { next, reward: 1 };
-        if (this.cfg.forbidden.includes(next)) return { next, reward: -1 };
-        return { next, reward: 0 };
+        return stepOnce(s, action, this.cfg);
       },
       roll(s, a, maxSteps) {
         // 从 (s,a) 出发按 pi 采样一条轨迹，返回整条折扣回报
@@ -212,18 +203,9 @@
       unique() { return this.visits.filter(x => x > 0).length; },
     },
     created() {
-      // 先用值迭代求最优策略（ε-greedy 的底座）
-      const size = 5, forbidden = this.cfg.forbidden, target = this.cfg.target;
-      const sr = (s, a) => {
-        const A = [[0,-1],[1,0],[0,1],[-1,0],[0,0]][a-1];
-        const { r, c } = RLV.s2rc(s, size);
-        const nr = r + A[1], nc = c + A[0];
-        if (nr < 0 || nr >= size || nc < 0 || nc >= size) return { next: s, reward: -1 };
-        const next = RLV.rc2s(nr, nc, size);
-        if (next === target) return { next, reward: 1 };
-        if (forbidden.includes(next)) return { next, reward: -10 };
-        return { next, reward: 0 };
-      };
+      // 先用值迭代求最优策略（ε-greedy 的底座）；r_forbidden = −10（书 Figure 5.2 的远视设定）
+      const env = { ...this.cfg, rForbidden: -10 };
+      const sr = (s, a) => stepOnce(s, a, env);
       let v = new Array(25).fill(0);
       for (let k = 0; k < 300; k++) {
         const vn = new Array(25).fill(0);

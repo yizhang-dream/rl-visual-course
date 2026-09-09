@@ -3,7 +3,7 @@
    ═══════════════════════════════════════════════════════════ */
 (function () {
   const RLV = window.RLV;
-  const { bi } = RLV;
+  const { stepOnce, bi } = RLV;
   const GB = () => window.COMPONENTS.GridBoard;
   const MAX_EPISODES = 1000;   // doneMark 与 play 自动停止共用同一上限
 
@@ -49,6 +49,8 @@
     components: { GridBoard: GB() },
     data: () => ({
       algo: 'Q', eps: 0.2, alpha: 0.1,
+      seed: 42,                   // 随机种子固定：Reset 重训两轮轨迹逐点一致
+      rand: null,                 // reset() 时以 seed 重建（RLV.rng）
       q: null, visits: null, episodes: 0, steps: 0,
       playing: false, timer: null, cur: 1,
     }),
@@ -79,30 +81,19 @@
     },
     methods: {
       bi,
-      sr(s, a) {
-        const size = this.cfg.size;
-        const A = [[0,-1],[1,0],[0,1],[-1,0],[0,0]][a-1];
-        const { r, c } = RLV.s2rc(s, size);
-        const nr = r + A[1], nc = c + A[0];
-        if (nr < 0 || nr >= size || nc < 0 || nc >= size) return { next: s, reward: -1 };
-        const next = RLV.rc2s(nr, nc, size);
-        if (next === this.cfg.target) return { next, reward: 1 };
-        if (this.cfg.forbidden.includes(next)) return { next, reward: -1 };
-        return { next, reward: 0 };
-      },
       pick(s) {
-        // ε-greedy 行为策略
-        if (Math.random() < this.eps) return 1 + Math.floor(Math.random() * 5);
+        // ε-greedy 行为策略（随机源走种子化的 this.rand）
+        if (this.rand() < this.eps) return 1 + Math.floor(this.rand() * 5);
         const row = this.q[s - 1];
         const m = Math.max(...row);
         const ties = row.reduce((acc, x, i) => (x > m - 1e-9 ? [...acc, i + 1] : acc), []);
-        return ties[Math.floor(Math.random() * ties.length)];
+        return ties[Math.floor(this.rand() * ties.length)];
       },
       episode() {
         let s = 1;
         let a = this.pick(s);
         for (let t = 0; t < 120; t++) {
-          const rr = this.sr(s, a);
+          const rr = stepOnce(s, a, this.cfg);
           const s2 = rr.next;
           if (this.algo === 'Q') {
             const target = rr.reward + 0.9 * Math.max(...this.q[s2 - 1]);
@@ -119,7 +110,7 @@
           this.steps++;
           s = s2;
           this.cur = s2;
-          if (s === this.cfg.target && Math.random() < 0.05) break;  // 到达后偶尔结束回合
+          if (s === this.cfg.target && this.rand() < 0.05) break;  // 到达后偶尔结束回合
         }
         this.episodes++;
       },
@@ -134,6 +125,7 @@
       stop() { this.playing = false; if (this.timer) { clearInterval(this.timer); this.timer = null; } },
       reset() {
         this.stop();
+        this.rand = RLV.rng(this.seed);   // 同 seed → 重训可复现
         this.q = Array.from({ length: 16 }, () => [0,0,0,0,0]);
         this.visits = new Array(16).fill(0);
         this.episodes = 0; this.steps = 0; this.cur = 1;

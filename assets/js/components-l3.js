@@ -206,18 +206,6 @@
     },
     methods: {
       bi,
-      stepSR(s, a) {
-        // 与书 Figure 3.4 同款世界：边界 −1，进禁区 rForbid（可进入），进目标 +1，普通 0
-        const size = this.cfg.size;
-        const A = [[0,-1],[1,0],[0,1],[-1,0],[0,0]][a-1];
-        let { r, c } = RLV.s2rc(s, size);
-        let nr = r + A[1], nc = c + A[0];
-        if (nr < 0 || nr >= size || nc < 0 || nc >= size) return { next: s, reward: -1 };
-        const next = RLV.rc2s(nr, nc, size);
-        if (next === this.cfg.target) return { next, reward: 1 };
-        if (this.cfg.forbidden.includes(next)) return { next, reward: this.rForbid };
-        return { next, reward: 0 };
-      },
       solve() {
         const n = 25;
         let v = new Array(n).fill(0);
@@ -230,7 +218,8 @@
             let best = -Infinity, bestA = [];
             const qs = [];
             for (let a = 1; a <= 5; a++) {
-              const { next, reward } = this.stepSR(s, a);
+              // 与书 Figure 3.4 同款世界：边界 −1，进禁区 rForbid（可进入），进目标 +1，普通 0
+              const { next, reward } = stepOnce(s, a, { ...this.cfg, rForbidden: this.rForbid });
               const q = reward + this.gamma * v[next - 1];
               qs.push(q);
               if (q > best + 1e-9) { best = q; bestA = [a]; }

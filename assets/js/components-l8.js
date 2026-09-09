@@ -16,6 +16,8 @@
     name: 'L8FitLab',
     data: () => ({
       features: 'poly', order: 2, alpha: 0.05, playing: false, timer: null,
+      seed: 42,                   // 随机种子固定：Reset 重训两轮采样序列逐点一致
+      rand: null,                 // reset() 时以 seed 重建（RLV.rng）
       w: null, k: 0, targetPts: null,
     }),
     methods: {
@@ -43,7 +45,7 @@
       },
       sweep(n = 1) {
         for (let i = 0; i < n; i++) {
-          const s = Math.floor(Math.random() * this.nS);
+          const s = Math.floor(this.rand() * this.nS);
           const v = this.trueV(s);
           const p = this.phi(s);
           const vhat = p.reduce((acc, f, j) => acc + f * this.w[j], 0);
@@ -69,6 +71,7 @@
       stop() { this.playing = false; if (this.timer) { clearInterval(this.timer); this.timer = null; } },
       reset() {
         this.stop();
+        this.rand = RLV.rng(this.seed);   // 同 seed → 重训可复现
         this.w = new Array(this.dim).fill(0);
         this.k = 0;
       },

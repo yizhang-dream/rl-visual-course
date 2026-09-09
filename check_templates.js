@@ -54,16 +54,14 @@ for (const [name, comp] of Object.entries(comps)) {
   }
 }
 
-// 根模板：index.html 中 #app 的 innerHTML
-const html = fs.readFileSync('index.html', 'utf8');
-const m = html.match(/<div id="app" v-cloak>([\s\S]*?)<\/div>\s*<script/);
-if (m) {
-  try {
-    V.compile('<div>' + m[1] + '</div>');
-  } catch (e) {
-    fail++;
-    console.log('FAIL  root-template →', e.message);
-  }
+// 根模板：root-template.js 暴露的 window.ROOT_TEMPLATE（app.js 以此为根组件模板）
+try {
+  eval(fs.readFileSync('assets/js/root-template.js', 'utf8'));
+  if (typeof window.ROOT_TEMPLATE !== 'string' || !window.ROOT_TEMPLATE.trim()) throw new Error('window.ROOT_TEMPLATE missing/empty');
+  V.compile(window.ROOT_TEMPLATE);
+} catch (e) {
+  fail++;
+  console.log('FAIL  root-template →', e.message);
 }
 
 // 交叉检查：导航里每个 id 都有内容

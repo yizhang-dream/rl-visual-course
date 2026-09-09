@@ -11,6 +11,8 @@
     components: { GridBoard: GB() },
     data: () => ({
       eps: 0.2, alphaW: 0.1, alphaTheta: 0.05,
+      seed: 42,                   // 随机种子固定：Reset 重训两轮轨迹逐点一致
+      rand: null,                 // reset() 时以 seed 重建（RLV.rng）
       theta: null, w: null, visits: null, cur: 1,
       episodes: 0, steps: 0, deltaTrace: [],
       playing: false, timer: null,
@@ -41,21 +43,10 @@
     },
     methods: {
       bi,
-      sr(s, a) {
-        const size = this.cfg.size;
-        const A = [[0,-1],[1,0],[0,1],[-1,0],[0,0]][a-1];
-        const { r, c } = RLV.s2rc(s, size);
-        const nr = r + A[1], nc = c + A[0];
-        if (nr < 0 || nr >= size || nc < 0 || nc >= size) return { next: s, reward: -1 };
-        const next = RLV.rc2s(nr, nc, size);
-        if (next === this.cfg.target) return { next, reward: 1 };
-        if (this.cfg.forbidden.includes(next)) return { next, reward: -1 };
-        return { next, reward: 0 };
-      },
       pick(s) {
-        if (Math.random() < this.eps) return 1 + Math.floor(Math.random() * 5);
+        if (this.rand() < this.eps) return 1 + Math.floor(this.rand() * 5);
         const p = this.probs[s - 1];
-        let x = Math.random(), acc = 0;
+        let x = this.rand(), acc = 0;
         for (let i = 0; i < 5; i++) { acc += p[i]; if (x <= acc) return i + 1; }
         return 5;
       },
@@ -63,7 +54,7 @@
         let s = 1;
         for (let t = 0; t < 120; t++) {
           const a = this.pick(s);
-          const rr = this.sr(s, a);
+          const rr = stepOnce(s, a, this.cfg);
           const s2 = rr.next;
           const v2 = s2 === this.cfg.target ? 0 : this.w[s2 - 1];
           const delta = rr.reward + 0.9 * v2 - this.w[s - 1];
@@ -80,7 +71,7 @@
           this.visits[s - 1]++;
           this.steps++;
           s = s2; this.cur = s2;
-          if (t > 3 && s === this.cfg.target && Math.random() < 0.1) break;
+          if (t > 3 && s === this.cfg.target && this.rand() < 0.1) break;
         }
         this.episodes++;
         if (this.deltaTrace.length > 400) this.deltaTrace = this.deltaTrace.slice(-400);
@@ -98,6 +89,7 @@
       stop() { this.playing = false; if (this.timer) { clearInterval(this.timer); this.timer = null; } },
       reset() {
         this.stop();
+        this.rand = RLV.rng(this.seed);   // 同 seed → 重训可复现
         this.theta = Array.from({ length: 16 }, () => [0,0,0,0,0]);
         this.w = new Array(16).fill(0);
         this.visits = new Array(16).fill(0);
