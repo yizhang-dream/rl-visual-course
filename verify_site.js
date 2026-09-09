@@ -244,12 +244,12 @@ fs.mkdirSync(OUT, { recursive: true });
     for (const d of darks) {
       await page.click('.lecture-filter .lf-chip:has-text("' + d.chip + '")');
       await page.waitForTimeout(400);
-      await page.evaluate((id) => document.getElementById(id).scrollIntoView(), d.id);
-      await page.waitForTimeout(700);
       const whites = await page.$$eval('#' + d.id + ' .lab svg', els =>
         els.filter(el => getComputedStyle(el).backgroundColor === 'rgb(255, 255, 255)').length);
       if (whites) errors.push('[smoke-dark ' + d.chip + '] ' + whites + ' chart svg still white');
-      await page.screenshot({ path: path.join(OUT, d.shot + '.png') });
+      const labLoc = page.locator('#' + d.id + ' .lab').first();
+      await labLoc.scrollIntoViewIfNeeded();
+      await labLoc.screenshot({ path: path.join(OUT, d.shot + '.png') });
     }
     await page.click('.theme-switch .theme-btn >> nth=0');   // 切回 chalk 默认
   } catch (e) { errors.push('[smoke-dark] ' + e.message); }
