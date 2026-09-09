@@ -119,7 +119,7 @@ body {
 .scroll-bar {
   height: 100%; width: 0; border-radius: 99px;
   background: var(--accent);
-  transition: width 120ms linear;
+  transition: width 150ms var(--ease);
 }
 .lang-switch {
   display: flex; padding: 4px; gap: 2px;
@@ -1049,3 +1049,334 @@ html[data-theme="forest"] .hero-stat b { font-family: var(--display); }
 .theme-btn.active { border-color: var(--accent); }
 
 @media (max-width: 1080px) { .theme-switch { display: none; } }
+
+/* ═══════════════════════════════════════════════════════════
+   三层导航 · 子主题分组（nav-cluster）
+   层级感：左缩进 + 细引导线；颜色全部走 CSS 变量（五套主题通用）
+   ═══════════════════════════════════════════════════════════ */
+.nav-cluster {
+  position: relative;
+  padding-left: 12px;
+  margin-bottom: 5px;
+}
+.nav-cluster::before {
+  content: '';
+  position: absolute; left: 1px; top: 4px; bottom: 3px;
+  width: 2px; border-radius: 2px;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--accent) 40%, transparent),
+    color-mix(in srgb, var(--line-strong) 55%, transparent));
+  transition: background var(--t-mid) var(--ease);
+}
+.nav-cluster:hover::before {
+  background: linear-gradient(180deg,
+    var(--accent),
+    color-mix(in srgb, var(--accent) 30%, transparent));
+}
+.nav-cluster-label {
+  display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap;
+  padding: 2px 6px 4px;
+  cursor: default;
+}
+.nav-cluster-label .zh {
+  font: 700 11px var(--font);
+  color: var(--ink-2);
+  letter-spacing: .3px;
+  transition: color var(--t-fast) var(--ease);
+}
+.nav-cluster-label .en {
+  font: 600 9.5px var(--mono);
+  color: var(--ink-3);
+  letter-spacing: .5px;
+  text-transform: uppercase;
+}
+.nav-cluster:hover .nav-cluster-label .zh { color: var(--accent-deep); }
+.nav-cluster .nav-item { padding: 6.5px 10px; }
+/* 退化模式（无分组元数据）：不留引导线，视觉等同旧版扁平列表 */
+.nav-cluster.flat::before { display: none; }
+.nav-cluster.flat { padding-left: 0; }
+
+/* ═══════════════════════════════════════════════════════════
+   全书知识树（CourseMap · ktree）
+   根 → 五大分支 → 每讲叶子。分支线与配色全部 CSS 变量。
+   ═══════════════════════════════════════════════════════════ */
+.ktree { display: flex; flex-direction: column; gap: 0; }
+.ktree-root {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  align-self: flex-start;
+  padding: 9px 16px;
+  background: linear-gradient(135deg, var(--accent), var(--violet));
+  color: var(--on-accent);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-1);
+  font-weight: 700;
+}
+.ktree-root .kt-root-badge {
+  font: 800 11px var(--mono);
+  background: color-mix(in srgb, var(--on-accent) 22%, transparent);
+  border: 1px solid color-mix(in srgb, var(--on-accent) 45%, transparent);
+  padding: 2px 7px; border-radius: 99px; letter-spacing: 1px;
+}
+.ktree-root .zh { font-size: 14.5px; }
+.ktree-root .en { font: 600 11px var(--mono); opacity: .85; letter-spacing: .4px; }
+
+/* 主干与分支：左侧竖向引导线 + 每支横向搭线 */
+.ktree-branches {
+  --kt-rail-w: 2px;
+  position: relative;
+  margin: 6px 0 0 9px;
+  padding-left: 18px;
+  display: flex; flex-direction: column; gap: 13px;
+  border-left: var(--kt-rail-w) solid var(--line-strong);
+}
+.ktree-branch {
+  position: relative;
+  --kt: var(--accent);          /* 分支主色（各分支类覆盖） */
+  --kt-soft: var(--accent-soft);
+}
+.ktree-branch::before {
+  content: '';
+  position: absolute; left: -18px; top: 15px;
+  width: 14px; height: var(--kt-rail-w);
+  background: var(--kt);
+}
+.ktree-branch-head {
+  display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+  padding: 6px 12px;
+  background: var(--kt-soft);
+  border: 1px solid color-mix(in srgb, var(--kt) 38%, transparent);
+  border-left: 3px solid var(--kt);
+  border-radius: var(--radius-sm);
+}
+.kt-branch-key {
+  font: 800 10px var(--mono);
+  color: var(--on-accent);
+  background: var(--kt);
+  padding: 2px 7px; border-radius: 99px; letter-spacing: 1px;
+  flex: none;
+}
+.kt-branch-zh { font: 700 13.5px var(--font); color: var(--ink); }
+.kt-branch-en { font: 600 11px var(--mono); color: var(--ink-3); letter-spacing: .3px; }
+
+/* 叶子：每讲一张可点卡片 */
+.ktree-leaves {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 9px;
+  margin: 9px 0 0 4px;
+  padding-left: 12px;
+  border-left: var(--kt-rail-w) dashed color-mix(in srgb, var(--kt) 40%, transparent);
+}
+.ktree-leaf {
+  --kt: var(--accent);
+  display: flex; align-items: center; gap: 9px;
+  text-align: left; cursor: pointer;
+  padding: 8px 11px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  transition: transform var(--t-mid) var(--ease), border-color var(--t-fast) var(--ease),
+              box-shadow var(--t-mid) var(--ease);
+}
+.ktree-leaf:hover {
+  transform: translateX(4px);
+  border-color: var(--kt);
+  box-shadow: var(--shadow-1);
+}
+.ktree-leaf .kt-leaf-no {
+  font: 800 10.5px var(--mono);
+  color: var(--kt);
+  background: color-mix(in srgb, var(--kt) 13%, transparent);
+  border: 1px solid color-mix(in srgb, var(--kt) 38%, transparent);
+  padding: 2px 7px; border-radius: 99px;
+  flex: none; letter-spacing: .5px;
+}
+.ktree-leaf .kt-leaf-title { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; flex: 1; }
+.ktree-leaf .kt-leaf-title .zh { font: 700 13px var(--font); color: var(--ink); }
+.ktree-leaf .kt-leaf-title .en { font: 600 10.5px var(--mono); color: var(--ink-3); }
+.ktree-leaf .kt-leaf-go {
+  font: 700 13px var(--mono); color: var(--ink-3);
+  opacity: 0; transform: translateX(-4px);
+  transition: opacity var(--t-fast) var(--ease), transform var(--t-mid) var(--ease);
+  flex: none;
+}
+.ktree-leaf:hover .kt-leaf-go { opacity: 1; transform: translateX(0); color: var(--kt); }
+
+/* 五大分支配色（只用既有变量） */
+.ktree-branch.b-model  { --kt: var(--accent);  --kt-soft: var(--accent-soft); }
+.ktree-branch.b-values { --kt: var(--violet);  --kt-soft: var(--violet-soft); }
+.ktree-branch.b-mb     { --kt: var(--gold);    --kt-soft: var(--gold-soft); }
+.ktree-branch.b-mf     { --kt: var(--green);   --kt-soft: var(--green-soft); }
+.ktree-branch.b-policy { --kt: var(--cyan);    --kt-soft: var(--cyan-soft); }
+
+/* 知识树图例色块（复用 .map-caption i 的方格样式） */
+.map-caption i.kt-swatch { border-radius: 3px; }
+.map-caption i.kt-swatch.b-model  { background: var(--accent); }
+.map-caption i.kt-swatch.b-values { background: var(--violet); }
+.map-caption i.kt-swatch.b-mb     { background: var(--gold); }
+.map-caption i.kt-swatch.b-mf     { background: var(--green); }
+.map-caption i.kt-swatch.b-policy { background: var(--cyan); }
+
+/* 窄屏退化为紧凑纵向列表：收起横向位移与多列网格 */
+@media (max-width: 900px) {
+  .ktree-root { align-self: stretch; }
+  .ktree-branches { margin-left: 5px; padding-left: 13px; }
+  .ktree-branch::before { left: -13px; width: 10px; }
+  .ktree-leaves { grid-template-columns: 1fr; margin-left: 2px; }
+  .ktree-leaf:hover { transform: none; box-shadow: var(--shadow-1); }
+}
+
+/* ═════════════════════════════════════════════════════════════
+   动效系统 v2 · 追加块
+   1) 主题切换颜色平滑过渡    2) 逐块浮现（reveal-item + stagger）
+   3) 公式卡竖线生长 / 标注框图标 pop   4) 知识树与索引卡微交互
+   5) prefers-reduced-motion 全量退化为直出
+   规则：只动 transform/opacity；颜色一律 CSS 变量；入场结束后由
+   .rv-done（app.js 在入场结束时追加）切回 150ms 微交互节奏
+   ═════════════════════════════════════════════════════════════ */
+
+/* ── 1. 主题切换：主要表面与文字 0.35s ease 过渡，五主题平滑换装 ── */
+body, .topbar, .sidebar, .content, .lesson-section, .course-map-card,
+.lab, .callout, .hero-stat, .qa-face, .footer, .scroll-track, .dist-bar-track {
+  transition: background-color .35s ease, color .35s ease, border-color .35s ease;
+}
+.bi .zh, .bi .en, .hero-sub, .hero-sub-en, .sec-title .en {
+  transition: color .35s ease;
+}
+
+/* ── 2. 公式卡：hover 轻抬 2px + 阴影加深（不发光）；
+        作为内容块入场时左侧竖线从 0 长到全高 ── */
+.formula-card {
+  position: relative;
+  transition: transform var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease),
+              border-color var(--t-fast) var(--ease), background-color .35s ease, color .35s ease;
+}
+.formula-card::before {
+  content: ""; position: absolute; left: 0; top: 12%; bottom: 12%; width: 3px;
+  border-radius: 99px; background: var(--accent);
+  transform-origin: top;
+  transition: transform .55s var(--ease-out) .2s;
+}
+.formula-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-2);
+  border-color: color-mix(in srgb, var(--accent) 38%, transparent);
+}
+.formula-card.reveal-item::before { transform: scaleY(0); }
+.formula-card.reveal-item.in::before { transform: scaleY(1); }
+
+/* ── 3. 逐块浮现：同一 IntersectionObserver 驱动（app.js 注入 --rd 做 stagger）── */
+.reveal-item {
+  --rv-y: 12px; --rv-r: 0deg;
+  opacity: 0;
+  transform: translateY(var(--rv-y)) rotate(var(--rv-r));
+  transition: opacity .55s var(--ease-out) var(--rd, 0ms),
+              transform .55s var(--ease-out) var(--rd, 0ms);
+}
+.reveal-item.in { opacity: 1; transform: none; }
+/* 主题入场性格只改位移/旋转变量，不与 .in 的归位打架 */
+html[data-theme="chalk"] .reveal-item { --rv-r: -.25deg; }
+html[data-theme="swiss"] .reveal-item { --rv-y: 9px; }
+html[data-theme="quant"] .reveal-item { --rv-y: 14px; }
+html[data-theme="forest"] .reveal-item { --rv-y: 14px; }
+/* 入场完成后：transform/阴影统一 150ms 微交互节奏，颜色属性继续走主题过渡 */
+.reveal-item.rv-done {
+  transition: transform var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease),
+              border-color var(--t-fast) var(--ease), opacity var(--t-fast) var(--ease),
+              background-color .35s ease, color .35s ease;
+}
+/* 既有 cascade 修复：主题个性 transform 不再压过 .reveal.in 的归位 */
+html[data-theme] .reveal.in { transform: none; }
+/* 索引“待更新”卡片入场后保持降透明 */
+.lx-card.pending.in { opacity: .68; }
+
+/* ── 4. 标注框：入场后图标轻 pop（一次，随块 stagger 起拍），正文随块浮现 ── */
+.callout.reveal-item { animation: none; }
+.callout.reveal-item .callout-icon { transform-origin: 50% 62%; }
+.callout.reveal-item.in .callout-icon {
+  animation: calloutPop .45s var(--spring) var(--rd, 0ms) both;
+}
+@keyframes calloutPop {
+  from { transform: scale(.6); opacity: 0; }
+  to   { transform: scale(1);  opacity: 1; }
+}
+
+/* ── 5. 课程索引卡：hover 上移 + 底部“进入本讲”渐显（入场由 reveal-item stagger 接管）── */
+.lx-go {
+  opacity: 0; transform: translateY(3px);
+  transition: opacity var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
+}
+.lx-card:hover .lx-go, .lx-card:focus-visible .lx-go { opacity: 1; transform: none; }
+/* 知识树叶子 hover 的位移/描边节奏统一由 .reveal-item.rv-done（150ms）接管 */
+
+/* ── 6. reduced-motion：全部动效退化为直出 ── */
+@media (prefers-reduced-motion: reduce) {
+  .content { scroll-behavior: auto; }
+  .reveal-item { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .formula-card::before { transform: none !important; transition: none !important; }
+  .callout.reveal-item.in .callout-icon { animation: none; }
+  .lx-go { opacity: 1; transform: none; transition: none; }
+  .lx-card:hover, .formula-card:hover, .ktree-leaf:hover { transform: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   侧栏讲级折叠（“全部”模式下 88 小节过长 → 每讲可折叠）
+   · .nav-group-label 变为可点折叠头（右侧 chevron 旋转指示）
+   · 展开动画只动 grid-template-rows 0fr↔1fr + opacity，无 JS 测高
+   · 折叠体 visibility 延迟隐藏，避免收起后小节仍可被 Tab 聚焦
+   · 颜色全部 CSS 变量（五套主题通用）；reduced-motion 直出
+   ═══════════════════════════════════════════════════════════ */
+.nav-group-label {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; border: 0; background: none; cursor: pointer;
+  text-align: left; font-family: var(--font);
+  font-weight: 700; font-size: 11px; letter-spacing: 1.6px; text-transform: uppercase;
+  color: var(--ink-3);
+  padding: 4px 8px 6px 8px;
+  border-radius: 8px;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+.nav-group-label:hover { background: var(--bg-soft); color: var(--ink-2); }
+.nav-group-label:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.nav-group-label .ngl-text { flex: 1; min-width: 0; }
+.nav-group-label .ngl-chevron {
+  flex: none; display: grid; place-items: center; color: var(--ink-3);
+  transform: rotate(-90deg);                               /* 折叠 ▸ */
+  transition: transform var(--t-mid) var(--ease), color var(--t-fast) var(--ease);
+}
+.nav-group-label.open .ngl-chevron { transform: rotate(0deg); }  /* 展开 ▾ */
+.nav-group-label:hover .ngl-chevron { color: var(--accent-deep); }
+/* 单讲视图（lectureFilter≠0）：唯一一讲强制展开，折叠头退化为静态标签 */
+.nav-group-label.pinned { cursor: default; }
+.nav-group-label.pinned:hover { background: none; color: var(--ink-3); }
+.nav-group-label.pinned:hover .ngl-chevron { color: var(--ink-3); }
+/* 末尾“全部课程”静态标签：不参与折叠交互 */
+.nav-group-label.plain { cursor: default; }
+.nav-group-label.plain:hover { background: none; color: var(--ink-3); }
+
+/* 折叠体：0fr↔1fr 过渡 + 内容层 overflow:hidden（grid 子项需 min-height:0） */
+.nav-group-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  transition: grid-template-rows var(--t-mid) var(--ease),
+              opacity var(--t-mid) var(--ease),
+              visibility 0s linear var(--t-mid);
+}
+.nav-group-body.open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+  transition: grid-template-rows var(--t-mid) var(--ease),
+              opacity var(--t-mid) var(--ease),
+              visibility 0s;
+}
+.nav-group-inner { overflow: hidden; min-height: 0; }
+
+/* reduced-motion：折叠直接切换，不做过渡 */
+@media (prefers-reduced-motion: reduce) {
+  .nav-group-body, .nav-group-body.open { transition: none; }
+  .nav-group-label, .nav-group-label .ngl-chevron { transition: none; }
+}

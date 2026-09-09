@@ -1405,6 +1405,46 @@
   const HomeHero = {
     name: 'HomeHero',
     emits: ['go'],
+    computed: {
+      // 动态统计：小节总数 / widget 实验台数 / 讲数，全部从 DATA 实时算出
+      stats() {
+        const D = window.DATA;
+        let widgets = 0;
+        Object.values(D.sections).forEach(s => {
+          (s.blocks || []).forEach(b => { if (b && b.t === 'widget') widgets++; });
+        });
+        return {
+          sections: Object.keys(D.sections).length,
+          widgets,
+          lectures: D.navGroups.length,
+          themes: 5,
+        };
+      },
+    },
+    mounted() {
+      // 首页 hero 编排（只在挂载时播一次，不随滚动重播）：
+      // kicker → 标题分行 → 副标题两行 → CTA 按钮组 → stats 数字条（count-up）
+      if (!window.gsap) return;
+      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const el = this.$el;
+      const nums = Array.from(el.querySelectorAll('.hero-stat b'));
+      const targets = nums.map(b => parseInt(b.textContent, 10) || 0); // 先取真实值再从 0 滚起
+      const tl = gsap.timeline({ defaults: { ease: 'power2.out' } });
+      tl.from(el.querySelector('.hero-kicker'), { y: 10, opacity: 0, duration: .4 })
+        .from(Array.from(el.querySelector('.hero-title').children), { y: 16, opacity: 0, duration: .5, stagger: .09 }, '-=.18')
+        .from(el.querySelector('.hero-sub'), { y: 12, opacity: 0, duration: .45 }, '-=.2')
+        .from(el.querySelector('.hero-sub-en'), { y: 10, opacity: 0, duration: .4 }, '-=.28')
+        .from(el.querySelectorAll('.hero-cta .btn'), { y: 8, opacity: 0, duration: .35, stagger: .07 }, '-=.22')
+        .from(el.querySelectorAll('.hero-stat'), { y: 10, opacity: 0, duration: .4, stagger: .07 }, '-=.18');
+      nums.forEach((b, i) => {
+        b.textContent = '0';
+        const o = { v: 0 };
+        tl.to(o, {
+          v: targets[i], duration: .75,
+          onUpdate: () => { b.textContent = String(Math.round(o.v)); },
+        }, .62 + i * .06);
+      });
+    },
     template: `
     <div class="home-hero">
       <span class="hero-kicker">📖 全书可视化 · Visual Book · Mathematical Foundation of RL · 双语</span>
@@ -1423,10 +1463,10 @@
         <button class="btn" style="padding:11px 20px" @click="$emit('go','l7-td0')">⚖️ <span v-html="bi('直达 Q-learning','Q-learning')"></span></button>
       </div>
       <div class="hero-stats">
-        <div class="hero-stat"><b>10</b><span v-html="bi('讲全书覆盖','lectures, one visual course')"></span></div>
-        <div class="hero-stat"><b>20+</b><span v-html="bi('个交互实验台','interactive labs')"></span></div>
-        <div class="hero-stat"><b>3×3 + 4×4</b><span v-html="bi('书世界 + 作业世界','book world + assignment world')"></span></div>
-        <div class="hero-stat"><b>2</b><span v-html="bi('套语言随时切换','languages, one click apart')"></span></div>
+        <div class="hero-stat"><b>{{ stats.sections }}</b><span v-html="bi('个小节双语精讲','sections, bilingual')"></span></div>
+        <div class="hero-stat"><b>{{ stats.widgets }}</b><span v-html="bi('个交互实验台','interactive labs')"></span></div>
+        <div class="hero-stat"><b>{{ stats.lectures }}</b><span v-html="bi('讲全书覆盖','lectures, one visual course')"></span></div>
+        <div class="hero-stat"><b>{{ stats.themes }}</b><span v-html="bi('套主题随点随换','themes, one click apart')"></span></div>
       </div>
     </div>`,
     setup() { return { bi }; },
@@ -1438,10 +1478,9 @@
     computed: {
       lectures() { return window.DATA.otherLectures; },
       firstId() {
-        const map = {
-          1: 'grid-world', 2: 'l2-bellman', 3: 'l3-optimality', 4: 'l4-vi', 5: 'l5-mc',
-          6: 'l6-rm', 7: 'l7-td0', 8: 'l8-approx', 9: 'l9-pg', 10: 'l10-ac',
-        };
+        // 动态取每讲 navGroups 的第一个小节 id（旧的硬编码表里有 5 个 id 并不存在）
+        const map = {};
+        window.DATA.navGroups.forEach(g => { map[g.lecture] = g.items[0] && g.items[0].id; });
         return map;
       },
     },
@@ -1449,12 +1488,12 @@
     <div class="course-map-card">
       <h3 class="sub" style="margin-top:0"><span v-html="bi('课程索引：逐讲进入','Lecture index: enter any lesson')"></span></h3>
       <div class="lx-grid">
-        <button v-for="l in lectures" :key="l.no" class="lx-card" :class="l.done ? 'done' : 'pending'"
+        <button v-for="l in lectures" :key="l.no" class="lx-card reveal-item" :class="l.done ? 'done' : 'pending'"
                 @click="$emit('go', firstId[l.no])">
           <span class="lx-no">LESSON {{ l.no }} {{ l.done ? '· ✓ 已完成 done' : '· Soon' }}</span>
           <span class="lx-zh">{{ l.zh }}</span>
           <span class="lx-en">{{ l.en }}</span>
-          <span class="lx-go" v-if="l.done" v-html="bi('进入本课 →','Enter →')"></span>
+          <span class="lx-go" v-if="l.done" v-html="bi('进入本讲 →','Enter →')"></span>
         </button>
       </div>
     </div>`,
@@ -1463,57 +1502,61 @@
 
   const CourseMap = {
     name: 'CourseMap',
+    emits: ['go'],
+    computed: {
+      // 首节 id：动态取每讲 navGroups 的第一个小节（保证 id 一定存在）
+      firstIds() {
+        const map = {};
+        window.DATA.navGroups.forEach(g => { map[g.lecture] = g.items[0] && g.items[0].id; });
+        return map;
+      },
+      // 根 → 五大分支 → 每讲叶子（讲名取自 otherLectures，单一数据源）
+      branches() {
+        const byNo = {};
+        window.DATA.otherLectures.forEach(l => { byNo[l.no] = l; });
+        const defs = [
+          { key: 'I',   cls: 'b-model',  zh: '建模根基',           en: 'Modeling',                     nos: [1] },
+          { key: 'II',  cls: 'b-values', zh: '值与方程',           en: 'Values & equations',           nos: [2, 3] },
+          { key: 'III', cls: 'b-mb',     zh: '有模型算法',         en: 'Model-based',                  nos: [4] },
+          { key: 'IV',  cls: 'b-mf',     zh: '无模型 · 值方法',    en: 'Model-free · value-based',     nos: [5, 6, 7, 8] },
+          { key: 'V',   cls: 'b-policy', zh: '策略方法',           en: 'Policy-based',                 nos: [9, 10] },
+        ];
+        return defs.map(d => ({ ...d, leaves: d.nos.map(no => byNo[no]).filter(Boolean) }));
+      },
+    },
     template: `
     <div class="course-map-card">
-      <h3 class="sub" style="margin-top:0"><span v-html="bi('全书地图：我们在这里','The map of the book: where we are')"></span></h3>
-      <div class="map-flow">
-        <div class="map-row">
-          <div class="map-node hot-node" style="flex:2 1 260px">
-            <span class="mn-no">L1 · HERE</span>
-            <span class="mn-t" v-html="bi('第 1 章 基本概念','Ch.1 Basic Concepts')"></span>
-            <span class="mn-e">grid world → MDP（本课 / this lesson）</span>
-          </div>
+      <h3 class="sub" style="margin-top:0"><span v-html="bi('全书知识树 · The Knowledge Tree','The Knowledge Tree · ten lectures, five branches')"></span></h3>
+      <div class="ktree">
+        <div class="ktree-root">
+          <span class="kt-root-badge">RL</span>
+          <span class="zh">强化学习的数学根基 · 全书十讲</span>
+          <span class="en">Mathematical Foundation of RL · 10 lectures</span>
         </div>
-        <div class="map-arrow">↓</div>
-        <div class="map-row">
-          <div class="map-node foundation">
-            <span class="mn-no">CH 2</span>
-            <span class="mn-t" v-html="bi('状态价值 & Bellman 方程','State values & Bellman equation')"></span>
-            <span class="mn-e">fundamental tool</span>
+        <div class="ktree-branches">
+          <div class="ktree-branch reveal-item" :class="b.cls" v-for="b in branches" :key="b.key">
+            <div class="ktree-branch-head">
+              <span class="kt-branch-key">{{ b.key }}</span>
+              <span class="kt-branch-zh">{{ b.zh }}</span>
+              <span class="kt-branch-en">{{ b.en }}</span>
+            </div>
+            <div class="ktree-leaves">
+              <button class="ktree-leaf reveal-item" v-for="leaf in b.leaves" :key="leaf.no"
+                      @click="$emit('go', firstIds[leaf.no])">
+                <span class="kt-leaf-no">L{{ leaf.no }}</span>
+                <span class="kt-leaf-title">
+                  <span class="zh">{{ leaf.zh }}</span>
+                  <span class="en">{{ leaf.en }}</span>
+                </span>
+                <span class="kt-leaf-go">→</span>
+              </button>
+            </div>
           </div>
-          <div class="map-node foundation">
-            <span class="mn-no">CH 3</span>
-            <span class="mn-t" v-html="bi('Bellman 最优方程','Bellman optimality equation')"></span>
-            <span class="mn-e">fundamental tool</span>
-          </div>
-        </div>
-        <div class="map-arrow">↓</div>
-        <div class="map-row">
-          <div class="map-node algo">
-            <span class="mn-no">CH 4</span>
-            <span class="mn-t" v-html="bi('值迭代 & 策略迭代','Value iteration & policy iteration')"></span>
-            <span class="mn-e">with model 有模型</span>
-          </div>
-          <div class="map-node algo">
-            <span class="mn-no">CH 5–8</span>
-            <span class="mn-t" v-html="bi('MC / TD / 值函数近似','MC / TD / value function approx.')"></span>
-            <span class="mn-e">without model · value-based</span>
-          </div>
-          <div class="map-node algo">
-            <span class="mn-no">CH 9–10</span>
-            <span class="mn-t" v-html="bi('策略梯度 / Actor-Critic','Policy gradient / Actor-Critic')"></span>
-            <span class="mn-e">policy-based · plus</span>
-          </div>
-        </div>
-        <div class="map-row">
-          <div class="map-node tool" style="flex:1 1 130px"><span class="mn-t" style="font-size:12.5px" v-html="bi('表格表示 tabular','tabular')"></span><span class="mn-e">Ch 1–6</span></div>
-          <div class="map-node tool" style="flex:1 1 130px"><span class="mn-t" style="font-size:12.5px" v-html="bi('函数表示 function approx.','function approx.')"></span><span class="mn-e">Ch 8–10</span></div>
         </div>
       </div>
       <div class="map-caption">
-        <span><i style="background:linear-gradient(135deg,var(--accent),var(--violet))"></i><span v-html="bi('本课','this lesson')"></span></span>
-        <span><i style="background:var(--accent-soft);border:1px solid #b7ccf4"></i><span v-html="bi('基础工具','fundamental tools')"></span></span>
-        <span><i style="background:var(--green-soft);border:1px solid #cfe6ab"></i><span v-html="bi('算法方法','algorithms')"></span></span>
+        <span v-for="b in branches" :key="'lg-' + b.key"><i class="kt-swatch" :class="b.cls"></i><span v-html="bi(b.zh, b.en)"></span></span>
+        <span v-html="bi('· 点击任意一讲进入其首节','· click any lecture to enter')"></span>
       </div>
     </div>`,
     setup() { return { bi }; },

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RL 可视化课堂 · 全书十讲 | RL Visual Classroom · Mathematical Foundation of RL</title>
-<meta name="description" content="《强化学习的数学原理》第一章基本概念 · 双语交互式可视化教程">
+<meta name="description" content="《强化学习的数学原理》全书十讲 · 双语交互式可视化教程：88 小节 · 63 个交互实验台，从网格世界与 Bellman 方程到策略梯度与 Actor-Critic">
 <script>
 // 主题引导：在样式表生效前定好 data-theme，避免首帧闪烁
 try { document.documentElement.dataset.theme = localStorage.getItem('rl-viz-theme') || 'chalk'; } catch (e) {}
@@ -61,20 +61,38 @@ try { document.documentElement.dataset.theme = localStorage.getItem('rl-viz-them
       </div>
       <nav class="side-nav">
         <div class="nav-group" v-for="group in navGroups" :key="group.label">
-          <div class="nav-group-label">{{ group.label }}</div>
-          <button v-for="item in group.items" :key="item.id"
-                  class="nav-item"
-                  :class="{active: section===item.id, done: visited.has(item.id)}"
-                  @click="go(item.id)">
-            <span class="nav-dot"></span>
-            <span class="nav-text">
-              <span class="nav-zh">{{ item.zh }}</span>
-              <span class="nav-en">{{ item.en }}</span>
+          <button type="button" class="nav-group-label"
+                  :class="{open: isLectureOpen(group.lecture), pinned: lectureFilter!==0}"
+                  :aria-expanded="isLectureOpen(group.lecture) ? 'true' : 'false'"
+                  @click="toggleLecture(group.lecture)">
+            <span class="ngl-text">{{ group.label }}</span>
+            <span class="ngl-chevron" aria-hidden="true">
+              <svg viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg>
             </span>
           </button>
+          <div class="nav-group-body" :class="{open: isLectureOpen(group.lecture)}">
+            <div class="nav-group-inner">
+              <div class="nav-cluster" :class="{flat: !cluster.zh}" v-for="cluster in clustersOf(group)" :key="cluster.zh || cluster.en || 'flat'">
+                <div class="nav-cluster-label" v-if="cluster.zh">
+                  <span class="zh">{{ cluster.zh }}</span>
+                  <span class="en">{{ cluster.en }}</span>
+                </div>
+                <button v-for="item in cluster.items" :key="item.id"
+                        class="nav-item"
+                        :class="{active: section==='lesson' && activeId===item.id, done: visited.has(item.id)}"
+                        @click="go(item.id)">
+                  <span class="nav-dot"></span>
+                  <span class="nav-text">
+                    <span class="nav-zh">{{ item.zh }}</span>
+                    <span class="nav-en">{{ item.en }}</span>
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="nav-group">
-          <div class="nav-group-label">全部课程 · All Lectures</div>
+          <div class="nav-group-label plain">全部课程 · All Lectures</div>
           <div class="coming-list">
             <div class="coming-item" v-for="c in lectureChips" :key="c.no">
               <span class="coming-no">L{{ c.no }}</span>
@@ -96,7 +114,7 @@ try { document.documentElement.dataset.theme = localStorage.getItem('rl-viz-them
       <template v-if="section==='home'">
         <home-hero @go="go"></home-hero>
         <lecture-index @go="go"></lecture-index>
-        <course-map></course-map>
+        <course-map @go="go"></course-map>
         <how-to-use @go="go"></how-to-use>
       </template>
 
@@ -111,16 +129,16 @@ try { document.documentElement.dataset.theme = localStorage.getItem('rl-viz-them
           </header>
 
           <template v-for="(blk, bi) in sec.blocks" :key="bi">
-            <p v-if="blk.t==='p'" class="bi duo" v-html="fmt(blk)"></p>
-            <div v-else-if="blk.t==='formula'" class="formula-card" v-html="blk.html"></div>
-            <div v-else-if="blk.t==='callout'" :class="['callout', blk.variant||'key']">
+            <p v-if="blk.t==='p'" class="bi duo reveal-item" v-html="fmt(blk)"></p>
+            <div v-else-if="blk.t==='formula'" class="formula-card reveal-item" v-html="blk.html"></div>
+            <div v-else-if="blk.t==='callout'" :class="['callout', 'reveal-item', blk.variant||'key']">
               <div class="callout-icon">{{ iconFor(blk.variant) }}</div>
               <div class="callout-body">
                 <p class="bi duo" v-html="fmt(blk)"></p>
               </div>
             </div>
-            <component v-else-if="blk.t==='widget'" :is="blk.component" v-bind="blk.props||{}"></component>
-            <div v-else-if="blk.t==='steps'" class="mini-steps">
+            <component v-else-if="blk.t==='widget'" :is="blk.component" class="reveal-item" v-bind="blk.props||{}"></component>
+            <div v-else-if="blk.t==='steps'" class="mini-steps reveal-item">
               <div class="mini-step" v-for="(st,si) in blk.items" :key="si">
                 <span class="mini-step-no">{{ si+1 }}</span>
                 <div class="mini-step-body">
@@ -134,8 +152,8 @@ try { document.documentElement.dataset.theme = localStorage.getItem('rl-viz-them
 
       <footer class="footer">
         <p class="bi-footer">
-          <span>基于 Shiyu Zhao《Mathematical Foundation of Reinforcement Learning》第一章与西湖大学 IUSLab 网格世界代码制作 · 仅用于学习</span>
-          <span>Built on Chapter 1 of "Mathematical Foundation of Reinforcement Learning" and the IUSLab grid-world code, Westlake University · For study only</span>
+          <span>基于 Shiyu Zhao《Mathematical Foundation of Reinforcement Learning》全书十讲与西湖大学 IUSLab 网格世界代码制作 · 仅用于学习</span>
+          <span>Built on all ten chapters of "Mathematical Foundation of Reinforcement Learning" and the IUSLab grid-world code, Westlake University · For study only</span>
         </p>
       </footer>
     </main>
