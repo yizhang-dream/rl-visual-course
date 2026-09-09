@@ -154,9 +154,20 @@
       cellFill(st) {
         if (st === this.target) return 'var(--cyan)';
         if (this.forbidden.includes(st)) return 'var(--gold)';
-        return '#ffffff';
+        return 'var(--cell-alt)';
       },
       clickCell(st) { if (this.clickable) this.$emit('cell', st); },
+      // 可编辑格子的读屏标签：坐标 + 当前类型（随语言切换）
+      cellLabel(st) {
+        const { r, c } = s2rc(st, this.size);
+        const en = this.$root && this.$root.lang === 'en';
+        const kind = st === this.target ? (en ? 'target' : '目标')
+          : this.forbidden.includes(st) ? (en ? 'forbidden cell' : '禁区')
+          : (en ? 'normal cell' : '普通格');
+        const pos = en ? 'row ' + (r + 1) + ', column ' + (c + 1) : '第 ' + (r + 1) + ' 行第 ' + (c + 1) + ' 列';
+        const hint = en ? 'press Enter to select' : '按 Enter 选择';
+        return 's' + st + ' · ' + pos + ' · ' + kind + ' · ' + hint;
+      },
     },
     template: `
     <svg :viewBox="'0 0 ' + W + ' ' + W" class="grid-board" :class="{clickable}">
@@ -178,7 +189,7 @@
 
       <text v-if="start" :x="PAD + s2rc(start,size).c*CELL + CELL/2" :y="PAD + s2rc(start,size).r*CELL + CELL - 12"
             class="cell-tag" fill="var(--accent)" font-size="13">
-        <tspan v-if="size===4">起点</tspan><tspan v-else>Start</tspan>
+        <tspan v-if="$root.lang === 'en'">Start</tspan><tspan v-else>起点</tspan>
       </text>
 
       <!-- 策略箭头 -->
@@ -216,9 +227,9 @@
       <!-- 奖励浮字 -->
       <g v-for="pop in rewardPops" :key="pop.id" class="rw-float">
         <circle :cx="center(pop.state,size).x" :cy="center(pop.state,size).y - 4" r="21"
-                :fill="pop.kind==='pos' ? 'var(--green)' : pop.kind==='neg' ? 'var(--red)' : '#8395a7'" opacity=".92"/>
+                :fill="pop.kind==='pos' ? 'var(--green)' : pop.kind==='neg' ? 'var(--red)' : 'var(--ink-3)'" opacity=".92"/>
         <text :x="center(pop.state,size).x" :y="center(pop.state,size).y + 1" text-anchor="middle"
-              fill="#fff" font-weight="800" font-size="16" font-family="var(--mono)">{{pop.text}}</text>
+              fill="var(--on-accent)" font-weight="800" font-size="16" font-family="var(--mono)">{{pop.text}}</text>
       </g>
 
       <!-- 撞击闪烁 -->
@@ -229,17 +240,20 @@
       <!-- 价值数字 -->
       <text v-for="vt in valueTexts" :key="'v'+vt.st" :x="vt.x" :y="vt.y+5"
             text-anchor="middle" font-weight="700" font-size="15" font-family="var(--mono)"
-            fill="#233" style="paint-order:stroke; stroke:#fff; stroke-width:4px;">{{vt.v}}</text>
+            fill="var(--ink)" style="paint-order:stroke; stroke:var(--cell-alt); stroke-width:4px;">{{vt.v}}</text>
 
       <!-- 智能体 -->
       <g class="agent-g" :style="agentStyle">
-        <polygon class="agent-star agent-pulse" :points="STAR" fill="var(--accent)" stroke="#fff" stroke-width="2"/>
+        <polygon class="agent-star agent-pulse" :points="STAR" fill="var(--accent)" stroke="var(--cell-alt)" stroke-width="2"/>
       </g>
 
-      <!-- 点击热区（最上层） -->
+      <!-- 点击热区（最上层；可编辑时键盘可达） -->
       <rect v-for="st in allStates" :key="'h'+st" class="cell-hit" :class="{'sel-halo': st===selected}"
             :x="PAD + s2rc(st,size).c*CELL" :y="PAD + s2rc(st,size).r*CELL"
-            :width="CELL" :height="CELL" fill="transparent" @click="clickCell(st)"/>
+            :width="CELL" :height="CELL" fill="transparent" @click="clickCell(st)"
+            :tabindex="clickable ? 0 : -1" :role="clickable ? 'button' : null"
+            :aria-label="clickable ? cellLabel(st) : null"
+            @keydown.enter.prevent="clickCell(st)" @keydown.space.prevent="clickCell(st)"/>
     </svg>`,
     setup(props) { return { CELL, PAD, s2rc, center, STAR }; },
   };
@@ -342,7 +356,7 @@
         </div>
         <div class="lab-side">
           <div class="kw-legend">
-            <span class="lg"><i class="sw" style="background:#fff;border:1px solid #c9d4de"></i><span v-html="bi('白色 · 可进入','white · accessible')"></span></span>
+            <span class="lg"><i class="sw" style="background:var(--cell-alt);border:1px solid var(--line-strong)"></i><span v-html="bi('白色 · 可进入','white · accessible')"></span></span>
             <span class="lg"><i class="sw" style="background:var(--gold)"></i><span v-html="bi('橙 · 禁区','orange · forbidden')"></span></span>
             <span class="lg"><i class="sw" style="background:var(--cyan)"></i><span v-html="bi('蓝 · 目标','blue · target')"></span></span>
             <span class="lg"><i class="sw" style="background:var(--accent);border-radius:99px"></i><span v-html="bi('星 · 智能体','star · the agent')"></span></span>
@@ -874,6 +888,7 @@
           <div class="ctl-row" style="margin-top:14px">
             <span class="ctl-label">γ = <strong>{{gamma.toFixed(2)}}</strong></span>
             <input type="range" min="0.5" max="0.99" step="0.01" v-model.number="gamma"
+                   :aria-label="$root.lang === 'en' ? 'discount factor gamma' : '折扣因子 γ'"
                    :style="{width:'200px', '--fill': ((gamma-0.5)/0.49*100)+'%'}">
             <span class="ctl-label" style="color:var(--ink-3)" v-html="bi('拖动看折扣力度','drag to feel the discount')"></span>
           </div>
@@ -1384,7 +1399,9 @@
     methods: { flip(i) { this.flipped[i] = !this.flipped[i]; } },
     template: `
     <div class="qa-grid">
-      <div v-for="(c,i) in cards" :key="i" class="qa-card" :class="{flipped: !!flipped[i]}" @click="flip(i)">
+      <div v-for="(c,i) in cards" :key="i" class="qa-card" :class="{flipped: !!flipped[i]}"
+           role="button" tabindex="0" :aria-expanded="flipped[i] ? 'true' : 'false'"
+           @click="flip(i)" @keydown.enter.prevent="flip(i)" @keydown.space.prevent="flip(i)">
         <div class="qa-inner">
           <div class="qa-face">
             <span class="qa-tag">{{ c.tag }}</span>
@@ -1392,7 +1409,7 @@
             <span class="qa-hint" v-html="bi('点击翻转看答案 →','click to flip →')"></span>
           </div>
           <div class="qa-face back">
-            <span class="qa-tag" style="background:#fff">A</span>
+            <span class="qa-tag" style="background:var(--surface)">A</span>
             <p class="bi duo" style="font-size:14px" v-html="bi(c.a.zh, c.a.en)"></p>
             <span class="qa-hint" v-html="bi('← 点击翻回','← flip back')"></span>
           </div>

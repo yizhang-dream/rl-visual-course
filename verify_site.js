@@ -18,6 +18,30 @@ fs.mkdirSync(OUT, { recursive: true });
   page.on('console', (m) => { if (m.type() === 'error') errors.push('[console] ' + m.text()); });
   page.on('pageerror', (e) => errors.push('[pageerror] ' + e.message));
 
+  // 0a. 深链冒烟：全新加载直接打开 #sec-l7-qlearning，应直达该节（L7 单讲视图）
+  try {
+    await page.goto('http://localhost:8642/#sec-l7-qlearning', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(900);
+    const chip = await page.textContent('.lecture-filter .lf-chip.active');
+    const nSections = (await page.$$('.lesson-section')).length;
+    const secTop = await page.$eval('#sec-l7-qlearning', el => el.getBoundingClientRect().top);
+    if (!/L7/.test(chip || '')) errors.push('[smoke-deeplink] active chip = ' + chip);
+    if (nSections !== 9) errors.push('[smoke-deeplink] L7 sections = ' + nSections + ' (expect 9)');
+    if (secTop == null || secTop > 220) errors.push('[smoke-deeplink] section top = ' + secTop);
+    await page.screenshot({ path: path.join(OUT, 'smoke-deeplink-l7.png') });
+
+    // 0b. 后退冒烟：pn 底栏 goto 下一节后 goBack() 应回到 l7-qlearning
+    await page.click('#sec-l7-qlearning .pn-btn.next');
+    await page.waitForTimeout(900);
+    await page.goBack();
+    await page.waitForTimeout(900);
+    const backHash = await page.evaluate(() => location.hash);
+    const backTop = await page.$eval('#sec-l7-qlearning', el => el.getBoundingClientRect().top);
+    if (backHash !== '#sec-l7-qlearning') errors.push('[smoke-back] hash after goBack = ' + backHash);
+    if (backTop == null || backTop > 220) errors.push('[smoke-back] section top after goBack = ' + backTop);
+    await page.screenshot({ path: path.join(OUT, 'smoke-back-nav.png') });
+  } catch (e) { errors.push('[smoke-deeplink/back] ' + e.message); }
+
   await page.goto('http://localhost:8642/', { waitUntil: 'networkidle' });
   await page.waitForTimeout(900);
 
@@ -76,6 +100,26 @@ fs.mkdirSync(OUT, { recursive: true });
     await page.waitForTimeout(600);
     await page.screenshot({ path: path.join(OUT, 'smoke-reasoning-essay.png') });
   } catch (e) { errors.push('[smoke-reasoning] ' + e.message); }
+
+  // 3b. 键盘冒烟：纯 Tab 走查到 QA 卡，Enter 翻转
+  try {
+    await page.evaluate(() => document.getElementById('sec-qa').scrollIntoView());
+    await page.waitForTimeout(400);
+    let focusedCard = false;
+    for (let i = 0; i < 150 && !focusedCard; i++) {
+      await page.keyboard.press('Tab');
+      focusedCard = await page.evaluate(() => {
+        const el = document.activeElement;
+        return !!(el && el.classList && el.classList.contains('qa-card'));
+      });
+    }
+    if (!focusedCard) errors.push('[smoke-qa-keyboard] qa-card not reachable via Tab (150 tries)');
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(350);
+    const flipped = await page.$eval('.qa-card', el => el.classList.contains('flipped'));
+    if (!flipped) errors.push('[smoke-qa-keyboard] card not flipped after Enter');
+    await page.screenshot({ path: path.join(OUT, 'smoke-qa-keyboard.png') });
+  } catch (e) { errors.push('[smoke-qa-keyboard] ' + e.message); }
 
     // ── L2+：按课程筛选逐节截图 + 冒烟 ──
   const lectures = [
@@ -187,6 +231,29 @@ fs.mkdirSync(OUT, { recursive: true });
       await page.screenshot({ path: path.join(OUT, lec.shots[i] + '.png') });
     }
   }
+
+  // ── 深色主题（quant 深空）冒烟：l8/l9/l10 图表与棋盘无白底块 ──
+  try {
+    await page.click('.theme-switch .theme-btn >> nth=2');   // 第 3 个圆点 = quant
+    await page.waitForTimeout(600);
+    const darks = [
+      { chip: 'L8',  id: 'sec-l8-td-fa',      shot: 'smoke-dark-l8' },
+      { chip: 'L9',  id: 'sec-l9-reinforce',  shot: 'smoke-dark-l9' },
+      { chip: 'L10', id: 'sec-l10-summary',    shot: 'smoke-dark-l10' },
+    ];
+    for (const d of darks) {
+      await page.click('.lecture-filter .lf-chip:has-text("' + d.chip + '")');
+      await page.waitForTimeout(400);
+      await page.evaluate((id) => document.getElementById(id).scrollIntoView(), d.id);
+      await page.waitForTimeout(700);
+      const whites = await page.$$eval('#' + d.id + ' .lab svg', els =>
+        els.filter(el => getComputedStyle(el).backgroundColor === 'rgb(255, 255, 255)').length);
+      if (whites) errors.push('[smoke-dark ' + d.chip + '] ' + whites + ' chart svg still white');
+      await page.screenshot({ path: path.join(OUT, d.shot + '.png') });
+    }
+    await page.click('.theme-switch .theme-btn >> nth=0');   // 切回 chalk 默认
+  } catch (e) { errors.push('[smoke-dark] ' + e.message); }
+
 console.log(errors.length ? 'ERRORS:\n' + errors.join('\n') : 'NO CONSOLE ERRORS');
   await browser.close();
 })();

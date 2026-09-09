@@ -69,7 +69,7 @@
       </div>
       <div class="lab-body" style="align-items:center">
         <div class="lab-stage" style="flex:1 1 360px">
-          <svg viewBox="0 0 320 150" style="width:100%;max-width:440px;display:block;background:#fff;border:1px solid var(--line);border-radius:12px">
+          <svg viewBox="0 0 320 150" style="width:100%;max-width:440px;display:block;background:var(--chart-bg);border:1px solid var(--line);border-radius:12px">
             <line x1="10" :y1="150-14-(trueMean+4)/12*122" x2="310" :y2="150-14-(trueMean+4)/12*122"
                   stroke="var(--gold)" stroke-width="2" stroke-dasharray="6 4"/>
             <text x="308" :y="146-(trueMean+4)/12*122" text-anchor="end" style="font:700 10px var(--mono)" fill="var(--gold)">E[X] = {{ trueMean }}</text>
@@ -149,6 +149,7 @@
         <span class="lab-title">解 g(w) = w³ − 5 = 0 · 只凭噪声读数 · Root-finding on noisy readings</span>
         <span class="ctl-label">噪声 σ = <strong>{{ sigma }}</strong></span>
         <input type="range" min="0" max="3" step="0.5" v-model.number="sigma"
+               :aria-label="$root.lang === 'en' ? 'noise level sigma' : '噪声强度 σ'"
                :style="{width:'120px', '--fill': (sigma/3*100)+'%'}">
         <div class="seg">
           <button :class="{active: sched==='invk'}" @click="sched='invk'; reset()">a_k = 1/k</button>
@@ -158,7 +159,7 @@
       </div>
       <div class="lab-body" style="align-items:center">
         <div class="lab-stage" style="flex:1 1 360px">
-          <svg viewBox="0 0 300 150" style="width:100%;max-width:440px;display:block;background:#fff;border:1px solid var(--line);border-radius:12px">
+          <svg viewBox="0 0 300 150" style="width:100%;max-width:440px;display:block;background:var(--chart-bg);border:1px solid var(--line);border-radius:12px">
             <line x1="10" :y1="130 - (trueRoot+0.5)/3.5*110" x2="290" :y2="130 - (trueRoot+0.5)/3.5*110"
                   stroke="var(--gold)" stroke-width="2" stroke-dasharray="6 4"/>
             <text x="288" :y="126 - (trueRoot+0.5)/3.5*110" text-anchor="end" style="font:700 10px var(--mono)" fill="var(--gold)">w* ≈ {{ trueRoot.toFixed(2) }}</text>
@@ -227,7 +228,7 @@
       </div>
       <div class="lab-body" style="align-items:center">
         <div class="lab-stage" style="flex:1 1 380px">
-          <svg viewBox="0 0 300 150" style="width:100%;max-width:480px;display:block;background:#fff;border:1px solid var(--line);border-radius:12px">
+          <svg viewBox="0 0 300 150" style="width:100%;max-width:480px;display:block;background:var(--chart-bg);border:1px solid var(--line);border-radius:12px">
             <text x="290" y="18" text-anchor="end" style="font:700 10px var(--mono)" fill="var(--red)">SGD m=1</text>
             <text x="290" y="32" text-anchor="end" style="font:700 10px var(--mono)" fill="var(--gold)">MBGD m=5</text>
             <text x="290" y="46" text-anchor="end" style="font:700 10px var(--mono)" fill="var(--green)">MBGD m=50</text>

@@ -46,6 +46,7 @@
         </div>
         <span class="ctl-label">γ = <strong>{{ gamma.toFixed(2) }}</strong></span>
         <input type="range" min="0.5" max="0.95" step="0.01" v-model.number="gamma"
+               :aria-label="$root.lang === 'en' ? 'discount factor gamma' : '折扣因子 γ'"
                :style="{width:'150px', '--fill': ((gamma-0.5)/0.45*100)+'%'}">
       </div>
       <div class="lab-body">
@@ -100,11 +101,27 @@
       },
     },
     mounted() {
-      this.timer = setInterval(() => { if (!this.lock) this.hot = (this.hot + 1) % 4; }, 1300);
+      // 只在进入视口时轮播高亮状态；移出视口即暂停（省电、不打扰）
+      if ('IntersectionObserver' in window) {
+        this._io = new IntersectionObserver((entries) => {
+          entries.forEach(en => (en.isIntersecting ? this.startSpin() : this.stopSpin()));
+        }, { threshold: 0.15 });
+        this._io.observe(this.$el);
+      } else {
+        this.startSpin();
+      }
     },
-    unmounted() { if (this.timer) clearInterval(this.timer); },
+    beforeUnmount() {
+      if (this._io) { this._io.disconnect(); this._io = null; }
+      this.stopSpin();
+    },
     setup() { return { bi }; },
     methods: {
+      startSpin() {
+        if (this.timer) return;
+        this.timer = setInterval(() => { if (!this.lock) this.hot = (this.hot + 1) % 4; }, 1300);
+      },
+      stopSpin() { if (this.timer) { clearInterval(this.timer); this.timer = null; } },
       pos(i) {
         const ang = [-90, 0, 90, 180][i] * Math.PI / 180;
         return { x: 155 + 105 * Math.cos(ang), y: 148 + 105 * Math.sin(ang) };
@@ -136,25 +153,26 @@
           </label>
           <span class="ctl-label">γ = <strong>{{ gamma.toFixed(2) }}</strong></span>
           <input type="range" min="0.3" max="0.95" step="0.01" v-model.number="gamma"
+                 :aria-label="$root.lang === 'en' ? 'discount factor gamma' : '折扣因子 γ'"
                  :style="{width:'130px', '--fill': ((gamma-0.3)/0.65*100)+'%'}">
         </div>
       </div>
       <div class="lab-body" style="align-items:center">
         <div class="lab-stage" style="max-width:320px">
           <svg viewBox="0 0 310 300" style="width:100%;display:block">
-            <defs><marker id="ring-ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#8fa1b3"/></marker></defs>
+            <defs><marker id="ring-ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--chart-ink)"/></marker></defs>
             <path v-for="i in 4" :key="'e'+i"
-                  :d="ringEdge(i-1)" fill="none" stroke="#8fa1b3" stroke-width="2" marker-end="url(#ring-ar)"/>
+                  :d="ringEdge(i-1)" fill="none" stroke="var(--chart-ink)" stroke-width="2" marker-end="url(#ring-ar)"/>
             <text v-for="i in 4" :key="'l'+i" :x="midp(i-1).x" :y="midp(i-1).y - 7"
                   text-anchor="middle" style="font:700 13px var(--mono)" fill="var(--gold)">r{{ i }}</text>
             <g v-for="i in 4" :key="'n'+i" @mouseenter="enter(i-1)" @mouseleave="leave" style="cursor:pointer">
               <circle :cx="pos(i-1).x" :cy="pos(i-1).y" r="27"
-                      :fill="hot===i-1 ? 'var(--accent)' : '#fff'" stroke="var(--accent)" stroke-width="2.4"
+                      :fill="hot===i-1 ? 'var(--accent)' : 'var(--cell-alt)'" stroke="var(--accent)" stroke-width="2.4"
                       style="transition:all .25s cubic-bezier(.2,0,0,1)"/>
               <text :x="pos(i-1).x" :y="pos(i-1).y - 3" text-anchor="middle"
-                    :fill="hot===i-1 ? '#fff' : 'var(--ink)'" style="font:700 13px var(--mono)">s{{ i }}</text>
+                    :fill="hot===i-1 ? 'var(--on-accent)' : 'var(--ink)'" style="font:700 13px var(--mono)">s{{ i }}</text>
               <text :x="pos(i-1).x" :y="pos(i-1).y + 13" text-anchor="middle"
-                    :fill="hot===i-1 ? '#fff' : 'var(--accent-deep)'" style="font:700 12px var(--mono)">
+                    :fill="hot===i-1 ? 'var(--on-accent)' : 'var(--accent-deep)'" style="font:700 12px var(--mono)">
                 {{ values[i-1].toFixed(2) }}</text>
             </g>
           </svg>
@@ -208,6 +226,7 @@
         </div>
         <span class="ctl-label">γ = <strong>{{ gamma.toFixed(2) }}</strong></span>
         <input type="range" min="0.5" max="0.95" step="0.01" v-model.number="gamma"
+               :aria-label="$root.lang === 'en' ? 'discount factor gamma' : '折扣因子 γ'"
                :style="{width:'150px', '--fill': ((gamma-0.5)/0.45*100)+'%'}">
       </div>
       <div class="lab-body">
@@ -380,6 +399,7 @@
         <span class="lab-title">s1 的五个动作价值 · π 不选的动作也有价值 · All five actions have values</span>
         <span class="ctl-label">γ = <strong>{{ gamma.toFixed(2) }}</strong></span>
         <input type="range" min="0.5" max="0.95" step="0.01" v-model.number="gamma"
+               :aria-label="$root.lang === 'en' ? 'discount factor gamma' : '折扣因子 γ'"
                :style="{width:'150px', '--fill': ((gamma-0.5)/0.45*100)+'%'}">
       </div>
       <div class="lab-body">

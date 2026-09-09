@@ -66,6 +66,7 @@
         <span class="lab-title">改进 s1 的一步 · Improve one step at s1</span>
         <span class="ctl-label">γ = <strong>{{ gamma.toFixed(2) }}</strong></span>
         <input type="range" min="0.5" max="0.95" step="0.01" v-model.number="gamma"
+               :aria-label="$root.lang === 'en' ? 'discount factor gamma' : '折扣因子 γ'"
                :style="{width:'140px', '--fill': ((gamma-0.5)/0.45*100)+'%'}">
         <button class="btn primary" @click="improved = !improved">
           {{ improved ? '↺ 换回坏策略 a2' : '⇄ 改进：换成 a3' }}
@@ -146,11 +147,12 @@
         </div>
         <span class="ctl-label">x₀ = <strong>{{ x0.toFixed(2) }}</strong></span>
         <input type="range" min="-2.9" max="2.9" step="0.1" :value="x0" @input="setX0"
+               :aria-label="$root.lang === 'en' ? 'starting point x0' : '初始点 x₀'"
                :style="{width:'140px', '--fill': ((x0+2.9)/5.8*100)+'%'}">
       </div>
       <div class="lab-body" style="align-items:center">
         <div class="lab-stage">
-          <svg :viewBox="'0 0 ' + W + ' ' + W" style="width:300px;display:block;background:#fff;border:1px solid var(--line);border-radius:12px">
+          <svg :viewBox="'0 0 ' + W + ' ' + W" style="width:300px;display:block;background:var(--chart-bg);border:1px solid var(--line);border-radius:12px">
             <line :x1="px(lo)" :y1="py(lo)" :x2="px(hi)" :y2="py(hi)" stroke="#c9d4de" stroke-width="1.4"/>
             <line :x1="px(lo)" :y1="py(0)" :x2="px(hi)" :y2="py(0)" stroke="#e3e9ef"/>
             <line :x1="px(0)" :y1="py(lo)" :x2="px(0)" :y2="py(hi)" stroke="#e3e9ef"/>
@@ -258,6 +260,7 @@
       <div class="ctl-row">
         <span class="ctl-label">γ = <strong>{{ gamma.toFixed(2) }}</strong></span>
         <input type="range" min="0" max="0.95" step="0.05" v-model.number="gamma"
+               :aria-label="$root.lang === 'en' ? 'discount factor gamma' : '折扣因子 γ'"
                :style="{width:'180px', '--fill': (gamma/0.95*100)+'%'}">
         <span class="ctl-label">r<sub>forbidden</sub> =</span>
         <select class="sel" v-model.number="rForbid">
@@ -327,6 +330,7 @@
         </div>
         <span class="ctl-label">γ = <strong>{{ gamma.toFixed(2) }}</strong></span>
         <input type="range" min="0.5" max="0.95" step="0.01" v-model.number="gamma"
+               :aria-label="$root.lang === 'en' ? 'discount factor gamma' : '折扣因子 γ'"
                :style="{width:'140px', '--fill': ((gamma-0.5)/0.45*100)+'%'}">
       </div>
       <div class="lab-body">

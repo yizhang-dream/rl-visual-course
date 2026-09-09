@@ -5,6 +5,7 @@
   const RLV = window.RLV;
   const { bi } = RLV;
   const GB = () => window.COMPONENTS.GridBoard;
+  const MAX_EPISODES = 1000;   // doneMark 与 play 自动停止共用同一上限
 
   /* ---------- TD 目标对照表 ---------- */
   const TargetTable = {
@@ -50,7 +51,6 @@
       algo: 'Q', eps: 0.2, alpha: 0.1,
       q: null, visits: null, episodes: 0, steps: 0,
       playing: false, timer: null, cur: 1,
-      recent: [],
     }),
     computed: {
       cfg() { return { size: 4, forbidden: [8, 10], target: 12 }; },
@@ -74,7 +74,7 @@
         return this.q.map(row => Math.max(...row));
       },
       doneMark() {
-        return this.episodes >= 300;
+        return this.episodes >= MAX_EPISODES;
       },
     },
     methods: {
@@ -122,15 +122,13 @@
           if (s === this.cfg.target && Math.random() < 0.05) break;  // 到达后偶尔结束回合
         }
         this.episodes++;
-        this.recent.push(this.steps);
-        if (this.recent.length > 30) this.recent.shift();
       },
       play() {
         if (this.playing) { this.stop(); return; }
         this.playing = true;
         this.timer = setInterval(() => {
           for (let i = 0; i < 3; i++) this.episode();
-          if (this.episodes >= 1000) this.stop();
+          if (this.episodes >= MAX_EPISODES) this.stop();
         }, 60);
       },
       stop() { this.playing = false; if (this.timer) { clearInterval(this.timer); this.timer = null; } },
@@ -138,7 +136,7 @@
         this.stop();
         this.q = Array.from({ length: 16 }, () => [0,0,0,0,0]);
         this.visits = new Array(16).fill(0);
-        this.episodes = 0; this.steps = 0; this.cur = 1; this.recent = [];
+        this.episodes = 0; this.steps = 0; this.cur = 1;
       },
     },
     mounted() { this.reset(); },
@@ -154,12 +152,16 @@
       </div>
       <div class="ctl-row">
         <span class="ctl-label">ε = <strong>{{ eps.toFixed(2) }}</strong></span>
-        <input type="range" min="0" max="0.6" step="0.05" v-model.number="eps" :style="{width:'110px', '--fill': (eps/0.6*100)+'%'}">
+        <input type="range" min="0" max="0.6" step="0.05" v-model.number="eps"
+               :aria-label="$root.lang === 'en' ? 'exploration rate epsilon' : '探索率 ε'"
+               :style="{width:'110px', '--fill': (eps/0.6*100)+'%'}">
         <span class="ctl-label">α = <strong>{{ alpha.toFixed(2) }}</strong></span>
-        <input type="range" min="0.02" max="0.6" step="0.02" v-model.number="alpha" :style="{width:'110px', '--fill': ((alpha-0.02)/0.58*100)+'%'}">
-        <button class="btn primary" @click="play">{{ playing ? '⏸ 暂停' : '▶ 训练 Train' }}</button>
+        <input type="range" min="0.02" max="0.6" step="0.02" v-model.number="alpha"
+               :aria-label="$root.lang === 'en' ? 'learning rate alpha' : '学习率 α'"
+               :style="{width:'110px', '--fill': ((alpha-0.02)/0.58*100)+'%'}">
+        <button class="btn primary" @click="play"><span v-html="playing ? bi('⏸ 暂停','⏸ Pause') : bi('▶ 训练','▶ Train')"></span></button>
         <button class="btn" @click="episode()">+1 <span v-html="bi('回合','episode')"></span></button>
-        <button class="btn ghost" @click="reset">↺ 重置</button>
+        <button class="btn ghost" @click="reset"><span v-html="bi('↺ 重置','↺ Reset')"></span></button>
       </div>
       <div class="lab-body">
         <div class="lab-stage" style="max-width:380px">

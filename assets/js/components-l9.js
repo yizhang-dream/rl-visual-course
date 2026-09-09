@@ -98,12 +98,13 @@
         <span class="lab-title">REINFORCE 现场训练 · 2×2 世界 · REINFORCE live on the 2×2 world</span>
         <span class="ctl-label">α = <strong>{{ alpha.toFixed(2) }}</strong></span>
         <input type="range" min="0.01" max="0.2" step="0.01" v-model.number="alpha"
+               :aria-label="$root.lang === 'en' ? 'learning rate alpha' : '学习率 α'"
                :style="{width:'120px', '--fill': ((alpha-0.01)/0.19*100)+'%'}">
       </div>
       <div class="ctl-row">
-        <button class="btn primary" @click="play">{{ playing ? '⏸ 暂停' : '▶ 训练 Train' }}</button>
+        <button class="btn primary" @click="play"><span v-html="playing ? bi('⏸ 暂停','⏸ Pause') : bi('▶ 训练','▶ Train')"></span></button>
         <button class="btn" @click="for(let i=0;i<20;i++) episode()">+20 <span v-html="bi('回合','episodes')"></span></button>
-        <button class="btn ghost" @click="reset">↺ 重置</button>
+        <button class="btn ghost" @click="reset"><span v-html="bi('↺ 重置','↺ Reset')"></span></button>
       </div>
       <div class="lab-body">
         <div class="lab-stage" style="max-width:250px">
@@ -123,9 +124,9 @@
             <span class="t-label" style="margin-left:12px" v-html="bi('近 20 回合平均回报', 'avg return (last 20)')"></span>
             <span class="t-num" style="color:var(--gold)">{{ avgReturn == null ? '—' : avgReturn.toFixed(2) }}</span>
           </div>
-          <svg viewBox="0 0 280 60" style="width:100%;max-width:280px;display:block;background:#fff;border:1px solid var(--line);border-radius:10px;margin-bottom:10px">
+          <svg viewBox="0 0 280 60" style="width:100%;max-width:280px;display:block;background:var(--chart-bg);border:1px solid var(--line);border-radius:10px;margin-bottom:10px">
             <polyline v-if="sparkline" :points="sparkline" fill="none" stroke="var(--accent)" stroke-width="1.4"/>
-            <text v-if="!sparkline" x="140" y="32" text-anchor="middle" style="font:600 11px var(--font)" fill="#9fb2c8" v-html="bi('回报曲线将出现在这里','the return curve will appear here')"></text>
+            <text v-if="!sparkline" x="140" y="32" text-anchor="middle" style="font:600 11px var(--font)" fill="var(--chart-ink)" v-html="bi('回报曲线将出现在这里','the return curve will appear here')"></text>
           </svg>
           <p class="bi duo" style="font-size:13px" v-html="bi(
             's1 的五个动作概率实时展示：REINFORCE 会把 a3（向下，避开右上禁区）的概率推高、把 a2（向右，闯禁区）压低——推力正比于回报。平均回报曲线从震荡爬向高位，这就是『被奖励强化的行为更常出现』。',

@@ -48,6 +48,7 @@
         <span class="lab-title">掷硬币估均值 · Coin-flip mean estimation</span>
         <span class="ctl-label">p(正面) = <strong>{{ pHead.toFixed(2) }}</strong></span>
         <input type="range" min="0.05" max="0.95" step="0.05" :value="pHead" @input="setP"
+               :aria-label="$root.lang === 'en' ? 'probability of heads' : '正面概率 p'"
                :style="{width:'140px', '--fill': ((pHead-0.05)/0.9*100)+'%'}">
         <button class="btn primary" @click="play">{{ running ? '⏸ 暂停' : '▶ 抛硬币' }}</button>
         <button class="btn" @click="draw(20)">+20</button>
@@ -55,7 +56,7 @@
       </div>
       <div class="lab-body" style="align-items:center">
         <div class="lab-stage" style="flex:1 1 340px">
-          <svg viewBox="0 0 300 130" style="width:100%;max-width:420px;display:block;background:#fff;border:1px solid var(--line);border-radius:12px">
+          <svg viewBox="0 0 300 130" style="width:100%;max-width:420px;display:block;background:var(--chart-bg);border:1px solid var(--line);border-radius:12px">
             <line x1="10" :y1="60 - trueMean*26" x2="290" :y2="60 - trueMean*26"
                   stroke="var(--gold)" stroke-width="2" stroke-dasharray="6 4"/>
             <text x="288" :y="52 - trueMean*26" text-anchor="end" style="font:700 10px var(--mono)" fill="var(--gold)">E[X] = {{ trueMean.toFixed(2) }}</text>
@@ -160,6 +161,7 @@
         <span class="lab-title">MC Basic 现场 · 4×4 作业世界 · MC Basic live</span>
         <span class="ctl-label">每对采样 n = <strong>{{ n }}</strong></span>
         <input type="range" min="1" max="60" step="1" v-model.number="n"
+               :aria-label="$root.lang === 'en' ? 'samples per state-action pair' : '每对状态-动作采样数 n'"
                :style="{width:'140px', '--fill': ((n-1)/59*100)+'%'}">
         <label class="ctl-label" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
           <input type="checkbox" v-model="wind"> 🌬 <span v-html="bi('刮风(15%打滑)','wind (15% slip)')"></span>
@@ -279,6 +281,7 @@
         <span class="lab-title">ε-greedy 漫游 · 红色 = 访问热度 · ε-greedy wandering, red = visit heat</span>
         <span class="ctl-label">ε = <strong>{{ eps.toFixed(2) }}</strong></span>
         <input type="range" min="0" max="1" step="0.05" v-model.number="eps"
+               :aria-label="$root.lang === 'en' ? 'exploration rate epsilon' : '探索率 ε'"
                :style="{width:'160px', '--fill': (eps*100)+'%'}">
       </div>
       <div class="lab-body">

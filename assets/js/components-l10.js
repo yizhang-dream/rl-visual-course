@@ -35,8 +35,8 @@
       deltaPath() {
         const arr = this.deltaTrace.slice(-120);
         if (arr.length < 2) return '';
-        const m = Math.max(...arr.map(Math.abs), 1e-6);
-        return arr.map((d, i) => `${8 + i / (arr.length - 1) * 264},${32 - Math.max(-1.2, Math.min(1.2, d)) / 1.2 * 26}`).join(' ');
+        const m = Math.max(...arr.map(Math.abs), 0.5);   // 自适应纵轴，围绕零基线上下对称
+        return arr.map((d, i) => `${8 + i / (arr.length - 1) * 264},${32 - d / m * 24}`).join(' ');
       },
     },
     methods: {
@@ -67,6 +67,8 @@
           const s2 = rr.next;
           const v2 = s2 === this.cfg.target ? 0 : this.w[s2 - 1];
           const delta = rr.reward + 0.9 * v2 - this.w[s - 1];
+          // 真实记录每步 TD 误差 δ = r + γv(s′) − v(s)（演员与评论家共用同一信号）
+          this.deltaTrace.push(delta);
           // critic
           this.w[s - 1] += this.alphaW * delta;
           // actor
@@ -81,10 +83,7 @@
           if (t > 3 && s === this.cfg.target && Math.random() < 0.1) break;
         }
         this.episodes++;
-        this.deltaTrace.push(0);   // 占位：用 w 变化量
-        const d = Math.abs(this.w.reduce((a, b) => a + b, 0)) / 16;
-        this.deltaTrace[this.deltaTrace.length - 1] = Math.min(1.2, d);
-        if (this.deltaTrace.length > 120) this.deltaTrace.shift();
+        if (this.deltaTrace.length > 400) this.deltaTrace = this.deltaTrace.slice(-400);
         this.theta = this.theta.map(r => [...r]);
         this.w = [...this.w];
       },
@@ -114,13 +113,19 @@
       </div>
       <div class="ctl-row">
         <span class="ctl-label">ε = <strong>{{ eps.toFixed(2) }}</strong></span>
-        <input type="range" min="0" max="0.5" step="0.05" v-model.number="eps" :style="{width:'100px', '--fill': (eps/0.5*100)+'%'}">
+        <input type="range" min="0" max="0.5" step="0.05" v-model.number="eps"
+               :aria-label="$root.lang === 'en' ? 'exploration rate epsilon' : '探索率 ε'"
+               :style="{width:'100px', '--fill': (eps/0.5*100)+'%'}">
         <span class="ctl-label">α<sub>w</sub> = <strong>{{ alphaW.toFixed(2) }}</strong></span>
-        <input type="range" min="0.02" max="0.5" step="0.02" v-model.number="alphaW" :style="{width:'100px', '--fill': ((alphaW-0.02)/0.48*100)+'%'}">
+        <input type="range" min="0.02" max="0.5" step="0.02" v-model.number="alphaW"
+               :aria-label="$root.lang === 'en' ? 'critic step size' : '评论家步长 αw'"
+               :style="{width:'100px', '--fill': ((alphaW-0.02)/0.48*100)+'%'}">
         <span class="ctl-label">α<sub>θ</sub> = <strong>{{ alphaTheta.toFixed(2) }}</strong></span>
-        <input type="range" min="0.01" max="0.2" step="0.01" v-model.number="alphaTheta" :style="{width:'100px', '--fill': ((alphaTheta-0.01)/0.19*100)+'%'}">
-        <button class="btn primary" @click="play">{{ playing ? '⏸ 暂停' : '▶ 训练 Train' }}</button>
-        <button class="btn ghost" @click="reset">↺ 重置</button>
+        <input type="range" min="0.01" max="0.2" step="0.01" v-model.number="alphaTheta"
+               :aria-label="$root.lang === 'en' ? 'actor step size' : '演员步长 αθ'"
+               :style="{width:'100px', '--fill': ((alphaTheta-0.01)/0.19*100)+'%'}">
+        <button class="btn primary" @click="play"><span v-html="playing ? bi('⏸ 暂停','⏸ Pause') : bi('▶ 训练','▶ Train')"></span></button>
+        <button class="btn ghost" @click="reset"><span v-html="bi('↺ 重置','↺ Reset')"></span></button>
       </div>
       <div class="lab-body">
         <div class="lab-stage" style="max-width:380px">
@@ -134,13 +139,14 @@
             <span class="t-label" style="margin-left:12px" v-html="bi('步数', 'steps')"></span>
             <span class="t-num">{{ steps }}</span>
           </div>
-          <svg viewBox="0 0 280 64" style="width:100%;max-width:280px;display:block;background:#fff;border:1px solid var(--line);border-radius:10px;margin-bottom:10px">
-            <text x="272" y="14" text-anchor="end" style="font:700 9px var(--mono)" fill="#9fb2c8">|w̄| critic confidence</text>
+          <svg viewBox="0 0 280 64" style="width:100%;max-width:280px;display:block;background:var(--chart-bg);border:1px solid var(--line);border-radius:10px;margin-bottom:10px">
+            <text x="272" y="14" text-anchor="end" style="font:700 9px var(--mono)" fill="var(--chart-ink)">δ TD error</text>
+            <line x1="8" y1="32" x2="272" y2="32" stroke="var(--chart-grid)" stroke-width="1"/>
             <polyline v-if="deltaPath" :points="deltaPath" fill="none" stroke="var(--violet)" stroke-width="1.5"/>
           </svg>
           <p class="bi duo" style="font-size:13px" v-html="bi(
-            '紫线 = 评论家的平均 |v|（自信心）：从 0 爬升到 ~10 意味着打分体系成形。箭头（演员）与数字（评论家）同步进化——注意它们用的是<strong>同一个 δ</strong>：一次 TD 误差同时修正评分和策略。这就是 actor-critic 的全部效率来源。',
-            'The violet line = the critic’s mean |v| (its confidence): climbing from 0 toward ~10 means the scoring system has taken shape. Arrows (actor) and numbers (critic) evolve in lockstep — note they share <strong>the same δ</strong>: one TD error fixes both the scores and the policy. That is the entire efficiency of actor-critic.')"></p>
+            '紫线 = 每步真实 TD 误差 δ = r + γv(s′) − v(s)（灰线为零基准）：训练初期评论家乱打分，δ 又大又乱；随着打分成形，δ 衰减趋零。箭头（演员）与数字（评论家）同步进化——它们用的是<strong>同一个 δ</strong>：一次 TD 误差同时修正评分和策略，这就是 actor-critic 的全部效率来源。',
+            'The violet line = the true per-step TD error δ = r + γv(s′) − v(s) (grey = zero baseline): early on the critic scores wildly, so δ is large and noisy; as the scoring system takes shape, δ decays toward zero. Arrows (actor) and numbers (critic) evolve in lockstep — they share <strong>the same δ</strong>: one TD error fixes both the scores and the policy. That is the entire efficiency of actor-critic.')"></p>
         </div>
       </div>
     </div>`,

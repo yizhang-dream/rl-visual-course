@@ -48,6 +48,11 @@
   --page-tex: none;
   --page-tex-size: auto;
   --glow: none;
+  /* 图表/棋盘 token：SVG 图表底、图表文字、图表网格线、棋盘普通格 */
+  --chart-bg: #ffffff;
+  --chart-ink: #9fb2c8;
+  --chart-grid: #e3e9ef;
+  --cell-alt: #ffffff;
 
   /* 动效 tokens */
   --t-fast: 150ms; --t-mid: 250ms; --t-slow: 400ms;
@@ -69,6 +74,8 @@
 
 [v-cloak] { display: none; }
 * { box-sizing: border-box; }
+/* 全局键盘焦点环：按钮/卡片/格子/滑杆统一可见性（token 色） */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 html, body { height: 100%; }
 body {
   margin: 0;
@@ -260,6 +267,38 @@ h3.sub {
 h3.sub::before {
   content: ""; width: 5px; height: 18px; border-radius: 99px;
   background: var(--accent);
+}
+
+/* ─────────────── 小节底栏：上一节 / 下一节（按全书展平顺序） ─────────────── */
+.sec-pn {
+  display: flex; align-items: stretch; justify-content: space-between; gap: 12px;
+  margin-top: 28px; padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+.pn-btn {
+  flex: 0 1 320px; display: inline-flex; align-items: center; gap: 11px;
+  border: 1px solid var(--line-strong); border-radius: var(--radius-sm);
+  background: var(--bg-soft); padding: 10px 15px; cursor: pointer;
+  font-family: var(--font); text-align: left;
+  transition: transform var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease),
+              box-shadow var(--t-mid) var(--ease), background var(--t-fast) var(--ease);
+}
+.pn-btn.next { margin-left: auto; text-align: right; flex-direction: row-reverse; }
+.pn-btn:hover {
+  border-color: var(--accent); box-shadow: var(--shadow-1);
+  transform: translateY(-1px); background: var(--surface);
+}
+.pn-btn:active { transform: none; }
+.pn-arrow { font: 700 17px var(--mono); color: var(--accent); flex: none; line-height: 1; }
+.pn-lab { display: block; line-height: 1.2; }
+.pn-lab .zh { font: 700 11px var(--font); color: var(--ink-3); letter-spacing: 1px; }
+.pn-lab .en { font: 600 10px var(--mono); color: var(--ink-3); text-transform: uppercase; letter-spacing: .6px; margin-left: 6px; }
+.pn-title.zh { display: block; font: 600 13.5px/1.35 var(--font); color: var(--ink); margin-top: 3px; }
+.pn-title.en { display: block; font: 500 11px/1.4 var(--mono); color: var(--ink-3); }
+.pn-spacer { flex: 1 1 auto; }
+@media (max-width: 640px) {
+  .sec-pn { flex-direction: column; }
+  .pn-btn, .pn-btn.next { width: 100%; margin-left: 0; }
 }
 
 /* ─────────────── 卡片 / 提示框 ─────────────── */
@@ -877,6 +916,10 @@ html[data-theme="chalk"] {
   --shadow-2: 0 6px 18px rgba(0, 0, 0, .3);
   --shadow-pop: 0 14px 40px rgba(0, 0, 0, .45);
   --page-tex: radial-gradient(1100px 520px at 18% -8%, rgba(255,255,255,.05), transparent 62%);
+  --chart-bg: #152420;
+  --chart-ink: #8ba294;
+  --chart-grid: rgba(230, 242, 233, .14);
+  --cell-alt: #1f312a;
 }
 
 /* ── 02 讲义 Swiss Notes：纸白 + 克莱因蓝 ── */
@@ -916,6 +959,10 @@ html[data-theme="swiss"] {
     linear-gradient(rgba(21, 23, 27, .045) 1px, transparent 1px),
     linear-gradient(90deg, rgba(21, 23, 27, .045) 1px, transparent 1px);
   --page-tex-size: 28px 28px;
+  --chart-bg: #ffffff;
+  --chart-ink: #83878f;
+  --chart-grid: #e4e4de;
+  --cell-alt: #ffffff;
 }
 
 /* ── 03 深空 Quant Dark：墨蓝 + 电光青 ── */
@@ -955,6 +1002,10 @@ html[data-theme="quant"] {
   --page-tex: radial-gradient(rgba(255, 255, 255, .028) 1px, transparent 1.4px);
   --page-tex-size: 24px 24px;
   --glow: 0 0 20px rgba(60, 230, 194, .3);
+  --chart-bg: #0b1226;
+  --chart-ink: #71809f;
+  --chart-grid: rgba(126, 158, 255, .15);
+  --cell-alt: #13203c;
 }
 
 /* ── 04 教科书 Forest：暖纸 + 森林绿 + 衬线 ── */
@@ -991,6 +1042,10 @@ html[data-theme="forest"] {
   --shadow-2: 0 4px 16px rgba(96, 86, 48, .12);
   --shadow-pop: 0 12px 36px rgba(96, 86, 48, .2);
   --display: Georgia, "Times New Roman", "Noto Serif SC", "Source Han Serif SC", SimSun, serif;
+  --chart-bg: #fffdf6;
+  --chart-ink: #83897b;
+  --chart-grid: #e2dccb;
+  --cell-alt: #fffdf6;
 }
 
 /* ── 每主题动效性格与细节 ── */

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RL 可视化课堂 · 全书十讲 | RL Visual Classroom · Mathematical Foundation of RL</title>
-<meta name="description" content="《强化学习的数学原理》全书十讲 · 双语交互式可视化教程：88 小节 · 63 个交互实验台，从网格世界与 Bellman 方程到策略梯度与 Actor-Critic">
+<meta name="description" content="《强化学习的数学原理》全书十讲 · 双语交互式可视化教程：88 小节 · 63 个交互实验台 · 44 个 Vue 组件，从网格世界与 Bellman 方程到策略梯度与 Actor-Critic">
 <script>
 // 主题引导：在样式表生效前定好 data-theme，避免首帧闪烁
 try { document.documentElement.dataset.theme = localStorage.getItem('rl-viz-theme') || 'chalk'; } catch (e) {}
@@ -147,6 +147,27 @@ try { document.documentElement.dataset.theme = localStorage.getItem('rl-viz-them
               </div>
             </div>
           </template>
+
+          <nav class="sec-pn" aria-label="上一节 / 下一节 · Previous / Next section">
+            <button v-if="pnOf(sec.id).prev" type="button" class="pn-btn" @click="go(pnOf(sec.id).prev.id)">
+              <span class="pn-arrow" aria-hidden="true">←</span>
+              <span class="pn-text">
+                <span class="pn-lab"><span class="zh">上一节</span><span class="en">Previous</span></span>
+                <span class="pn-title zh">{{ pnOf(sec.id).prev.zh }}</span>
+                <span class="pn-title en">{{ pnOf(sec.id).prev.en }}</span>
+              </span>
+            </button>
+            <span v-else class="pn-spacer" aria-hidden="true"></span>
+            <button v-if="pnOf(sec.id).next" type="button" class="pn-btn next" @click="go(pnOf(sec.id).next.id)">
+              <span class="pn-text">
+                <span class="pn-lab"><span class="zh">下一节</span><span class="en">Next</span></span>
+                <span class="pn-title zh">{{ pnOf(sec.id).next.zh }}</span>
+                <span class="pn-title en">{{ pnOf(sec.id).next.en }}</span>
+              </span>
+              <span class="pn-arrow" aria-hidden="true">→</span>
+            </button>
+            <span v-else class="pn-spacer" aria-hidden="true"></span>
+          </nav>
         </section>
       </template>
 

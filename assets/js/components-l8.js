@@ -5,6 +5,12 @@
   const RLV = window.RLV;
   const { bi } = RLV;
 
+  /* 拟合图几何：坐标系左上原点 (x0,yBase)、绘图区 plotW×plotH、值域上限 vMax */
+  const CB = { x0: 10, plotW: 380, yBase: 170, plotH: 150, vMax: 12 };
+  // s(0..nS-1) → 画布坐标
+  const px = (s, nS) => CB.x0 + s / (nS - 1) * CB.plotW;
+  const py = (v) => CB.yBase - Math.max(-CB.vMax, Math.min(CB.vMax, v)) / CB.vMax * CB.plotH;
+
   /* ---------- TD-Linear 现场学习：用多项式/Fourier 特征拟合真值曲线 ---------- */
   const FitLab = {
     name: 'L8FitLab',
@@ -71,39 +77,40 @@
         const N = 80, pts = [];
         for (let i = 0; i <= N; i++) {
           const s = i / N * (this.nS - 1);
-          const p = this.phi(s);
-          const v = f(p);
-          pts.push(`${10 + i / N * 380},${170 - Math.max(0, Math.min(12, v)) / 12 * 150}`);
+          const v = f(this.phi(s));
+          pts.push(`${px(s, this.nS)},${py(Math.max(0, Math.min(CB.vMax, v)))}`);
         }
         return pts.join(' ');
       },
     },
     mounted() { this.reset(); },
     unmounted() { this.stop(); },
+    setup() { return { CB, px, py }; },
     template: `
     <div class="lab">
       <div class="lab-head">
         <span class="lab-title">拟合状态价值曲线 · v̂(s,w) = φᵀ(s)w · Fitting the value curve</span>
         <div class="seg">
-          <button :class="{active: features==='poly'}" @click="features='poly'; reset()">多项式</button>
+          <button :class="{active: features==='poly'}" @click="features='poly'; reset()"><span v-html="bi('多项式','Polynomial')"></span></button>
           <button :class="{active: features==='fourier'}" @click="features='fourier'; reset()">Fourier</button>
         </div>
         <span class="ctl-label">order = <strong>{{ order }}</strong></span>
         <input type="range" min="0" max="6" step="1" v-model.number="order" @change="reset"
+               :aria-label="$root.lang === 'en' ? 'feature order' : '特征阶数 order'"
                :style="{width:'110px', '--fill': (order/6*100)+'%'}">
-        <button class="btn primary" @click="play">{{ playing ? '⏸' : '▶ SGD 学习' }}</button>
+        <button class="btn primary" @click="play"><span v-html="playing ? bi('⏸ 暂停','⏸ Pause') : bi('▶ SGD 学习','▶ SGD learn')"></span></button>
         <button class="btn" @click="sweep(50)">+50</button>
-        <button class="btn ghost" @click="reset">↺</button>
+        <button class="btn ghost" @click="reset"><span v-html="bi('↺ 重置','↺ Reset')"></span></button>
       </div>
       <div class="lab-body" style="align-items:center">
         <div class="lab-stage" style="flex:1 1 420px">
-          <svg viewBox="0 0 400 185" style="width:100%;display:block;background:#fff;border:1px solid var(--line);border-radius:12px">
+          <svg viewBox="0 0 400 185" style="width:100%;display:block;background:var(--chart-bg);border:1px solid var(--line);border-radius:12px">
             <polyline :points="trueCurve" fill="none" stroke="var(--gold)" stroke-width="2.4" stroke-dasharray="7 5"/>
             <polyline v-if="w" :points="estCurve" fill="none" stroke="var(--accent)" stroke-width="2.6"/>
             <g v-for="s in nS" :key="'d'+s">
-              <circle :cx="10 + (s-1)/(nS-1)*380" :cy="170 - Math.max(0, Math.min(12, trueV(s-1)))/12*150" r="4"
+              <circle :cx="px(s-1, nS)" :cy="py(Math.max(0, Math.min(CB.vMax, trueV(s-1))))" r="4"
                       fill="var(--gold)" opacity=".8"/>
-              <circle v-if="w" :cx="10 + (s-1)/(nS-1)*380" :cy="170 - Math.max(-12, Math.min(12, vhat(s-1)))/12*150" r="4"
+              <circle v-if="w" :cx="px(s-1, nS)" :cy="py(vhat(s-1))" r="4"
                       fill="var(--accent)"/>
             </g>
           </svg>
@@ -128,7 +135,7 @@
         const pts = [];
         for (let i = 0; i <= 80; i++) {
           const s = i / 80 * (this.nS - 1);
-          pts.push(`${10 + i / 80 * 380},${170 - Math.max(0, Math.min(12, this.trueV(s))) / 12 * 150}`);
+          pts.push(`${px(s, this.nS)},${py(Math.max(0, Math.min(CB.vMax, this.trueV(s))))}`);
         }
         return pts.join(' ');
       },
@@ -137,8 +144,7 @@
         const pts = [];
         for (let i = 0; i <= 80; i++) {
           const s = i / 80 * (this.nS - 1);
-          const v = this.vhat(s);
-          pts.push(`${10 + i / 80 * 380},${170 - Math.max(-12, Math.min(12, v)) / 12 * 150}`);
+          pts.push(`${px(s, this.nS)},${py(this.vhat(s))}`);
         }
         return pts.join(' ');
       },
