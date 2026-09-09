@@ -1,7 +1,7 @@
 # RL 可视化课堂 · RL Visual Classroom
 
 《Mathematical Foundation of Reinforcement Learning》(Shiyu Zhao) **全书十讲**的双语交互式可视化教程。
-**L1–L10 全部完成**，共 88 个小节、63 个交互实验台、44 个 Vue 组件。
+**L1–L10 全部完成**，共 88 个小节、62 个交互实验台、44 个 Vue 组件。
 
 ## 链接与包容性
 
@@ -88,3 +88,6 @@ rl-viz/
 | 第一轮 | 2026-09-09 | `503eada` | 五套主题系统（墨板/讲义/深空/教科书/经典）+ 顶栏切换器 + 动效性格 |
 | 第二轮 | 2026-09-10 | `f4c4190` | 全书深化：三层知识树、内容加厚（422 块 / 7.6 万字）、语言润色、动效系统 v2 |
 | 第三轮 | 2026-09-10 | 见 git log | 链接与包容性：hash 路由深链 + 进度持久化 + 键盘可访问性 + 双语/主题净化 + 教学勘误（L10 真实 δ 轨迹、L7 清理、RingBoot 视口外暂停） |
+| 第四轮 | 2026-09-10 | 见 git log | 结构与性能与公式工程：components 按讲拆分 + 根模板组件化 + sr()/种子化统一；按讲懒加载 + GSAP 移除（首载 1.15MB→0.40MB，-64%）；KaTeX 公式升级（57 块全 TeX 化、矩阵/分式真排版、vendor 本地按需加载）；SEO meta/JSON-LD + 打印样式；eslint + GitHub Actions CI + verify_site 26 条断言化；对比度 WCAG AA 调优（ink-3 与 chart-ink 五主题 ≥4.5:1）；27 节补 ConceptChain 复盘链（88/88 节有交互组件）；实验台口径修正为 62 |
+
+**质量门禁**：`npm test`（模板编译 + 数据完整性）与 `npm run lint` 本地必过；`node verify_site.js` 26 条冒烟断言 + 零 console 错误；推送后 GitHub Actions 自动跑 check + smoke 两个 job。

@@ -1,4 +1,4 @@
-# 第三轮修改计划（2026-09-10 拟定，预算 3 小时）
+# 第三轮修改计划（2026-09-10 拟定并执行完毕；第四轮已同日完成，见下）
 
 > ✅ 已于 2026-09-10 执行完毕
 
@@ -91,3 +91,15 @@ feat: 链接与包容性——hash路由+进度持久化+可访问性+双语主�
 - components.js（1635 行）按讲拆分、根模板组件化（重构专项）
 - Math.random 种子化、sr() 五处重复统一走 RLV.stepOnce
 - 27 个无组件小节补 ConceptChain、打印样式、SEO meta/JSON-LD、对比度 token 调优
+
+
+---
+
+## 第四轮（同日追加执行完毕，2026-09-10）
+
+原"明确不做"清单已全部完成，分四批提交：
+
+1. **结构重构**：components.js（1635 行）拆为核心 797 行 + components-l1.js（887 行）；根模板移出 index.html 为 root-template.js（' 撇号规约随之消灭）；sr() 六处重复统一走 RLV.stepOnce（3070 例对比零差异）；l7-l10 实验台种子化（Reset 重训逐字节一致）。
+2. **性能**：按讲懒加载（loader.js ensureLecture，首载 1,147,640B→408,759B，-64.4%）；GSAP 移除（rAF/CSS 重写两处动效）；SEO meta/og/canonical/JSON-LD + 路由级 document.title；@media print 打印样式。
+3. **KaTeX**：vendor 本地化（css+js+60 字体）经 ensureKatex() 按需加载（首载预算 420KB 内不破）；57 个 formula 块全 TeX 化（53 纯 tex + 4 hybrid），String.raw 转义约定，矩阵 pmatrix/分式 frac 真排版；五主题 \htmlClass 色 映射 CSS 变量。
+4. **工程+内容**：eslint flat config（0 error/0 warning，全仓零 disable）+ GitHub Actions CI（check + smoke 双 job）+ verify_site 26 条断言化且失败 exit 1；--ink-3 与 --chart-ink 五主题对比度全部 ≥4.5:1（WCAG AA）；27 个无组件小节补 ConceptChain（88/88 节有交互组件）；实验台口径修正 63→62（原 63 误将 L1 总结复盘链计入）。

@@ -50,7 +50,7 @@
   --glow: none;
   /* 图表/棋盘 token：SVG 图表底、图表文字、图表网格线、棋盘普通格 */
   --chart-bg: #ffffff;
-  --chart-ink: #9fb2c8;
+  --chart-ink: #5f6e80;
   --chart-grid: #e3e9ef;
   --cell-alt: #ffffff;
 
@@ -977,7 +977,7 @@ html[data-theme="swiss"] {
     linear-gradient(90deg, rgba(21, 23, 27, .045) 1px, transparent 1px);
   --page-tex-size: 28px 28px;
   --chart-bg: #ffffff;
-  --chart-ink: #83878f;
+  --chart-ink: #656972;
   --chart-grid: #e4e4de;
   --cell-alt: #ffffff;
 }
@@ -1020,7 +1020,7 @@ html[data-theme="quant"] {
   --page-tex-size: 24px 24px;
   --glow: 0 0 20px rgba(60, 230, 194, .3);
   --chart-bg: #0b1226;
-  --chart-ink: #71809f;
+  --chart-ink: #7a89a8;
   --chart-grid: rgba(126, 158, 255, .15);
   --cell-alt: #13203c;
 }
@@ -1060,7 +1060,7 @@ html[data-theme="forest"] {
   --shadow-pop: 0 12px 36px rgba(96, 86, 48, .2);
   --display: Georgia, "Times New Roman", "Noto Serif SC", "Source Han Serif SC", SimSun, serif;
   --chart-bg: #fffdf6;
-  --chart-ink: #83897b;
+  --chart-ink: #616858;
   --chart-grid: #e2dccb;
   --cell-alt: #fffdf6;
 }
