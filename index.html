@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RL 可视化课堂 · L1 基本概念 | RL Visual Classroom · Basic Concepts</title>
+<meta name="description" content="《强化学习的数学原理》第一章基本概念 · 双语交互式可视化教程">
+<link rel="stylesheet" href="assets/css/main.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+</head>
+<body>
+<div id="app" v-cloak>
+
+  <!-- ═══════════ 顶部栏 ═══════════ -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <button class="brand" @click="go('home')" aria-label="回到首页">
+        <span class="brand-logo">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="5.4" height="5.4" rx="1"/><rect x="15.6" y="3" width="5.4" height="5.4" rx="1"/><rect x="3" y="15.6" width="5.4" height="5.4" rx="1"/><rect x="15.6" y="15.6" width="5.4" height="5.4" rx="1" fill="currentColor" stroke="none"/><path d="M8.4 5.7h7.2M5.7 8.4v7.2M18.3 8.4v7.2M8.4 18.3h7.2"/></svg>
+        </span>
+        <span class="brand-text">
+          <strong>RL 可视化课堂</strong>
+          <em>Mathematical Foundation of RL · Visual Course</em>
+        </span>
+      </button>
+
+      <div class="topbar-center">
+        <div class="scroll-track"><div class="scroll-bar" :style="{width: scrollPct + '%'}"></div></div>
+      </div>
+
+      <div class="lang-switch" role="group" aria-label="语言 / Language">
+        <button v-for="m in langModes" :key="m.key"
+                :class="['lang-btn', {active: lang===m.key}]"
+                @click="setLang(m.key)">{{ m.label }}</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="shell">
+    <!-- ═══════════ 侧边导航 ═══════════ -->
+    <aside class="sidebar" :class="{open: sidebarOpen}">
+      <div class="lecture-filter">
+        <button class="lf-chip" :class="{active: lectureFilter===0}" @click="lectureFilter=0">全部</button>
+        <button v-for="l in lectureChips" :key="l.no" class="lf-chip"
+                :class="{active: lectureFilter===l.no, done: l.done}" @click="filterLecture(l.no)">
+          L{{ l.no }}<i v-if="l.done">✓</i>
+        </button>
+      </div>
+      <nav class="side-nav">
+        <div class="nav-group" v-for="group in navGroups" :key="group.label">
+          <div class="nav-group-label">{{ group.label }}</div>
+          <button v-for="item in group.items" :key="item.id"
+                  class="nav-item"
+                  :class="{active: section===item.id, done: visited.has(item.id)}"
+                  @click="go(item.id)">
+            <span class="nav-dot"></span>
+            <span class="nav-text">
+              <span class="nav-zh">{{ item.zh }}</span>
+              <span class="nav-en">{{ item.en }}</span>
+            </span>
+          </button>
+        </div>
+        <div class="nav-group">
+          <div class="nav-group-label">全部课程 · All Lectures</div>
+          <div class="coming-list">
+            <div class="coming-item" v-for="c in lectureChips" :key="c.no">
+              <span class="coming-no">L{{ c.no }}</span>
+              <span class="coming-title">
+                <span class="nav-zh">{{ c.zh }}</span>
+                <span class="nav-en">{{ c.en }}</span>
+              </span>
+              <span class="coming-badge" :class="{done: c.done}">{{ c.done ? '✓' : 'Soon' }}</span>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </aside>
+    <div class="sidebar-mask" v-if="sidebarOpen" @click="sidebarOpen=false"></div>
+
+    <!-- ═══════════ 主内容 ═══════════ -->
+    <main class="content" ref="content" @scroll="onScroll">
+
+      <template v-if="section==='home'">
+        <home-hero @go="go"></home-hero>
+        <lecture-index @go="go"></lecture-index>
+        <course-map></course-map>
+        <how-to-use @go="go"></how-to-use>
+      </template>
+
+      <template v-else>
+        <section v-for="sec in currentSections" :key="sec.id" :id="'sec-' + sec.id" class="lesson-section reveal">
+          <header class="sec-head">
+            <span class="sec-kicker">{{ sec.kicker }}</span>
+            <h2 class="sec-title">
+              <span class="zh">{{ sec.title.zh }}</span>
+              <span class="en">{{ sec.title.en }}</span>
+            </h2>
+          </header>
+
+          <template v-for="(blk, bi) in sec.blocks" :key="bi">
+            <p v-if="blk.t==='p'" class="bi duo" v-html="fmt(blk)"></p>
+            <div v-else-if="blk.t==='formula'" class="formula-card" v-html="blk.html"></div>
+            <div v-else-if="blk.t==='callout'" :class="['callout', blk.variant||'key']">
+              <div class="callout-icon">{{ iconFor(blk.variant) }}</div>
+              <div class="callout-body">
+                <p class="bi duo" v-html="fmt(blk)"></p>
+              </div>
+            </div>
+            <component v-else-if="blk.t==='widget'" :is="blk.component" v-bind="blk.props||{}"></component>
+            <div v-else-if="blk.t==='steps'" class="mini-steps">
+              <div class="mini-step" v-for="(st,si) in blk.items" :key="si">
+                <span class="mini-step-no">{{ si+1 }}</span>
+                <div class="mini-step-body">
+                  <p class="bi duo" v-html="fmt(st)"></p>
+                </div>
+              </div>
+            </div>
+          </template>
+        </section>
+      </template>
+
+      <footer class="footer">
+        <p class="bi-footer">
+          <span>基于 Shiyu Zhao《Mathematical Foundation of Reinforcement Learning》第一章与西湖大学 IUSLab 网格世界代码制作 · 仅用于学习</span>
+          <span>Built on Chapter 1 of "Mathematical Foundation of Reinforcement Learning" and the IUSLab grid-world code, Westlake University · For study only</span>
+        </p>
+      </footer>
+    </main>
+  </div>
+
+  <!-- 移动端导航按钮 -->
+  <button class="fab-nav" @click="sidebarOpen=!sidebarOpen" aria-label="目录">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+  </button>
+</div>
+
+<script>
+// 诊断浮层：把运行时错误直接显示在页面上（便于无控制台环境排查）
+window.__errs = [];
+window.addEventListener('error', function (e) {
+  window.__errs.push(e.message);
+  var d = document.getElementById('err-badge');
+  if (!d) {
+    d = document.createElement('div');
+    d.id = 'err-badge';
+    d.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:999;max-width:70vw;background:#c0392b;color:#fff;font:12px/1.5 monospace;padding:6px 10px;border-radius:8px;white-space:pre-wrap;';
+    (document.body || document.documentElement).appendChild(d);
+  }
+  d.textContent += '⚠ ' + e.message + '\n  ' + (e.filename || '').split('/').pop() + ':' + e.lineno + '\n';
+});
+</script>
+<script src="assets/vendor/vue.global.prod.js"></script>
+<script src="assets/vendor/gsap.min.js"></script>
+<script src="assets/js/data.js"></script>
+<script src="assets/js/data-l2.js"></script>
+<script src="assets/js/data-l3.js"></script>
+<script src="assets/js/data-l4.js"></script>
+<script src="assets/js/data-l5.js"></script>
+<script src="assets/js/data-l6.js"></script>
+<script src="assets/js/data-l7.js"></script>
+<script src="assets/js/data-l8.js"></script>
+<script src="assets/js/data-l9.js"></script>
+<script src="assets/js/data-l10.js"></script>
+<script src="assets/js/components.js"></script>
+<script src="assets/js/components-l2.js"></script>
+<script src="assets/js/components-l3.js"></script>
+<script src="assets/js/components-l4.js"></script>
+<script src="assets/js/components-l5.js"></script>
+<script src="assets/js/components-l6.js"></script>
+<script src="assets/js/components-l7.js"></script>
+<script src="assets/js/components-l8.js"></script>
+<script src="assets/js/components-l9.js"></script>
+<script src="assets/js/components-l10.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>
