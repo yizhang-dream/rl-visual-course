@@ -24,18 +24,24 @@ fs.mkdirSync(OUT, { recursive: true });
     await page.waitForTimeout(800);
     const coldL7 = await page.$('script[src*="data-l7"]');
     const coldL2 = await page.$('script[src*="data-l2"]');
+    const coldKatex = await page.$('script[src*="katex"]');
     if (coldL7) errors.push('[smoke-lazy] cold home already has script[src*="data-l7"]');
     if (coldL2) errors.push('[smoke-lazy] cold home already has script[src*="data-l2"]');
+    if (coldKatex) errors.push('[smoke-lazy] cold home already has script[src*="katex"]');
     await page.goto('http://localhost:8642/#sec-l7-qlearning', { waitUntil: 'networkidle' });
     await page.waitForTimeout(1500);
     const hotL7 = await page.$('script[src*="data-l7"]');
     const hotL8 = await page.$('script[src*="data-l8"]');
+    const hotKatex = await page.$('script[src*="katex"]');
     if (!hotL7) errors.push('[smoke-lazy] deep-link L7 missing script[src*="data-l7"]');
     if (hotL8) errors.push('[smoke-lazy] deep-link L7 unexpectedly loaded script[src*="data-l8"]');
+    if (!hotKatex) errors.push('[smoke-lazy] deep-link L7 (has formula blocks) missing script[src*="katex"]');
     console.log('lazy-load assert: cold data-l7=' + (coldL7 ? 'PRESENT' : 'null')
       + ' cold data-l2=' + (coldL2 ? 'PRESENT' : 'null')
+      + ' cold katex=' + (coldKatex ? 'PRESENT' : 'null')
       + ' | deep-link L7: data-l7=' + (hotL7 ? 'PRESENT' : 'null')
-      + ' data-l8=' + (hotL8 ? 'PRESENT' : 'null'));
+      + ' data-l8=' + (hotL8 ? 'PRESENT' : 'null')
+      + ' katex=' + (hotKatex ? 'PRESENT' : 'null'));
   } catch (e) { errors.push('[smoke-lazy] ' + e.message); }
 
   // 0a. 深链冒烟：全新加载直接打开 #sec-l7-qlearning，应直达该节（L7 单讲视图）
@@ -252,6 +258,57 @@ fs.mkdirSync(OUT, { recursive: true });
     }
   }
 
+  // ── KaTeX 公式冒烟：L4 收敛链抽查 + L2 矩阵节 .katex/.katex-mathml/.mtable 断言 + chalk/quant 双主题截图 ──
+  try {
+    // L4 抽查（先切 L4：讲筛选视图里只有该讲的小节）
+    await page.click('.lecture-filter .lf-chip:has-text("L4")');
+    await page.waitForTimeout(1000);
+    await page.evaluate(() => document.getElementById('sec-l4-vi').scrollIntoView());
+    await page.waitForTimeout(700);
+    const l4Katex = await page.$$eval('#sec-l4-vi .katex', els => els.length);
+    if (l4Katex < 1) errors.push('[smoke-katex] sec-l4-vi .katex count = ' + l4Katex);
+    await page.screenshot({ path: path.join(OUT, 'smoke-katex-l4-vi-chalk.png') });
+
+    // L2 矩阵节（重点验收：pmatrix 竖排 + 分式上下结构）
+    await page.click('.lecture-filter .lf-chip:has-text("L2")');
+    await page.waitForTimeout(1000);
+    await page.evaluate(() => document.getElementById('sec-l2-matrix').scrollIntoView());
+    await page.waitForTimeout(900);
+    const katexCount = await page.$$eval('#sec-l2-matrix .katex', els => els.length);
+    const mathml = await page.$('#sec-l2-matrix .katex-mathml');
+    const mtable = await page.$$('#sec-l2-matrix .mtable');
+    const l2Frac = await page.$$eval('.lesson-section .mfrac', els => els.length);
+    const parseErr = await page.$eval('#sec-l2-matrix', el => el.textContent.includes('KaTeX parse error'));
+    if (katexCount < 1) errors.push('[smoke-katex] sec-l2-matrix .katex count = ' + katexCount);
+    if (!mathml) errors.push('[smoke-katex] sec-l2-matrix missing .katex-mathml (accessibility layer)');
+    if (mtable.length < 1) errors.push('[smoke-katex] sec-l2-matrix missing .mtable (pmatrix not vertical)');
+    if (l2Frac < 1) errors.push('[smoke-katex] L2 view missing .mfrac (fraction not stacked)');
+    if (parseErr) errors.push('[smoke-katex] KaTeX parse error text visible in sec-l2-matrix');
+    await page.screenshot({ path: path.join(OUT, 'smoke-katex-l2-matrix-chalk.png') });
+    // 3×3 pmatrix 卡片特写（矩阵竖排证据）
+    const pmatrixCard = page.locator('#sec-l2-matrix .formula-card:has(.mtable)').first();
+    await pmatrixCard.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(400);
+    await pmatrixCard.screenshot({ path: path.join(OUT, 'smoke-katex-l2-pmatrix-chalk.png') });
+    console.log('katex assert: L2 matrix .katex=' + katexCount
+      + ' mathml=' + (mathml ? 'PRESENT' : 'null')
+      + ' mtable=' + mtable.length + ' L2 .mfrac=' + l2Frac
+      + ' | L4 vi .katex=' + l4Katex);
+
+    // quant 深空主题同节截图（KaTeX 继承 currentColor 应自然适配）
+    await page.click('.theme-switch .theme-btn >> nth=2');
+    await page.waitForTimeout(700);
+    await page.evaluate(() => document.getElementById('sec-l2-matrix').scrollIntoView());
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: path.join(OUT, 'smoke-katex-l2-matrix-quant.png') });
+    const pmatrixCardQ = page.locator('#sec-l2-matrix .formula-card:has(.mtable)').first();
+    await pmatrixCardQ.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(400);
+    await pmatrixCardQ.screenshot({ path: path.join(OUT, 'smoke-katex-l2-pmatrix-quant.png') });
+    await page.click('.theme-switch .theme-btn >> nth=0');   // 切回 chalk 默认
+    await page.waitForTimeout(400);
+  } catch (e) { errors.push('[smoke-katex] ' + e.message); }
+
   // ── 深色主题（quant 深空）冒烟：l8/l9/l10 图表与棋盘无白底块 ──
   try {
     await page.click('.theme-switch .theme-btn >> nth=2');   // 第 3 个圆点 = quant
@@ -275,5 +332,28 @@ fs.mkdirSync(OUT, { recursive: true });
   } catch (e) { errors.push('[smoke-dark] ' + e.message); }
 
 console.log(errors.length ? 'ERRORS:\n' + errors.join('\n') : 'NO CONSOLE ERRORS');
+
+  // ── file:// 双击可用冒烟：KaTeX 相对路径 css/字体在 file 协议下可加载、公式可渲染 ──
+  try {
+    const fileUrl = 'file:///' + encodeURI(__dirname.replace(/\\/g, '/')) + '/index.html#sec-l2-matrix';
+    const p2 = await browser.newPage({ viewport: { width: 1440, height: 950 } });
+    const errs2 = [];
+    p2.on('console', (m) => { if (m.type() === 'error') errs2.push('[console] ' + m.text()); });
+    p2.on('pageerror', (e) => errs2.push('[pageerror] ' + e.message));
+    await p2.goto(fileUrl, { waitUntil: 'load' });
+    await p2.waitForTimeout(2500);
+    const fKatex = await p2.$$eval('#sec-l2-matrix .katex', els => els.length);
+    const fMathml = await p2.$('#sec-l2-matrix .katex-mathml');
+    const fTable = await p2.$('#sec-l2-matrix .mtable');
+    if (fKatex < 1) errors.push('[smoke-file] file:// sec-l2-matrix .katex = ' + fKatex);
+    if (!fMathml) errors.push('[smoke-file] file:// missing .katex-mathml');
+    if (!fTable) errors.push('[smoke-file] file:// missing .mtable');
+    if (errs2.length) errors.push('[smoke-file] console errors: ' + errs2.join(' | '));
+    await p2.screenshot({ path: path.join(OUT, 'smoke-katex-file-url.png') });
+    await p2.close();
+    console.log('file:// assert: .katex=' + fKatex + ' mathml=' + (fMathml ? 'PRESENT' : 'null')
+      + ' mtable=' + (fTable ? 'PRESENT' : 'null') + ' consoleErrors=' + errs2.length);
+  } catch (e) { errors.push('[smoke-file] ' + e.message); }
+
   await browser.close();
 })();

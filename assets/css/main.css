@@ -335,6 +335,23 @@ h3.sub::before {
 sub, sup { font-size: .68em; }
 .mt { color: var(--accent-deep); font-weight: 700; }
 
+/* ── KaTeX 公式块：.fx-math 承载 katex.render 输出；.fx-note 是原块尾注；
+      颜色走 CSS 变量（\htmlClass 标记 → 五主题 + 打印自动跟随）── */
+.formula-card .fx-math { line-height: 1.6; }
+.formula-card .fx-note {
+  display: block; font: 500 13px/1.65 var(--font);
+  color: var(--ink-3); margin-top: 8px;
+}
+.formula-card .katex { font-size: 1.12em; }
+.formula-card .katex-display { margin: 6px 0; }
+.formula-card .fx-inline .katex { font-size: 1em; }
+.formula-card .fx-gold   { color: var(--gold); }
+.formula-card .fx-green  { color: var(--green); }
+.formula-card .fx-red    { color: var(--red); }
+.formula-card .fx-violet { color: var(--violet); }
+.formula-card .fx-accent { color: var(--accent-deep); }
+.formula-card .fx-dim    { color: var(--ink-3); }
+
 /* ─────────────── 通用控件 ─────────────── */
 .lab {
   border: 1px solid var(--line); border-radius: var(--radius);

@@ -7,6 +7,7 @@
 window.RLVLoader = (function () {
   const inflight = {};    // 讲号 → Promise（幂等：同讲并发/重复调用共享同一次注入）
   const registered = {};  // 组件名 → true（已补挂到根应用的组件）
+  let katexInflight = null; // KaTeX 注入 Promise（幂等，同 ensureLecture 的缓存模式）
 
   // 经典 script 注入；async=false 保证多文件按插入顺序执行（data 先于 components）
   function inject(src) {
@@ -58,5 +59,23 @@ window.RLVLoader = (function () {
     return inflight[no];
   }
 
-  return { ensureLecture: ensureLecture, syncComponents: syncComponents };
+  // ensureKatex() → Promise：按需懒加载 KaTeX（js 272KB + css + 字体，绝不进首载）。
+  // css 用 <link> 注入（file:// 下 katex.min.css 以相对路径引用 fonts/ 可正常加载）；
+  // js 复用经典 script 注入。与 ensureLecture 一样 Promise 缓存幂等，失败清缓存可重试。
+  function ensureKatex() {
+    if (window.katex) return Promise.resolve(window.katex);
+    if (katexInflight) return katexInflight;
+    const css = document.createElement('link');
+    css.rel = 'stylesheet';
+    css.href = 'assets/vendor/katex/katex.min.css';
+    (document.head || document.documentElement).appendChild(css);
+    katexInflight = inject('assets/vendor/katex/katex.min.js').then(function () {
+      if (!window.katex) throw new Error('katex.min.js loaded but window.katex missing');
+      return window.katex;
+    });
+    katexInflight.catch(function () { katexInflight = null; });
+    return katexInflight;
+  }
+
+  return { ensureLecture: ensureLecture, ensureKatex: ensureKatex, syncComponents: syncComponents };
 })();

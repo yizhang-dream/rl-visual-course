@@ -128,7 +128,13 @@ window.ROOT_TEMPLATE = `
 
           <template v-for="(blk, bi) in sec.blocks" :key="bi">
             <p v-if="blk.t==='p'" class="bi duo reveal-item" v-html="fmt(blk)"></p>
-            <div v-else-if="blk.t==='formula'" class="formula-card reveal-item" v-html="blk.html"></div>
+            <div v-else-if="blk.t==='formula'" class="formula-card reveal-item">
+              <template v-if="blk.tex">
+                <div class="fx-math" :data-tex="blk.tex"></div>
+                <div v-if="blk.note" class="fx-note" v-html="blk.note"></div>
+              </template>
+              <div v-else v-html="blk.html"></div>
+            </div>
             <div v-else-if="blk.t==='callout'" :class="['callout', 'reveal-item', blk.variant||'key']">
               <div class="callout-icon">{{ iconFor(blk.variant) }}</div>
               <div class="callout-body">

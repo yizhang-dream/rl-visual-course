@@ -80,12 +80,36 @@
       },
     },
     watch: {
-      lectureFilter() { this.$nextTick(() => { this.setupReveal(); }); },
+      lectureFilter() { this.$nextTick(() => { this.renderFormulas(); this.setupReveal(); }); },
     },
     methods: {
       fmt,
       bi(zh, en) { return `<span class="zh du-line">${zh}</span><span class="en du-line">${en}</span>`; },
       iconFor(v) { return ICONS[v] || '🔑'; },
+      // ── KaTeX 公式渲染：当前 DOM 里所有 [data-tex] 落地后逐个渲染 ──
+      // 触发点：applyRoute 渲染完成 + lectureFilter 切讲（sections 随筛选重建）。
+      // 已渲染（内含 .katex）的元素跳过，天然幂等不闪烁；ensureKatex 失败时
+      // 公式块回退为 TeX 源码文本，页面不炸。
+      async renderFormulas() {
+        const els = Array.prototype.slice.call(document.querySelectorAll('[data-tex]'))
+          .filter(el => !el.querySelector('.katex'));
+        if (!els.length) return;   // 无公式（含首页）：不触发 katex 懒加载
+        let katex = null;
+        try { katex = await window.RLVLoader.ensureKatex(); }
+        catch (e) { console.error('[katex] 公式库加载失败，公式回退为源码', e); }
+        els.forEach(el => {
+          const tex = el.getAttribute('data-tex') || '';
+          if (!katex) { el.textContent = tex; return; }
+          try {
+            katex.render(tex, el, {
+              displayMode: !el.classList.contains('fx-inline'),
+              throwOnError: false,   // 解析失败落红字原文，不抛异常不炸页面
+              trust: true,           // 数据源是自家 data 文件；\htmlClass 用于主题色标记
+              strict: 'ignore',
+            });
+          } catch (e) { el.textContent = tex; }
+        });
+      },
       // 三层导航：把一讲的小节按 navClusters 分组（items 解析回 nav 对象）
       // 无元数据或解析不完整时退化为单组扁平，保证任何讲都能渲染
       clustersOf(group) {
@@ -169,6 +193,7 @@
         }
         this.$nextTick(() => {
           const el = document.getElementById('sec-' + id);
+          this.renderFormulas();   // 当前视图含 .formula 块时懒加载 KaTeX 并渲染
           // 深链/刷新恢复（smooth=false）：目标节 reveal 直达终态，不播 stagger
           this.setupReveal(smooth ? null : el);
           if (el) this.scrollToSec(el, smooth);
