@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RL 可视化课堂 · 全书十讲 | RL Visual Classroom · Mathematical Foundation of RL</title>
 <meta name="description" content="《强化学习的数学原理》第一章基本概念 · 双语交互式可视化教程">
+<script>
+// 主题引导：在样式表生效前定好 data-theme，避免首帧闪烁
+try { document.documentElement.dataset.theme = localStorage.getItem('rl-viz-theme') || 'chalk'; } catch (e) {}
+</script>
 <link rel="stylesheet" href="assets/css/main.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
 </head>
@@ -32,6 +36,15 @@
         <button v-for="m in langModes" :key="m.key"
                 :class="['lang-btn', {active: lang===m.key}]"
                 @click="setLang(m.key)">{{ m.label }}</button>
+      </div>
+
+      <div class="theme-switch" role="group" aria-label="主题 / Theme">
+        <button v-for="t in themes" :key="t.key"
+                :class="['theme-btn', {active: theme===t.key}]"
+                :title="t.label" :aria-label="t.label"
+                @click="setTheme(t.key)">
+          <span class="sw-dot" :style="{background: t.dot}"></span>
+        </button>
       </div>
     </div>
   </header>

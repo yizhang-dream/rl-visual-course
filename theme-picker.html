@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="chalk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>主题提案 · Theme Proposals | RL 可视化课堂</title>
+<style>
+/* ═══════════════ 提案页骨架（主题无关） ═══════════════ */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { font-size: 16px; line-height: 1.75; -webkit-font-smoothing: antialiased; }
+[v-cloak] { display: none; }
+
+/* 底部选择坞（固定深色，不随主题变，避免干扰判断） */
+.dock {
+  position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
+  z-index: 99; width: min(720px, calc(100vw - 24px));
+  background: #101418; color: #e8edf2;
+  border: 1px solid rgba(255,255,255,.12); border-radius: 16px;
+  box-shadow: 0 14px 44px rgba(0,0,0,.45);
+  padding: 12px 14px 11px;
+}
+.dock-desc {
+  font: 600 12.5px/1.5 "Segoe UI", "Microsoft YaHei", sans-serif;
+  color: #9fb2c4; text-align: center; margin-bottom: 9px; min-height: 19px;
+}
+.dock-tabs { display: flex; gap: 7px; }
+.dock-tabs button {
+  flex: 1; border: 1px solid rgba(255,255,255,.14); border-radius: 11px;
+  background: rgba(255,255,255,.05); color: #cfd9e2; cursor: pointer;
+  padding: 9px 6px; text-align: center;
+  font: 700 13px "Segoe UI", "Microsoft YaHei", sans-serif;
+  transition: background .15s ease, border-color .15s ease, color .15s ease, transform .15s ease;
+}
+.dock-tabs button:hover { background: rgba(255,255,255,.1); transform: translateY(-1px); }
+.dock-tabs button.on { background: #f2f6fa; color: #10161c; border-color: #f2f6fa; }
+.dock-tabs .no { display: block; font: 700 10px "Cascadia Code", Consolas, monospace; opacity: .55; letter-spacing: 1.5px; margin-bottom: 2px; }
+.dock-hint { font: 500 11px/1 "Segoe UI", sans-serif; color: #67788a; text-align: center; margin-top: 8px; }
+@media (max-width: 640px) { .dock-tabs button { font-size: 11.5px; } .dock-desc { font-size: 11.5px; } }
+
+/* ═══════════════ 主题 tokens ═══════════════ */
+
+/* ── 01 墨板 Chalkboard ── */
+html[data-theme="chalk"] {
+  --bg: #16241f;
+  --bg-soft: #1c2c26;
+  --surface: #1b2a24;
+  --ink: #edf4ee;
+  --ink-2: #c2d2c6;
+  --ink-3: #8ba294;
+  --line: rgba(230, 242, 233, .14);
+  --line-strong: rgba(230, 242, 233, .26);
+  --accent: #ffd76a;
+  --accent-deep: #ffdf8f;
+  --accent-soft: rgba(255, 215, 106, .13);
+  --on-accent: #1c2a22;
+  --gold: #ffd76a; --cyan: #8fd8ea; --green: #b8e29b; --red: #f2a3b4; --violet: #cdb6f2;
+  --code-bg: #121e19; --code-ink: #dcebe0;
+  --radius: 12px; --radius-sm: 8px;
+  --shadow-1: 0 1px 0 rgba(0,0,0,.2);
+  --shadow-2: 0 6px 18px rgba(0,0,0,.3);
+  --shadow-pop: 0 14px 40px rgba(0,0,0,.45);
+  --font: "Segoe UI", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+  --mono: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+  --display: var(--font);
+  --page-tex: radial-gradient(1100px 520px at 18% -8%, rgba(255,255,255,.05), transparent 62%);
+  --enter-ease: cubic-bezier(.25, .8, .3, 1);
+  --tok-kw: #ffd76a; --tok-def: #9fd8ea; --tok-str: #b8e29b; --tok-com: rgba(226,238,229,.42); --tok-num: #f2a3b4;
+  --code-border: rgba(230,242,233,.1);
+}
+/* ── 02 讲义 Swiss Notes ── */
+html[data-theme="swiss"] {
+  --bg: #f7f7f3;
+  --bg-soft: #edede7;
+  --surface: #ffffff;
+  --ink: #15171b;
+  --ink-2: #3f444d;
+  --ink-3: #83878f;
+  --line: #e4e4de;
+  --line-strong: #c9c9c1;
+  --accent: #2138e0;
+  --accent-deep: #17299e;
+  --accent-soft: #e9ecfd;
+  --on-accent: #ffffff;
+  --gold: #b8860b; --cyan: #0d84c9; --green: #4e7d14; --red: #c23349; --violet: #5b3fae;
+  --code-bg: #ffffff; --code-ink: #15171b;
+  --radius: 3px; --radius-sm: 3px;
+  --shadow-1: none;
+  --shadow-2: 0 1px 0 rgba(21,23,27,.08);
+  --shadow-pop: 0 10px 30px rgba(21,23,27,.14);
+  --font: "Helvetica Neue", Helvetica, Arial, "Segoe UI", "Microsoft YaHei", sans-serif;
+  --mono: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+  --display: var(--font);
+  --page-tex:
+    linear-gradient(rgba(21,23,27,.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(21,23,27,.045) 1px, transparent 1px);
+  --page-tex-size: 28px 28px;
+  --enter-ease: cubic-bezier(.2, 0, 0, 1);
+  --tok-kw: #2138e0; --tok-def: #15171b; --tok-str: #3a7a1c; --tok-com: #9a9ea6; --tok-num: #c23349;
+  --code-border: #e4e4de;
+}
+/* ── 03 深空 Quant Dark ── */
+html[data-theme="quant"] {
+  --bg: #0a0f1c;
+  --bg-soft: #101830;
+  --surface: #0f1730;
+  --ink: #e9effc;
+  --ink-2: #aebadb;
+  --ink-3: #71809f;
+  --line: rgba(126, 158, 255, .15);
+  --line-strong: rgba(126, 158, 255, .3);
+  --accent: #3ce6c2;
+  --accent-deep: #7ff0d9;
+  --accent-soft: rgba(60, 230, 194, .1);
+  --on-accent: #04211a;
+  --gold: #ffb454; --cyan: #4fc3f7; --green: #52d97a; --red: #ff6b81; --violet: #b48cff;
+  --code-bg: #0b1226; --code-ink: #d7e2fa;
+  --radius: 10px; --radius-sm: 7px;
+  --shadow-1: 0 0 0 1px rgba(126,158,255,.06);
+  --shadow-2: 0 8px 26px rgba(2, 8, 24, .55);
+  --shadow-pop: 0 16px 44px rgba(2, 8, 24, .7);
+  --font: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+  --mono: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+  --display: var(--font);
+  --page-tex: radial-gradient(rgba(255,255,255,.028) 1px, transparent 1.4px);
+  --page-tex-size: 24px 24px;
+  --enter-ease: cubic-bezier(.22, .9, .3, 1);
+  --tok-kw: #b48cff; --tok-def: #3ce6c2; --tok-str: #9ad17a; --tok-com: #55648a; --tok-num: #ffb454;
+  --code-border: rgba(126,158,255,.14);
+  --glow: 0 0 20px rgba(60, 230, 194, .3);
+}
+/* ── 04 教科书 Forest Textbook ── */
+html[data-theme="forest"] {
+  --bg: #f6f3ea;
+  --bg-soft: #ede8d9;
+  --surface: #fffdf6;
+  --ink: #1f2b22;
+  --ink-2: #47544a;
+  --ink-3: #83897b;
+  --line: #e2dccb;
+  --line-strong: #c8c0a8;
+  --accent: #2e6b45;
+  --accent-deep: #1f5033;
+  --accent-soft: #e6efe4;
+  --on-accent: #fffdf6;
+  --gold: #d29a2b; --cyan: #2f96bd; --green: #5f8f2d; --red: #c8536a; --violet: #6f5aa8;
+  --code-bg: #24312a; --code-ink: #e8e6da;
+  --radius: 10px; --radius-sm: 7px;
+  --shadow-1: 0 1px 2px rgba(96, 86, 48, .07), 0 2px 8px rgba(96, 86, 48, .06);
+  --shadow-2: 0 4px 16px rgba(96, 86, 48, .12);
+  --shadow-pop: 0 12px 36px rgba(96, 86, 48, .2);
+  --font: "Segoe UI", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+  --mono: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+  --display: Georgia, "Times New Roman", "Noto Serif SC", "Source Han Serif SC", SimSun, serif;
+  --page-tex: none;
+  --enter-ease: cubic-bezier(.3, 1.25, .5, 1);
+  --tok-kw: #cdb06a; --tok-def: #9fd0b0; --tok-str: #b5cf8a; --tok-com: #6d7d6f; --tok-num: #e0959f;
+  --code-border: rgba(255,255,255,.08);
+}
+
+/* ═══════════════ 预览布局 ═══════════════ */
+.page { min-height: 100vh; background: var(--bg); background-image: var(--page-tex); background-size: var(--page-tex-size, auto); color: var(--ink); font-family: var(--font); transition: background-color .35s ease, color .35s ease; padding-bottom: 130px; }
+.wrap { max-width: 1060px; margin: 0 auto; padding: 0 26px; }
+
+.p-topbar { position: sticky; top: 0; z-index: 10; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--bg) 86%, transparent); backdrop-filter: blur(12px); }
+.p-topbar .wrap { display: flex; align-items: center; gap: 16px; height: 60px; }
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand-logo { width: 34px; height: 34px; border-radius: 9px; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; flex: none; }
+.brand-logo svg { display: block; }
+.brand-text strong { display: block; font-size: 15px; line-height: 1.25; letter-spacing: .2px; }
+.brand-text em { font-style: normal; font-size: 10.5px; color: var(--ink-3); }
+.p-topbar .grow { flex: 1; }
+.pill-row { display: flex; gap: 2px; padding: 3px; border: 1px solid var(--line); border-radius: 99px; background: var(--bg-soft); }
+.pill-row button { border: 0; background: transparent; cursor: pointer; font: 600 12px var(--font); color: var(--ink-2); padding: 5px 12px; border-radius: 99px; }
+.pill-row button.on { background: var(--surface); color: var(--accent-deep); box-shadow: var(--shadow-1); }
+
+.p-body { display: flex; gap: 26px; align-items: flex-start; padding-top: 26px; }
+.p-side { width: 218px; flex: none; position: sticky; top: 86px; }
+.side-box { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 13px 10px; box-shadow: var(--shadow-1); }
+.side-label { font: 700 10.5px var(--mono); letter-spacing: 1.4px; text-transform: uppercase; color: var(--ink-3); padding: 0 8px 7px; }
+.side-item { display: flex; align-items: center; gap: 9px; width: 100%; border: 0; background: none; cursor: pointer; text-align: left; padding: 7px 9px; border-radius: 7px; font-family: var(--font); color: var(--ink); }
+.side-item .dot { width: 6px; height: 6px; border-radius: 99px; background: var(--line-strong); flex: none; }
+.side-item .t { font-size: 13px; font-weight: 600; line-height: 1.3; }
+.side-item .e { display: block; font-size: 10.5px; color: var(--ink-3); font-weight: 500; }
+.side-item:hover { background: var(--bg-soft); }
+.side-item.on { background: var(--accent-soft); }
+.side-item.on .dot { background: var(--accent); }
+.side-item.on .t { color: var(--accent-deep); }
+
+.p-main { flex: 1; min-width: 0; }
+
+/* hero */
+.hero { padding: 30px 0 8px; }
+.kicker { display: inline-block; font: 700 11px var(--mono); letter-spacing: 1.6px; text-transform: uppercase; color: var(--accent-deep); background: var(--accent-soft); padding: 4px 12px; border-radius: 99px; margin-bottom: 15px; }
+html[data-theme="swiss"] .kicker { border-radius: 2px; background: none; padding: 4px 0; border-top: 2px solid var(--accent); letter-spacing: 2px; }
+html[data-theme="forest"] .kicker { font-family: var(--display); font-style: italic; text-transform: none; letter-spacing: .4px; font-size: 13.5px; border-radius: 0; border-bottom: 1px solid var(--accent); background: none; padding: 0 1px 2px; }
+.hero h1 { font-family: var(--display); font-size: clamp(28px, 4vw, 42px); line-height: 1.2; margin: 0 0 10px; font-weight: 800; letter-spacing: -.3px; }
+html[data-theme="forest"] .hero h1 { font-weight: 700; letter-spacing: 0; }
+.hero .sub { font-size: 15.5px; color: var(--ink-2); max-width: 640px; margin: 0 0 20px; }
+.cta-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 26px; }
+.stat-row { display: flex; gap: 11px; flex-wrap: wrap; }
+.stat { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 11px 18px; box-shadow: var(--shadow-1); min-width: 118px; }
+.stat b { display: block; font: 800 21px var(--mono); color: var(--accent-deep); font-variant-numeric: tabular-nums; }
+html[data-theme="quant"] .stat b { text-shadow: var(--glow); }
+html[data-theme="forest"] .stat b { font-family: var(--display); }
+.stat span { font: 600 11px var(--font); color: var(--ink-3); }
+
+/* 卡片 */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-1); padding: 26px 28px; margin-top: 24px; }
+html[data-theme="chalk"] .card { border-style: dashed; border-color: var(--line-strong); border-radius: var(--radius); }
+.sec-head { margin-bottom: 18px; }
+.sec-kicker { font: 700 10.5px var(--mono); letter-spacing: 1.4px; text-transform: uppercase; color: var(--accent-deep); }
+html[data-theme="swiss"] .sec-kicker { display: inline-block; border-left: 3px solid var(--accent); padding-left: 8px; letter-spacing: 2px; }
+.sec-title { font-family: var(--display); margin: 5px 0 0; font-size: 22px; line-height: 1.35; font-weight: 700; }
+.sec-title small { display: block; font-family: var(--font); font-size: 12.5px; color: var(--ink-3); font-weight: 600; letter-spacing: .3px; margin-top: 2px; }
+.callout { display: flex; gap: 11px; border: 1px solid var(--line); border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: var(--radius-sm); padding: 12px 15px; margin: 0 0 16px; }
+.callout .ic { flex: none; font-size: 16px; line-height: 1.7; }
+.callout p { margin: 0; font-size: 14px; }
+.callout p .en2 { display: block; font-size: 12.5px; color: var(--ink-2); }
+.formula { font-family: "Cambria Math", Georgia, serif; font-size: 18px; text-align: center; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 13px 18px; margin-bottom: 18px; background: var(--bg-soft); }
+.formula .lbl { display: block; font: 600 10.5px var(--font); letter-spacing: 1px; text-transform: uppercase; color: var(--ink-3); margin-bottom: 6px; font-family: var(--font); }
+sub, sup { font-size: .68em; }
+
+/* lab：网格 + 控制 */
+.lab { border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg-soft); padding: 18px; }
+.lab-grid { display: flex; gap: 22px; flex-wrap: wrap; align-items: flex-start; }
+.lab-stage { flex: none; }
+.lab-side { flex: 1; min-width: 230px; }
+.lab-title { font: 700 12.5px var(--font); color: var(--ink-2); display: flex; align-items: center; gap: 7px; margin-bottom: 12px; letter-spacing: .3px; }
+.lab-title::before { content: "▶"; font-size: 8px; color: var(--accent); }
+.btn { appearance: none; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); font: 600 13px var(--font); padding: 8px 15px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; transition: transform .15s var(--enter-ease), box-shadow .15s ease, border-color .15s ease, background .15s ease; }
+.btn:hover { transform: translateY(-1px); border-color: var(--accent); box-shadow: var(--shadow-2); }
+.btn:active { transform: translateY(0) scale(.97); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+html[data-theme="chalk"] .btn, html[data-theme="quant"] .btn { border-radius: 9px; }
+html[data-theme="swiss"] .btn { border-radius: 2px; }
+.seg { display: inline-flex; padding: 3px; gap: 2px; background: var(--bg-soft); border: 1px solid var(--line); border-radius: 9px; }
+.seg button { border: 0; background: transparent; cursor: pointer; font: 600 12px var(--font); color: var(--ink-2); padding: 5px 11px; border-radius: 6px; }
+.seg button.on { background: var(--surface); color: var(--accent-deep); box-shadow: var(--shadow-1); }
+.legend { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 13px; }
+.legend .lg { display: inline-flex; align-items: center; gap: 6px; font: 600 11.5px var(--font); color: var(--ink-2); border: 1px solid var(--line); border-radius: 99px; padding: 3px 10px; background: var(--surface); }
+.legend .sw { width: 11px; height: 11px; border-radius: 3px; }
+html[data-theme="swiss"] .legend .lg, html[data-theme="swiss"] .kicker { border-radius: 2px; }
+html[data-theme="swiss"] .legend .lg { border-radius: 2px; }
+
+/* SVG 网格世界（颜色全部走 token） */
+.gboard .gline { stroke: var(--line-strong); stroke-width: 1.3; }
+.gboard .gframe { stroke: var(--ink-3); stroke-width: 2; fill: none; }
+html[data-theme="chalk"] .gboard .gframe, html[data-theme="chalk"] .gboard .gline { stroke-dasharray: 6 4; }
+.gboard .slab { font: 700 9.5px var(--mono); fill: var(--ink-3); }
+.gboard .ctag { font: 700 12px var(--font); text-anchor: middle; fill: var(--on-accent); paint-order: stroke; stroke: rgba(0,0,0,.14); stroke-width: 0; }
+.gboard .traj { fill: none; stroke: var(--red); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 7 6; }
+html[data-theme="quant"] .gboard .traj { filter: drop-shadow(0 0 4px var(--red)); }
+.gboard .agent { fill: var(--accent); stroke: var(--bg); stroke-width: 2.4; }
+.gboard .parrow { stroke: var(--green); fill: var(--green); }
+html[data-theme="chalk"] .gboard .parrow { opacity: .9; }
+
+/* 代码面板 */
+.code-wrap { margin-top: 24px; }
+.code-tabs { display: flex; gap: 5px; }
+.code-tab { border: 1px solid var(--code-border); border-bottom: 0; cursor: pointer; background: var(--bg-soft); color: var(--ink-2); font: 600 12px var(--mono); padding: 7px 13px; border-radius: 8px 8px 0 0; }
+.code-tab.on { background: var(--code-bg); color: var(--code-ink); }
+html[data-theme="swiss"] .code-tab.on { color: var(--accent); box-shadow: inset 0 2px 0 var(--accent); }
+.code-panel { background: var(--code-bg); border: 1px solid var(--code-border); border-radius: 0 var(--radius) var(--radius) var(--radius); overflow: hidden; }
+html[data-theme="swiss"] .code-panel { border-top: 1px solid var(--code-border); }
+.code-bar { display: flex; align-items: center; gap: 8px; padding: 9px 15px; border-bottom: 1px solid var(--code-border); color: var(--ink-3); font: 600 11.5px var(--mono); }
+.code-bar .dots { display: flex; gap: 5px; }
+.code-bar .dots i { width: 9px; height: 9px; border-radius: 99px; background: var(--line-strong); }
+html[data-theme="quant"] .code-bar .dots i:nth-child(1) { background: var(--red); }
+html[data-theme="quant"] .code-bar .dots i:nth-child(2) { background: var(--gold); }
+html[data-theme="quant"] .code-bar .dots i:nth-child(3) { background: var(--green); }
+pre.codeblock { margin: 0; padding: 14px 0; font: 12.5px/1.65 var(--mono); color: var(--code-ink); overflow-x: auto; }
+.cl { display: block; padding: 0 16px; white-space: pre; }
+.cl .no { display: inline-block; width: 34px; text-align: right; margin-right: 14px; color: var(--ink-3); opacity: .6; user-select: none; }
+.cl.hl { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+html[data-theme="quant"] .cl.hl { box-shadow: inset 3px 0 0 var(--accent); background: rgba(60,230,194,.07); }
+.tok-kw { color: var(--tok-kw); font-weight: 700; }
+.tok-def { color: var(--tok-def); font-weight: 700; }
+.tok-str { color: var(--tok-str); }
+.tok-com { color: var(--tok-com); font-style: italic; }
+.tok-num { color: var(--tok-num); }
+.code-note { margin: 0 15px 12px; padding: 9px 13px; border: 1px solid var(--code-border); border-radius: 8px; font-size: 12.5px; color: var(--ink-2); }
+.code-note b { color: var(--accent-deep); font-family: var(--mono); font-size: 11px; letter-spacing: 1px; margin-right: 8px; }
+
+/* ═══════════════ 入场动效（每主题不同性格） ═══════════════ */
+.anim { opacity: 0; }
+.playing .anim { animation: var(--enter-anim) both; animation-delay: calc(var(--i, 0) * 75ms); }
+
+html[data-theme="chalk"] { --enter-anim: chalkIn .55s var(--enter-ease); }
+@keyframes chalkIn { from { opacity: 0; transform: translateY(9px) rotate(-.4deg); filter: blur(1.5px); } to { opacity: 1; transform: none; filter: none; } }
+html[data-theme="chalk"] .hero h1 { position: relative; }
+html[data-theme="chalk"] .hero h1::after { content: ""; position: absolute; left: 2px; bottom: -7px; width: 132px; height: 3px; border-radius: 99px; background: var(--accent); opacity: .85; transform: scaleX(0); transform-origin: left; }
+html[data-theme="chalk"] .playing .hero h1::after { animation: drawline .6s .5s var(--enter-ease) forwards; }
+@keyframes drawline { to { transform: scaleX(1); } }
+
+html[data-theme="swiss"] { --enter-anim: swissIn .3s var(--enter-ease); }
+@keyframes swissIn { from { opacity: 0; transform: translateY(7px); clip-path: inset(0 100% 0 0); } to { opacity: 1; transform: none; clip-path: inset(0 0 0 0); } }
+
+html[data-theme="quant"] { --enter-anim: quantIn .45s var(--enter-ease); }
+@keyframes quantIn { from { opacity: 0; transform: translateY(11px); filter: blur(3px) brightness(1.6); } to { opacity: 1; transform: none; filter: none; } }
+
+html[data-theme="forest"] { --enter-anim: forestIn .5s var(--enter-ease); }
+@keyframes forestIn { from { opacity: 0; transform: translateY(14px) scale(.985); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .anim { opacity: 1 !important; animation: none !important; }
+  html[data-theme="chalk"] .hero h1::after { transform: scaleX(1); animation: none; }
+}
+</style>
+</head>
+<body>
+<div class="page" id="page">
+
+  <!-- 顶栏样机 -->
+  <header class="p-topbar">
+    <div class="wrap">
+      <div class="brand">
+        <span class="brand-logo">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="5.4" height="5.4" rx="1"/><rect x="15.6" y="3" width="5.4" height="5.4" rx="1"/><rect x="3" y="15.6" width="5.4" height="5.4" rx="1"/><rect x="15.6" y="15.6" width="5.4" height="5.4" rx="1" fill="currentColor" stroke="none"/><path d="M8.4 5.7h7.2M5.7 8.4v7.2M18.3 8.4v7.2M8.4 18.3h7.2"/></svg>
+        </span>
+        <span class="brand-text"><strong>RL 可视化课堂</strong><em>Mathematical Foundation of RL</em></span>
+      </div>
+      <div class="grow"></div>
+      <div class="pill-row"><button class="on">双语</button><button>中文</button><button>EN</button></div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="p-body">
+      <!-- 侧栏样机 -->
+      <aside class="p-side anim" style="--i:5">
+        <div class="side-box">
+          <div class="side-label">第 1 讲</div>
+          <button class="side-item on"><span class="dot"></span><span class="t">网格世界<span class="e">Grid World</span></span></button>
+          <button class="side-item"><span class="dot"></span><span class="t">状态与动作<span class="e">States &amp; Actions</span></span></button>
+          <button class="side-item"><span class="dot"></span><span class="t">回报与折扣<span class="e">Return &amp; Discounting</span></span></button>
+          <button class="side-item"><span class="dot"></span><span class="t">策略与价值<span class="e">Policy &amp; Value</span></span></button>
+        </div>
+      </aside>
+
+      <main class="p-main">
+        <!-- Hero 样机 -->
+        <section class="hero">
+          <span class="kicker anim" style="--i:0">强化学习的数学原理 · 第一章</span>
+          <h1 class="anim" style="--i:1">一眼看懂强化学习的<br>基本概念</h1>
+          <p class="sub anim" style="--i:2">把网格世界变成可操作的课堂：动一动智能体，看回报如何累积，看价值如何收敛。</p>
+          <div class="cta-row anim" style="--i:3">
+            <button class="btn primary">开始学习</button>
+            <button class="btn">查看全部十讲</button>
+          </div>
+          <div class="stat-row">
+            <div class="stat anim" style="--i:4"><b data-count="10">10</b><span>讲 Lectures</span></div>
+            <div class="stat anim" style="--i:5"><b data-count="88">88</b><span>小节 Sections</span></div>
+            <div class="stat anim" style="--i:6"><b data-count="44">44</b><span>交互组件 Widgets</span></div>
+          </div>
+        </section>
+
+        <!-- 教学卡片样机 -->
+        <section class="card">
+          <div class="sec-head anim" style="--i:0">
+            <span class="sec-kicker">Section 1.2</span>
+            <h2 class="sec-title">回报：智能体真正关心的东西<small>Return: what the agent actually cares about</small></h2>
+          </div>
+          <div class="callout anim" style="--i:1">
+            <span class="ic">💡</span>
+            <p>一条轨迹的回报是沿途奖励的折扣和：越远的奖励，被打的折扣越重。<span class="en2">The return discounts future rewards: the farther away, the heavier the discount.</span></p>
+          </div>
+          <div class="formula anim" style="--i:2">
+            <span class="lbl">折扣回报 · Discounted Return</span>
+            G<sub>t</sub> = R<sub>t+1</sub> + γR<sub>t+2</sub> + γ<sup>2</sup>R<sub>t+3</sub> + …
+          </div>
+
+          <div class="lab anim" style="--i:3">
+            <div class="lab-title">交互实验 · 走一步，算一步</div>
+            <div class="lab-grid">
+              <div class="lab-stage">
+                <svg class="gboard" width="220" height="220" viewBox="0 0 220 220">
+                  <!-- 16 格底 -->
+                  <g id="cells"></g>
+                  <!-- 轨迹：s0 → s4 → s8（撞禁区） -->
+                  <path class="traj" d="M38,38 L38,86 L38,134"/>
+                  <!-- 策略箭头 -->
+                  <g class="parrow" transform="translate(92,74)">
+                    <path d="M-7,0 H5" stroke-width="2.4" stroke="var(--green)" fill="none" stroke-linecap="round"/>
+                    <path d="M5,-4 L11,0 L5,4 Z" stroke="none"/>
+                  </g>
+                  <g class="parrow" transform="translate(74,140)">
+                    <path d="M0,-7 V4" stroke-width="2.4" stroke="var(--green)" fill="none" stroke-linecap="round"/>
+                    <path d="M-4,4 L0,10 L4,4 Z" stroke="none"/>
+                  </g>
+                  <!-- 智能体（五角星） -->
+                  <g transform="translate(38,38)">
+                    <polygon class="agent" points="0,-13 3.23,-4.45 12.36,-4.02 5.23,1.7 7.64,10.52 0,5.5 -7.64,10.52 -5.23,1.7 -12.36,-4.02 -3.23,-4.45"/>
+                  </g>
+                </svg>
+                <div class="legend">
+                  <span class="lg"><i class="sw" style="background:var(--gold)"></i>禁区</span>
+                  <span class="lg"><i class="sw" style="background:var(--cyan)"></i>目标</span>
+                  <span class="lg"><i class="sw" style="background:var(--green)"></i>策略</span>
+                  <span class="lg"><i class="sw" style="background:var(--red)"></i>轨迹</span>
+                </div>
+              </div>
+              <div class="lab-side">
+                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+                  <button class="btn primary sm" style="padding:7px 14px;">▶ 播放轨迹</button>
+                  <button class="btn sm" style="padding:7px 14px;">单步</button>
+                  <button class="btn sm" style="padding:7px 14px;">重置</button>
+                </div>
+                <div class="seg" style="margin-bottom:12px;">
+                  <button>γ = 0.9</button>
+                  <button class="on">γ = 0.95</button>
+                  <button>γ = 1</button>
+                </div>
+                <p style="margin:0; font-size:13.5px; color:var(--ink-2);">智能体从 s0 出发，向上走会撞进禁区 s8，得到惩罚。换个策略再试一次。</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 代码面板样机 -->
+        <section class="code-wrap anim" style="--i:0">
+          <div class="code-tabs">
+            <button class="code-tab on">policy_eval.py</button>
+            <button class="code-tab">gridworld.py</button>
+          </div>
+          <div class="code-panel">
+            <div class="code-bar"><span class="dots"><i></i><i></i><i></i></span>迭代法评估策略 · Policy Evaluation</div>
+            <pre class="codeblock"><span class="cl"><span class="no">1</span><span class="tok-def">V</span> = {s: <span class="tok-num">0.0</span> <span class="tok-kw">for</span> s <span class="tok-kw">in</span> <span class="tok-def">range</span>(<span class="tok-num">16</span>)}</span><span class="cl"><span class="no">2</span><span class="tok-kw">for</span> k <span class="tok-kw">in</span> <span class="tok-def">range</span>(K):                <span class="tok-com"># 逐次逼近</span></span><span class="cl hl"><span class="no">3</span>    <span class="tok-kw">for</span> s <span class="tok-kw">in</span> <span class="tok-def">range</span>(<span class="tok-num">16</span>):</span><span class="cl"><span class="no">4</span>        V[s] = <span class="tok-def">sum</span>(p * (r + gamma * V[s2])</span><span class="cl"><span class="no">5</span>                   <span class="tok-kw">for</span> p, s2, r <span class="tok-kw">in</span> trans(s))</span><span class="cl"><span class="no">6</span><span class="tok-def">print</span>(V)                     <span class="tok-com"># 收敛后的价值</span></span></pre>
+            <p class="code-note"><b>L3</b>对每个状态，用"下一步的价值"更新当前价值，直到不再变化。</p>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+</div>
+
+<!-- 选择坞 -->
+<div class="dock">
+  <div class="dock-desc" id="dockDesc"></div>
+  <div class="dock-tabs" id="dockTabs">
+    <button data-t="chalk"><span class="no">01</span>墨板 Chalk</button>
+    <button data-t="swiss"><span class="no">02</span>讲义 Swiss</button>
+    <button data-t="quant"><span class="no">03</span>深空 Quant</button>
+    <button data-t="forest"><span class="no">04</span>教科书 Forest</button>
+  </div>
+  <div class="dock-hint">按 1-4 快捷切换 · 选好后回到对话告诉我编号</div>
+</div>
+
+<script>
+(function () {
+  const DESC = {
+    chalk: '01 墨板 · 深色黑板 + 粉笔质感，格子像手绘，动效是"板书写字"，教室氛围最强',
+    swiss: '02 讲义 · 纸白 + 单一克莱因蓝，方角细线如印刷讲义，动效干脆利落，最克制耐看',
+    quant: '03 深空 · 墨蓝数据实验室，电光青数字微发光，动效带数据感（数字滚动、轨迹辉光）',
+    forest: '04 教科书 · 暖纸色 + 森林绿 + 衬线标题，经典教材气质，动效温和有弹性',
+  };
+  const page = document.getElementById('page');
+  const tabs = Array.from(document.querySelectorAll('#dockTabs button'));
+  const desc = document.getElementById('dockDesc');
+
+  // 生成 16 格（s8/s10 禁区，s12 目标，其余留白 + 编号）
+  const cells = document.getElementById('cells');
+  const CELL = 48, PAD = 14;
+  const forbidden = [8, 10], target = 12;
+  for (let s = 0; s < 16; s++) {
+    const r = Math.floor(s / 4), c = s % 4;
+    const x = PAD + c * CELL, y = PAD + r * CELL;
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', x + 2.5); rect.setAttribute('y', y + 2.5);
+    rect.setAttribute('width', CELL - 5); rect.setAttribute('height', CELL - 5);
+    rect.setAttribute('rx', 5);
+    if (forbidden.includes(s)) rect.setAttribute('fill', 'var(--gold)');
+    else if (s === target) rect.setAttribute('fill', 'var(--cyan)');
+    else rect.setAttribute('fill', 'var(--surface)');
+    if (forbidden.includes(s) || s === target) rect.setAttribute('opacity', '.92');
+    rect.setAttribute('stroke', 'var(--line)'); rect.setAttribute('stroke-width', '1');
+    cells.appendChild(rect);
+    const tag = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    tag.setAttribute('x', x + 6.5); tag.setAttribute('y', y + 15);
+    tag.setAttribute('class', 'slab');
+    tag.textContent = 's' + s;
+    cells.appendChild(tag);
+    if (forbidden.includes(s) || s === target) {
+      const v = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      v.setAttribute('x', x + CELL / 2); v.setAttribute('y', y + CELL / 2 + 5);
+      v.setAttribute('class', 'ctag');
+      v.setAttribute('font-size', '13'); v.setAttribute('font-weight', '800');
+      v.textContent = s === target ? '+1' : '-1';
+      cells.appendChild(v);
+    }
+  }
+  // 网格线（横竖各 3 条内线）
+  for (let i = 1; i < 4; i++) {
+    const p1 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    p1.setAttribute('d', `M${PAD + i * CELL},${PAD} V${220 - PAD}`);
+    p1.setAttribute('class', 'gline'); cells.appendChild(p1);
+    const p2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    p2.setAttribute('d', `M${PAD},${PAD + i * CELL} H${220 - PAD}`);
+    p2.setAttribute('class', 'gline'); cells.appendChild(p2);
+  }
+  const frame = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  frame.setAttribute('x', PAD); frame.setAttribute('y', PAD);
+  frame.setAttribute('width', 220 - 2 * PAD); frame.setAttribute('height', 220 - 2 * PAD);
+  frame.setAttribute('rx', 6); frame.setAttribute('class', 'gframe');
+  cells.appendChild(frame);
+
+  // 数字滚动（量化感的点睛，各主题通用）
+  function countUp() {
+    document.querySelectorAll('[data-count]').forEach(function (el) {
+      const to = +el.dataset.count, t0 = performance.now();
+      function tick(t) {
+        const k = Math.min(1, (t - t0) / 550);
+        el.textContent = Math.round(to * (1 - Math.pow(1 - k, 3)));
+        if (k < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    });
+  }
+
+  function setTheme(t, replay) {
+    document.documentElement.dataset.theme = t;
+    tabs.forEach(function (b) { b.classList.toggle('on', b.dataset.t === t); });
+    desc.textContent = DESC[t];
+    try { localStorage.setItem('rl-theme-pick', t); } catch (e) {}
+    if (replay !== false) {
+      page.classList.remove('playing');
+      void page.offsetWidth;           // 强制重排以重放动画
+      page.classList.add('playing');
+      countUp();
+    }
+  }
+
+  tabs.forEach(function (b) { b.addEventListener('click', function () { setTheme(b.dataset.t); }); });
+  document.addEventListener('keydown', function (e) {
+    const map = { '1': 'chalk', '2': 'swiss', '3': 'quant', '4': 'forest' };
+    if (map[e.key]) setTheme(map[e.key]);
+  });
+
+  let saved = 'chalk';
+  try { saved = localStorage.getItem('rl-theme-pick') || 'chalk'; } catch (e) {}
+  setTheme(saved);
+})();
+</script>
+</body>
+</html>

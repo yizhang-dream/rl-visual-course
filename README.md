@@ -65,3 +65,11 @@ rl-viz/
 - 书 a1–a5（上右下左原）与代码 action_space（下右上左原）**列序不同**，作业策略矩阵以代码为准
 - 作业坐标换算：s_i ↔ (x, y) = ((i−1)%4, (i−1)//4)，s8=(3,1)、s10=(1,2)、s12=(3,2)
 - `plt.pause(0)` 在 Agg 后端会永久卡死；`add_policy` 必须在 `render()` 之后调用
+
+## 主题系统（2026-09-09 新增）
+
+- 五套主题内置在 `assets/css/main.css` 末尾的 `html[data-theme=…]` 块：`chalk 墨板`（默认）/ `swiss 讲义` / `quant 深空` / `forest 教科书` / `classic 经典`（原版样式）
+- 切换：顶栏右侧圆点切换器（`index.html` + `app.js` THEMES）；选择存 `localStorage('rl-viz-theme')`；`<head>` 里有引导脚本防首帧闪烁
+- 改颜色**必须**走 CSS 变量（`--accent/--gold/--cyan/--green/--red/--violet/--code-*` 等），不要写死色值；写死色在深色主题下会破
+- 每主题的动效性格：chalk 板书微旋转+虚线描边 / swiss 快而准+方角 / quant 辉光数字+发光轨迹 / forest 温和弹性+衬线标题
+- `theme-picker.html`：独立的主题提案对比页（样机+四主题实时切换），留作设计参考

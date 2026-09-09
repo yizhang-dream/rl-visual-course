@@ -5,6 +5,22 @@
   const { createApp } = Vue;
   const D = window.DATA;
 
+  // 主题清单（与 main.css 的 html[data-theme] 块一一对应）
+  const THEMES = [
+    { key: 'chalk',   label: '墨板 Chalkboard',  dot: '#ffd76a' },
+    { key: 'swiss',   label: '讲义 Swiss Notes', dot: '#2138e0' },
+    { key: 'quant',   label: '深空 Quant Dark',  dot: '#3ce6c2' },
+    { key: 'forest',  label: '教科书 Forest',    dot: '#2e6b45' },
+    { key: 'classic', label: '经典 Classic',     dot: '#3e6fe0' },
+  ];
+  function loadTheme() {
+    try {
+      const t = localStorage.getItem('rl-viz-theme');
+      if (THEMES.some(x => x.key === t)) return t;
+    } catch (e) {}
+    return document.documentElement.dataset.theme || 'chalk';
+  }
+
   // 双语段落渲染：中文 + 英文（CSS 控制显示模式）
   const fmt = (blk) =>
     `<span class="zh du-line">${blk.zh}</span><span class="en du-line">${blk.en}</span>`;
@@ -20,6 +36,8 @@
       sidebarOpen: false,
       scrollPct: 0,
       lectureFilter: 0,           // 0 = 全部 / else lecture no
+      theme: loadTheme(),
+      themes: THEMES,
       _observer: null,
     }),
     computed: {
@@ -48,6 +66,11 @@
         this.lang = k;
         localStorage.setItem('rl-viz-lang', k);
         document.body.dataset.lang = k;
+      },
+      setTheme(k) {
+        this.theme = k;
+        document.documentElement.dataset.theme = k;
+        try { localStorage.setItem('rl-viz-theme', k); } catch (e) {}
       },
       go(id) {
         this.sidebarOpen = false;
@@ -94,6 +117,7 @@
     },
     mounted() {
       document.body.dataset.lang = this.lang;
+      document.documentElement.dataset.theme = this.theme;
       this.setupReveal();
     },
   });
