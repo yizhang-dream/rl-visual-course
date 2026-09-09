@@ -5,6 +5,33 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RL 可视化课堂 · 全书十讲 | RL Visual Classroom · Mathematical Foundation of RL</title>
 <meta name="description" content="《强化学习的数学原理》全书十讲 · 双语交互式可视化教程：88 小节 · 63 个交互实验台 · 44 个 Vue 组件，从网格世界与 Bellman 方程到策略梯度与 Actor-Critic">
+<link rel="canonical" href="https://rl.xn--ltr42g543b.cn/">
+<meta property="og:title" content="RL 可视化课堂 · 全书十讲 | RL Visual Classroom · Mathematical Foundation of RL">
+<meta property="og:description" content="《强化学习的数学原理》全书十讲 · 双语交互式可视化教程：88 小节 · 63 个交互实验台 · 44 个 Vue 组件，从网格世界与 Bellman 方程到策略梯度与 Actor-Critic">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://rl.xn--ltr42g543b.cn/">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Course",
+  "name": "RL 可视化课堂 · Mathematical Foundation of RL（强化学习的数学原理 · 全书十讲可视化）",
+  "description": "《强化学习的数学原理》(Mathematical Foundation of Reinforcement Learning) 全书十讲的双语交互式可视化课程：88 个小节、63 个交互实验台，从网格世界与 Bellman 方程到策略梯度与 Actor-Critic。",
+  "inLanguage": "zh-CN",
+  "provider": { "@type": "Organization", "name": "RL 可视化课堂 · RL Visual Classroom" },
+  "hasPart": [
+    { "@type": "Course", "name": "L1 基本概念 · Basic concepts" },
+    { "@type": "Course", "name": "L2 状态价值与 Bellman 方程 · Bellman equation" },
+    { "@type": "Course", "name": "L3 Bellman 最优方程 · Bellman optimality" },
+    { "@type": "Course", "name": "L4 值迭代与策略迭代 · Value & policy iteration" },
+    { "@type": "Course", "name": "L5 蒙特卡洛方法 · Monte Carlo methods" },
+    { "@type": "Course", "name": "L6 随机近似 · Stochastic approximation" },
+    { "@type": "Course", "name": "L7 时序差分方法 · Temporal-difference methods" },
+    { "@type": "Course", "name": "L8 值函数近似 · Value function approximation" },
+    { "@type": "Course", "name": "L9 策略梯度方法 · Policy gradient methods" },
+    { "@type": "Course", "name": "L10 Actor-Critic 方法 · Actor-Critic methods" }
+  ]
+}
+</script>
 <script>
 // 主题引导：在样式表生效前定好 data-theme，避免首帧闪烁
 try { document.documentElement.dataset.theme = localStorage.getItem('rl-viz-theme') || 'chalk'; } catch (e) {}
@@ -31,29 +58,13 @@ window.addEventListener('error', function (e) {
 });
 </script>
 <script src="assets/vendor/vue.global.prod.js"></script>
-<script src="assets/vendor/gsap.min.js"></script>
 <script src="assets/js/data.js"></script>
-<script src="assets/js/data-l2.js"></script>
-<script src="assets/js/data-l3.js"></script>
-<script src="assets/js/data-l4.js"></script>
-<script src="assets/js/data-l5.js"></script>
-<script src="assets/js/data-l6.js"></script>
-<script src="assets/js/data-l7.js"></script>
-<script src="assets/js/data-l8.js"></script>
-<script src="assets/js/data-l9.js"></script>
-<script src="assets/js/data-l10.js"></script>
 <script src="assets/js/components.js"></script>
-<script src="assets/js/components-l1.js"></script>
-<script src="assets/js/components-l2.js"></script>
-<script src="assets/js/components-l3.js"></script>
-<script src="assets/js/components-l4.js"></script>
-<script src="assets/js/components-l5.js"></script>
-<script src="assets/js/components-l6.js"></script>
-<script src="assets/js/components-l7.js"></script>
-<script src="assets/js/components-l8.js"></script>
-<script src="assets/js/components-l9.js"></script>
-<script src="assets/js/components-l10.js"></script>
 <script src="assets/js/root-template.js"></script>
+<script src="assets/js/loader.js"></script>
 <script src="assets/js/app.js"></script>
+<!-- data-lX.js 与 components-lX.js（L1..L10）已改为按讲懒加载：
+     首次进入该讲时由 loader.js 以经典 script 注入（file:// 可用，无 fetch/XHR）。
+     旧动画库 vendor 文件已不再加载：hero 编排改 CSS 动画 + rAF（assets/vendor 文件保留备回滚）。 -->
 </body>
 </html>

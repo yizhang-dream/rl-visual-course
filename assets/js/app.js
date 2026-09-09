@@ -39,6 +39,15 @@
 
   const ICONS = { key: '🔑', warn: '⚠️', danger: '🚫', idea: '💡', done: '✅' };
 
+  // 页面标题（SEO：路由切换时同步 document.title / og:title）
+  const HOME_TITLE = 'RL 可视化课堂 · 全书十讲 | RL Visual Classroom · Mathematical Foundation of RL';
+  function setOgTitle(content) {
+    try {
+      const el = document.head.querySelector('meta[property="og:title"]');
+      if (el) el.setAttribute('content', content);
+    } catch (e) {}
+  }
+
   const app = createApp({
     template: window.ROOT_TEMPLATE,   // 根模板在 root-template.js（先于本文件加载）
     data: () => ({
@@ -52,6 +61,7 @@
       lectureToggles: {},         // 讲级折叠的用户手动开关：{ lecture: true|false }（会话内记住）
       theme: loadTheme(),
       themes: THEMES,
+      loadingLec: 0,              // 正在按需加载的讲号（0 = 无；驱动顶部加载占位）
       _observer: null,
     }),
     computed: {
@@ -102,24 +112,42 @@
         document.documentElement.dataset.theme = k;
         try { localStorage.setItem('rl-viz-theme', k); } catch (e) {}
       },
-      // ── hash 路由 ──────────────────────────────────────────
+      // ── hash 路由（按讲懒加载版）─────────────────────────────
       // go() 只写地址栏；状态同步统一走 syncFromHash → applyRoute，
-      // 单一路径保证点击 / 后退前进 / 手改 URL / 刷新恢复行为一致
+      // 单一路径保证点击 / 后退前进 / 手改 URL / 刷新恢复行为一致。
+      // 懒加载后，路由先 await ensureLecture(目标讲) 再渲染：
+      // 侧栏点击 / 上一节下一节跨讲 / 深链冷启动全部汇聚于此，无需各改。
       hashOf(id) { return id === 'home' ? '' : '#sec-' + id; },
+      lectureOf(id) {
+        const g = D.navGroups.find(g => g.items.some(it => it.id === id));
+        return g ? g.lecture : 0;
+      },
       go(id) {
         const want = this.hashOf(id);
-        if (location.hash === want) { this.applyRoute(id, true); return; }
+        if (location.hash === want) { this.syncFromHash(true); return; }
         location.hash = want;   // 触发 hashchange → onHashChange → syncFromHash
       },
-      syncFromHash(smooth) {
+      async syncFromHash(smooth) {
         const m = /^#sec-(.+)$/.exec(location.hash);
         const id = (m && this.allNavItems.some(n => n.id === m[1])) ? m[1] : 'home';
+        if (id === 'home') { this.applyRoute('home', smooth); return; }
+        const lec = this.lectureOf(id);
+        if (!lec) return;
+        const seq = ++this._routeSeq;          // 竞态守卫：只有最新一次导航有权落位
+        // ensureLecture 幂等：已加载的讲返回已决议 Promise，不显示加载占位
+        this.loadingLec = lec;
+        try { await window.RLVLoader.ensureLecture(lec); }
+        catch (e) { console.error('[route] L' + lec + ' 讲内容加载失败，仍尝试渲染导航骨架', e); }
+        if (seq !== this._routeSeq) return;    // 等待期间用户又导航了：让最新一次接管
+        this.loadingLec = 0;
         this.applyRoute(id, smooth);
       },
       applyRoute(id, smooth) {
         this.sidebarOpen = false;
         if (id === 'home') {
           this.section = 'home';
+          document.title = HOME_TITLE;
+          setOgTitle(HOME_TITLE);
           this.$nextTick(() => {
             if (this.$refs.content) this.$refs.content.scrollTop = 0;
             this.setupReveal();
@@ -132,6 +160,13 @@
         this.section = 'lesson';
         this.activeId = id;          // 侧栏高亮立即跟随（不等滚动事件）
         this.markVisited(id);
+        // SEO：单讲视图标题同步为「L讲号 讲名 · RL 可视化课堂」
+        const lecMeta = D.otherLectures.find(l => l.no === grp.lecture);
+        if (lecMeta) {
+          const t = 'L' + lecMeta.no + ' ' + lecMeta.zh + ' · RL 可视化课堂';
+          document.title = t;
+          setOgTitle(t);
+        }
         this.$nextTick(() => {
           const el = document.getElementById('sec-' + id);
           // 深链/刷新恢复（smooth=false）：目标节 reveal 直达终态，不播 stagger
@@ -169,8 +204,18 @@
         return i < 0 ? { prev: null, next: null }
           : { prev: i > 0 ? all[i - 1] : null, next: i < all.length - 1 ? all[i + 1] : null };
       },
-      filterLecture(no) {
-        this.lectureFilter = this.lectureFilter === no ? 0 : no;
+      // 讲筛选 chip：懒加载版「先加载、后切换」——内容就绪才切 lectureFilter，
+      // 避免切到内容还没注入的讲出现半渲染视图（侧栏骨架本身始终完整可点）
+      async filterLecture(no) {
+        const target = this.lectureFilter === no ? 0 : no;
+        if (!target) { this.lectureFilter = 0; return; }
+        const seq = ++this._filterSeq;
+        this.loadingLec = no;
+        try { await window.RLVLoader.ensureLecture(no); }
+        catch (e) { console.error('[filter] L' + no + ' 讲内容加载失败', e); }
+        if (seq !== this._filterSeq) return;   // 期间用户又点了别的 chip
+        this.loadingLec = 0;
+        this.lectureFilter = target;
       },
       // 讲级折叠状态：单讲视图（lectureFilter≠0）该讲必须展开；
       // “全部”模式默认只展开 L1，用户手动开关过的讲按 lectureToggles 记住（本次会话）
@@ -245,9 +290,12 @@
       document.body.dataset.lang = this.lang;
       document.documentElement.dataset.theme = this.theme;
       document.documentElement.lang = this.lang === 'en' ? 'en' : 'zh-CN';
+      this._routeSeq = 0;   // 路由竞态序号（非响应式实例属性）
+      this._filterSeq = 0;  // 讲筛选竞态序号
       this._route = () => this.syncFromHash(true);
       window.addEventListener('hashchange', this._route);
-      this.syncFromHash(false);   // 初始化：读 hash 恢复位置（深链/刷新保位，直达终态）
+      this.syncFromHash(false);   // 初始化：读 hash 恢复位置（深链/刷新保位，直达终态；
+                                  //   深链落在未加载讲时先 await ensureLecture 再渲染）
     },
     beforeUnmount() {
       window.removeEventListener('hashchange', this._route);
@@ -256,6 +304,8 @@
   });
 
   Object.entries(window.COMPONENTS).forEach(([name, comp]) => app.component(name, comp));
+  // 懒加载器补挂后续组件用（loader.js 在各讲注入完成后调 syncComponents）
+  window.__RLV_APP = app;
 
   app.config.errorHandler = (err, inst, info) => {
     const name = inst && (inst.$options ? inst.$options.name : inst.type && inst.type.name);

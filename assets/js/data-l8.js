@@ -260,21 +260,8 @@ for episode in range(N):
       a: { zh: '目标网络治"自己追自己"——目标和被优化对象共享参数会让目标不断移动，冻结副本给梯度一个稳定靶子。经验回放治"样本相关"——连续决策的样本高度相关，violates i.i.d.，随机抽批打散它。两药合用驯服致命三角。', en: 'The target network cures “chasing oneself” — target and optimised object sharing parameters makes the target move; a frozen copy gives the gradient a stable mark. Experience replay cures “correlated samples” — sequential decisions are strongly correlated, violating i.i.d.; random mini-batches shuffle it away. Together they tame the deadly triad.' } },
   ];
 
-  /* ═══ 注册导航 ═══ */
-  D.navGroups.push({
-    lecture: 8,
-    label: 'L8 · 值函数近似',
-    items: [
-      { id: 'l8-representation', zh: '从表格到函数', en: '§8.1 Table → function' },
-      { id: 'l8-td-fa', zh: 'TD + 函数近似', en: '§8.2 TD with approximation' },
-      { id: 'l8-q-fa', zh: 'Sarsa/Q-learning 换引擎', en: '§8.3 Sarsa/Q with approximation' },
-      { id: 'l8-dqn', zh: 'Deep Q-Learning', en: '§8.4 Deep Q-learning' },
-      { id: 'l8-summary', zh: '本章总结', en: '§8.5 Summary' },
-      { id: 'l8-reasoning', zh: '连贯长推理', en: 'The long reasoning' },
-      { id: 'l8-code', zh: '代码精讲', en: 'Code walkthrough' },
-      { id: 'l8-qa', zh: '问答', en: 'Q&A · §8.6' },
-    ],
-  });
+
+  /* 导航组注册已提升至 data.js 的 NAV（按讲懒加载后，冷启动侧栏也要完整） */
   const l8 = D.otherLectures.find(l => l.no === 8);
   if (l8) l8.done = true;
 })();

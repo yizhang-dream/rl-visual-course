@@ -303,24 +303,8 @@ if __name__ == "__main__":
       a: { zh: '怕禁区：加大 r<sub>forbidden</sub> 的负值（−1 → −10），或调小 γ（眼前惩罚更痛）。更快到目标：<strong>不需要加步数惩罚</strong>——γ 本身就是时间成本（绕路 γ²/(1−γ) 小于直达 1/(1−γ)）；统一加负奖励是仿射变换、无效。想放大行为差距：调 α 缩放全部奖励。', en: 'Fear forbidden cells: push r<sub>forbidden</sub> down (−1 → −10), or lower γ so present penalties sting. Hurry: <strong>no step penalty needed</strong> — γ already charges for time (detour γ²/(1−γ) &lt; direct 1/(1−γ)); a uniform negative shift is affine and useless. To amplify behaviour gaps: scale all rewards by α.' } },
   ];
 
-  /* ═══ 注册导航 ═══ */
-  D.navGroups.push({
-    lecture: 3,
-    label: 'L3 · Bellman 最优方程',
-    items: [
-      { id: 'l3-improve', zh: '动机：怎么改进策略', en: '§3.1 Policy improvement' },
-      { id: 'l3-definition', zh: '最优性的定义与四问', en: '§3.2 Optimality defined' },
-      { id: 'l3-boe', zh: 'BOE 与双未知数', en: '§3.3 The BOE' },
-      { id: 'l3-contraction', zh: '压缩映射定理', en: '§3.3.3 Contraction mapping' },
-      { id: 'l3-solving', zh: '解 BOE：v* 与 π*', en: '§3.4 Solving the BOE' },
-      { id: 'l3-factors', zh: 'γ 与奖励的旋钮', en: '§3.5 γ & reward knobs' },
-      { id: 'l3-detour', zh: '绕路之谜', en: '§3.5 The detour puzzle' },
-      { id: 'l3-summary', zh: '本章总结', en: '§3.6 Summary' },
-      { id: 'l3-reasoning', zh: '连贯长推理', en: 'The long reasoning' },
-      { id: 'l3-code', zh: '代码精讲', en: 'Code walkthrough' },
-      { id: 'l3-qa', zh: '问答', en: 'Q&A · §3.7' },
-    ],
-  });
+
+  /* 导航组注册已提升至 data.js 的 NAV（按讲懒加载后，冷启动侧栏也要完整） */
   const l3 = D.otherLectures.find(l => l.no === 3);
   if (l3) l3.done = true;
 })();

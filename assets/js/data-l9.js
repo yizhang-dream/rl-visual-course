@@ -224,21 +224,8 @@ def reinforce(env, episodes=3000, gamma=0.9, alpha=0.02, max_steps=200):
       a: { zh: '策略基：天然输出随机策略（适合需要随机性的场景如石头剪刀布）、可表达连续动作、参数化平滑易收敛到局部最优；价值基：样本效率高、可离策略、表格情形收敛到全局最优。Actor-Critic（下一课）取两者之长。', en: 'Policy-based: naturally stochastic policies (ideal when randomness matters, like rock-paper-scissors), continuous actions, smooth local convergence. Value-based: sample-efficient, off-policy capable, globally optimal in the tabular case. Actor-Critic (next lecture) takes the best of both.' } },
   ];
 
-  /* ═══ 注册导航 ═══ */
-  D.navGroups.push({
-    lecture: 9,
-    label: 'L9 · 策略梯度方法',
-    items: [
-      { id: 'l9-representation', zh: '策略的函数表示', en: '§9.1 Policy representation' },
-      { id: 'l9-metrics', zh: '三个优化度量', en: '§9.2 Three metrics' },
-      { id: 'l9-theorem', zh: '策略梯度定理', en: '§9.3 The policy gradient theorem' },
-      { id: 'l9-reinforce', zh: 'REINFORCE', en: '§9.4 REINFORCE' },
-      { id: 'l9-summary', zh: '本章总结', en: '§9.5 Summary' },
-      { id: 'l9-reasoning', zh: '连贯长推理', en: 'The long reasoning' },
-      { id: 'l9-code', zh: '代码精讲', en: 'Code walkthrough' },
-      { id: 'l9-qa', zh: '问答', en: 'Q&A · §9.6' },
-    ],
-  });
+
+  /* 导航组注册已提升至 data.js 的 NAV（按讲懒加载后，冷启动侧栏也要完整） */
   const l9 = D.otherLectures.find(l => l.no === 9);
   if (l9) l9.done = true;
 })();

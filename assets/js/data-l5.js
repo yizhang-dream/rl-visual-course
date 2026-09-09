@@ -264,21 +264,8 @@ def mc_basic(env, n_episodes=50, gamma=0.9, max_outer=20, max_steps=200):
       a: { zh: '同一思想的三个版本：MC Basic 揭示核心（评估步换成 MC 估计）；Exploring Starts 调整样本利用（every-visit + 反向 + 逐回合改进）；ε-Greedy 去掉 exploring starts 条件（soft 策略）。核心简单，复杂化都是为效率服务——学习时要分层拆解。', en: 'Three versions of one idea: MC Basic reveals the core (evaluation step → MC estimation); Exploring Starts refines sample usage (every-visit, backward pass, episode-wise improvement); ε-Greedy removes the exploring-starts condition (soft policies). The core is simple; the complications all serve efficiency — learn them in layers.' } },
   ];
 
-  /* ═══ 注册导航 ═══ */
-  D.navGroups.push({
-    lecture: 5,
-    label: 'L5 · 蒙特卡洛方法',
-    items: [
-      { id: 'l5-mean', zh: '均值估计与大数定律', en: '§5.1 Mean estimation' },
-      { id: 'l5-basic', zh: 'MC Basic', en: '§5.2 MC Basic' },
-      { id: 'l5-exploring', zh: 'MC Exploring Starts', en: '§5.3 Exploring starts' },
-      { id: 'l5-eps', zh: 'MC ε-Greedy 与探索利用', en: '§5.4–5.5 ε-greedy' },
-      { id: 'l5-summary', zh: '本章总结', en: '§5.6 Summary' },
-      { id: 'l5-reasoning', zh: '连贯长推理', en: 'The long reasoning' },
-      { id: 'l5-code', zh: '代码精讲', en: 'Code walkthrough' },
-      { id: 'l5-qa', zh: '问答', en: 'Q&A · §5.7' },
-    ],
-  });
+
+  /* 导航组注册已提升至 data.js 的 NAV（按讲懒加载后，冷启动侧栏也要完整） */
   const l5 = D.otherLectures.find(l => l.no === 5);
   if (l5) l5.done = true;
 })();

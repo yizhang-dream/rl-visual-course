@@ -15,10 +15,21 @@
     props: { value: { type: Number, default: 0 }, cls: { type: String, default: '' } },
     data: () => ({ disp: 0 }),
     watch: {
+      // 数字滚动（原第三方补间动画 → rAF 等效：450ms power2.out / cubic out）。
+      // _tw 令牌保证连续变化时旧 tween 自动作废，避免两条链打架。
       value(nv, ov) {
-        if (!window.gsap) { this.disp = nv; return; }
-        const o = { v: ov };
-        gsap.to(o, { v: nv, duration: .45, ease: 'power2.out', onUpdate: () => { this.disp = o.v; } });
+        if (this._tw) this._tw.dead = true;
+        const tw = { dead: false };
+        this._tw = tw;
+        const from = Number(ov) || 0, delta = (Number(nv) || 0) - from;
+        const t0 = performance.now(), dur = 450;
+        const tick = (now) => {
+          if (tw.dead) return;
+          const t = Math.min(1, (now - t0) / dur);
+          this.disp = from + delta * (1 - Math.pow(1 - t, 3));
+          if (t < 1) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
       },
     },
     mounted() { this.disp = this.value; },

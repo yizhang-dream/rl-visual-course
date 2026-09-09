@@ -577,16 +577,15 @@
     name: 'HomeHero',
     emits: ['go'],
     computed: {
-      // 动态统计：小节总数 / widget 实验台数 / 讲数，全部从 DATA 实时算出
+      // 全书统计：小节总数 / widget 实验台数 / 讲数。
+      // 懒加载后冷启动只有 L1 内容，sections 对象不完整，
+      // 因此小节与实验台数改为走结构性元数据（navGroups 全树 + LECTURES.widgets，
+      // 后者与各讲实际 widget 块数一致；navClusters/navGroups 同为需同步维护的元数据）
       stats() {
         const D = window.DATA;
-        let widgets = 0;
-        Object.values(D.sections).forEach(s => {
-          (s.blocks || []).forEach(b => { if (b && b.t === 'widget') widgets++; });
-        });
         return {
-          sections: Object.keys(D.sections).length,
-          widgets,
+          sections: D.navGroups.reduce((n, g) => n + g.items.length, 0),
+          widgets: D.otherLectures.reduce((n, l) => n + (l.widgets || 0), 0),
           lectures: D.navGroups.length,
           themes: 5,
         };
@@ -595,25 +594,27 @@
     mounted() {
       // 首页 hero 编排（只在挂载时播一次，不随滚动重播）：
       // kicker → 标题分行 → 副标题两行 → CTA 按钮组 → stats 数字条（count-up）
-      if (!window.gsap) return;
+      // 原用第三方动画库时间轴，现为零依赖等效实现：入场走 main.css 的
+      // .home-hero.hero-in CSS 动画（同节奏 stagger），数字 count-up 用 rAF。
+      // 无 CSS 动画支持/减动效环境不做任何事——模板初值本来就是终值。
       if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
       const el = this.$el;
+      if (!el || !el.classList) return;
+      el.classList.add('hero-in');
       const nums = Array.from(el.querySelectorAll('.hero-stat b'));
-      const targets = nums.map(b => parseInt(b.textContent, 10) || 0); // 先取真实值再从 0 滚起
-      const tl = gsap.timeline({ defaults: { ease: 'power2.out' } });
-      tl.from(el.querySelector('.hero-kicker'), { y: 10, opacity: 0, duration: .4 })
-        .from(Array.from(el.querySelector('.hero-title').children), { y: 16, opacity: 0, duration: .5, stagger: .09 }, '-=.18')
-        .from(el.querySelector('.hero-sub'), { y: 12, opacity: 0, duration: .45 }, '-=.2')
-        .from(el.querySelector('.hero-sub-en'), { y: 10, opacity: 0, duration: .4 }, '-=.28')
-        .from(el.querySelectorAll('.hero-cta .btn'), { y: 8, opacity: 0, duration: .35, stagger: .07 }, '-=.22')
-        .from(el.querySelectorAll('.hero-stat'), { y: 10, opacity: 0, duration: .4, stagger: .07 }, '-=.18');
       nums.forEach((b, i) => {
+        const target = parseInt(b.textContent, 10) || 0;   // 先取真实值再从 0 滚起
+        const t0 = performance.now() + 620 + i * 60;       // 与原时间轴对齐：.62s 起每支错 60ms
+        const dur = 750;                                   // 原库 duration .75，power2.out（cubic out）
         b.textContent = '0';
-        const o = { v: 0 };
-        tl.to(o, {
-          v: targets[i], duration: .75,
-          onUpdate: () => { b.textContent = String(Math.round(o.v)); },
-        }, .62 + i * .06);
+        const tick = (now) => {
+          const t = Math.min(1, Math.max(0, (now - t0) / dur));
+          const e = 1 - Math.pow(1 - t, 3);
+          b.textContent = String(Math.round(target * e));
+          if (t < 1) requestAnimationFrame(tick);
+          else b.textContent = String(target);
+        };
+        requestAnimationFrame(tick);
       });
     },
     template: `

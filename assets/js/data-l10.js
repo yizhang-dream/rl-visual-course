@@ -195,20 +195,8 @@ def a2c(env, episodes=4000, gamma=0.9, alpha_theta=0.02, alpha_w=0.1,
       a: { zh: '方差治理：REINFORCE→A2C→GAE（多步优势）；trust region：TRPO/PPO（限制每步更新幅度防崩坏）；off-policy + 确定性：DPG→DDPG→TD3（连续控制）；随机策略正则：SAC（熵正则最大化探索）。另有模型基、多智能体、分布式 RL 等分支——本书的地基都在它们的地基里。', en: 'Variance governance: REINFORCE→A2C→GAE (multi-step advantages); trust regions: TRPO/PPO (bounding each update against collapse); off-policy + deterministic: DPG→DDPG→TD3 (continuous control); stochastic-policy regularisation: SAC (entropy-maximised exploration). Branches extend to model-based, multi-agent, and distributional RL — this book’s foundations underlie all of them.' } },
   ];
 
-  /* ═══ 注册导航 ═══ */
-  D.navGroups.push({
-    lecture: 10,
-    label: 'L10 · Actor-Critic 方法',
-    items: [
-      { id: 'l10-qac', zh: 'QAC：最简 Actor-Critic', en: '§10.1 QAC' },
-      { id: 'l10-a2c', zh: 'A2C：优势与基线', en: '§10.2 Advantage actor-critic' },
-      { id: 'l10-offpolicy', zh: 'Off-policy 与确定性策略', en: '§10.3–10.4 Off-policy & DPG' },
-      { id: 'l10-summary', zh: '本章总结 · 全书收官', en: '§10.5 Summary & finale' },
-      { id: 'l10-reasoning', zh: '连贯长推理', en: 'The long reasoning' },
-      { id: 'l10-code', zh: '代码精讲', en: 'Code walkthrough' },
-      { id: 'l10-qa', zh: '问答', en: 'Q&A · §10.6' },
-    ],
-  });
+
+  /* 导航组注册已提升至 data.js 的 NAV（按讲懒加载后，冷启动侧栏也要完整） */
   const l10 = D.otherLectures.find(l => l.no === 10);
   if (l10) l10.done = true;
 })();

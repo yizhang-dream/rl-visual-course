@@ -1435,3 +1435,94 @@ html[data-theme] .reveal.in { transform: none; }
   .nav-group-body, .nav-group-body.open { transition: none; }
   .nav-group-label, .nav-group-label .ngl-chevron { transition: none; }
 }
+
+/* ─────────────── 首页 hero 入场（GSAP 移除后的 CSS 等效实现）───────────────
+   原 gsap timeline：kicker→标题分行→副标题→CTA→stats 依次浮现；
+   节奏照搬（时长/延迟对齐原时间轴），组件挂载时由 JS 加 .hero-in 触发。
+   无 .hero-in（JS 未跑/减动效）时元素保持自然终态，不会隐身。 */
+.home-hero.hero-in .hero-kicker,
+.home-hero.hero-in .hero-title > span,
+.home-hero.hero-in .hero-sub,
+.home-hero.hero-in .hero-sub-en,
+.home-hero.hero-in .hero-cta .btn,
+.home-hero.hero-in .hero-stat {
+  animation: hero-rise .45s cubic-bezier(.25, .8, .3, 1) both;
+}
+.home-hero.hero-in .hero-title > span:nth-child(1) { animation-delay: .22s; animation-duration: .5s; }
+.home-hero.hero-in .hero-title > span:nth-child(2) { animation-delay: .31s; animation-duration: .5s; }
+.home-hero.hero-in .hero-sub      { animation-delay: .50s; }
+.home-hero.hero-in .hero-sub-en   { animation-delay: .68s; animation-duration: .4s; }
+.home-hero.hero-in .hero-cta .btn:nth-child(1) { animation-delay: .85s; animation-duration: .35s; }
+.home-hero.hero-in .hero-cta .btn:nth-child(2) { animation-delay: .92s; animation-duration: .35s; }
+.home-hero.hero-in .hero-cta .btn:nth-child(3) { animation-delay: .99s; animation-duration: .35s; }
+.home-hero.hero-in .hero-stat:nth-child(1) { animation-delay: 1.00s; animation-duration: .4s; }
+.home-hero.hero-in .hero-stat:nth-child(2) { animation-delay: 1.07s; animation-duration: .4s; }
+.home-hero.hero-in .hero-stat:nth-child(3) { animation-delay: 1.14s; animation-duration: .4s; }
+.home-hero.hero-in .hero-stat:nth-child(4) { animation-delay: 1.21s; animation-duration: .4s; }
+@keyframes hero-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ─────────────── 按讲懒加载占位 ─────────────── */
+.lazy-loading {
+  display: flex; align-items: center; gap: 12px;
+  max-width: 980px; margin: 8px auto 22px;
+  padding: 14px 18px; border-radius: 14px;
+  background: var(--accent-soft);
+  border: 1px dashed color-mix(in srgb, var(--accent) 40%, transparent);
+  color: var(--accent-deep); font: 600 13.5px var(--font);
+}
+.lazy-loading .ll-text { display: flex; flex-direction: column; gap: 2px; }
+.lazy-loading .ll-text .en { font-size: 11.5px; color: var(--ink-3); font-weight: 500; }
+.ll-spinner {
+  width: 18px; height: 18px; flex: none; border-radius: 99px;
+  border: 2.5px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  border-top-color: var(--accent);
+  animation: ll-spin .8s linear infinite;
+}
+@keyframes ll-spin { to { transform: rotate(360deg); } }
+
+/* ─────────────── 打印样式 ───────────────
+   打印 / 导出 PDF：去掉界面 chrome（侧栏/顶栏/翻页条/浮层），正文全宽，
+   reveal 动画强制终态，卡片防跨页断开；任何主题都翻成白底黑字。 */
+@media print {
+  :root, html[data-theme="chalk"], html[data-theme="swiss"], html[data-theme="quant"],
+  html[data-theme="forest"], html[data-theme="classic"] {
+    --bg: #ffffff; --bg-soft: #ffffff; --surface: #ffffff;
+    --ink: #000000; --ink-2: #1c1c1c; --ink-3: #4a4a4a;
+    --line: #d8d8d8; --line-strong: #b8b8b8;
+    --accent: #22509e; --accent-deep: #173a76; --accent-soft: #eef2fb;
+    --gold: #8a6400; --gold-soft: #fdf6e3;
+    --cyan: #176f9e; --cyan-soft: #e8f4fb;
+    --green: #4c7210; --green-soft: #f0f6e2;
+    --red: #a91f38; --red-soft: #fbe9ed;
+    --violet: #55399f; --violet-soft: #f0ebfa;
+    --code-bg: #f5f5f5; --code-ink: #1c1c1c; --on-code: #1c1c1c;
+    --formula-bg: #ffffff; --lab-bg: #ffffff;
+    --topbar-bg: transparent; --page-tex: none; --glow: none;
+    --chart-bg: #ffffff; --chart-ink: #6a7686; --chart-grid: #dddddd; --cell-alt: #ffffff;
+    --shadow-1: none; --shadow-2: none; --shadow-pop: none;
+  }
+  @page { margin: 14mm; }
+  html, body { background: #ffffff !important; color: #000000 !important; }
+  /* 去 chrome：导航 / 顶栏 / 上下节翻页条 / 诊断与加载浮层不进纸面 */
+  .topbar, .sidebar, .sidebar-mask, .fab-nav, .sec-pn,
+  #err-badge, .lazy-loading { display: none !important; }
+  /* 正文全宽、取消滚动容器高度约束 */
+  .shell { display: block; height: auto; padding-top: 0; }
+  .content { height: auto; overflow: visible; padding: 0; scroll-behavior: auto; }
+  .content-inner, .lesson-section, .home-hero > *, .course-map, .how-to-use { max-width: 100%; }
+  /* reveal / hero 动画强制终态（打印不等 IntersectionObserver 与 CSS 动画） */
+  .reveal, .reveal-item { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .formula-card.reveal-item::before { transform: none !important; }
+  .home-hero.hero-in .hero-kicker,
+  .home-hero.hero-in .hero-title > span,
+  .home-hero.hero-in .hero-sub,
+  .home-hero.hero-in .hero-sub-en,
+  .home-hero.hero-in .hero-cta .btn,
+  .home-hero.hero-in .hero-stat { animation: none !important; }
+  /* 卡片防跨页断开 */
+  .lab, .formula-card, .qa-card, .callout, .course-map-card,
+  .lesson-section header.sec-head { break-inside: avoid; page-break-inside: avoid; }
+}

@@ -336,25 +336,8 @@ if __name__ == "__main__":
       a: { zh: '同步更新（整轮缓冲）对应书上的 v<sub>k+1</sub> = r<sub>π</sub> + γP<sub>π</sub>v<sub>k</sub>，收敛证明就是按这个形式给的；边算边覆盖是异步（in-place）变体，通常收敛更快，但那是不同的更新规则，需要重新证明。初学阶段先写同步版：行为可预测、和教材一一对应、便于验收。', en: 'Synchronous updates (full buffering) correspond exactly to v<sub>k+1</sub> = r<sub>π</sub> + γP<sub>π</sub>v<sub>k</sub>, whose convergence the book proves in that form; in-place updating is an asynchronous variant that often converges faster but follows a different update rule requiring a fresh proof. Learn the synchronous version first: predictable behaviour, one-to-one with the textbook, easy to verify.' } },
   ];
 
-  /* ═══ 注册导航 ═══ */
-  D.navGroups.push({
-    lecture: 2,
-    label: 'L2 · 状态价值与 Bellman 方程',
-    items: [
-      { id: 'l2-why', zh: '动机一：回报为何重要', en: '§2.1 Why returns matter' },
-      { id: 'l2-bootstrap', zh: '动机二：回报怎么算', en: '§2.2 Bootstrapping' },
-      { id: 'l2-state-value', zh: '状态价值', en: '§2.3 State values' },
-      { id: 'l2-bellman', zh: 'Bellman 方程推导', en: '§2.4 The Bellman equation' },
-      { id: 'l2-examples', zh: '两个手算例子', en: '§2.5 Two examples' },
-      { id: 'l2-matrix', zh: '矩阵-向量形式', en: '§2.6 Matrix-vector form' },
-      { id: 'l2-solving', zh: '求解：闭式与迭代', en: '§2.7 Solving the equation' },
-      { id: 'l2-action-value', zh: '动作价值', en: '§2.8 Action values' },
-      { id: 'l2-summary', zh: '本章总结', en: '§2.9 Summary' },
-      { id: 'l2-reasoning', zh: '连贯长推理', en: 'The long reasoning' },
-      { id: 'l2-code', zh: '代码精讲', en: 'Code walkthrough' },
-      { id: 'l2-qa', zh: '问答', en: 'Q&A · §2.10' },
-    ],
-  });
+
+  /* 导航组注册已提升至 data.js 的 NAV（按讲懒加载后，冷启动侧栏也要完整） */
   const l2 = D.otherLectures.find(l => l.no === 2);
   if (l2) l2.done = true;
 })();

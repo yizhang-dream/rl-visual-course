@@ -226,20 +226,8 @@ def policy_iteration(env, gamma=0.9, theta=1e-6, max_outer=1_000):
       a: { zh: '看"每轮评估精度 vs 轮数"的总账：世界小、θ 松 → 策略迭代几轮就完；世界大、单轮要省 → 值迭代或小 j 的截断版。经验法则：j 取 3~10 常常总扫描数最少。广义策略迭代告诉你：只要"评估↔改进"在交替，就是同一家族。', en: 'Balance per-round evaluation cost against number of rounds: small worlds with loose θ finish in a few policy-iteration rounds; large worlds favour value iteration or truncated with small j. Rule of thumb: j around 3–10 often minimises total sweeps. Generalised policy iteration says: as long as evaluation and improvement alternate, it is one family.' } },
   ];
 
-  /* ═══ 注册导航 ═══ */
-  D.navGroups.push({
-    lecture: 4,
-    label: 'L4 · 值迭代与策略迭代',
-    items: [
-      { id: 'l4-vi', zh: '值迭代', en: '§4.1 Value iteration' },
-      { id: 'l4-pi', zh: '策略迭代', en: '§4.2 Policy iteration' },
-      { id: 'l4-truncated', zh: '截断策略迭代', en: '§4.3 Truncated PI' },
-      { id: 'l4-summary', zh: '本章总结', en: '§4.4 Summary' },
-      { id: 'l4-reasoning', zh: '连贯长推理', en: 'The long reasoning' },
-      { id: 'l4-code', zh: '代码精讲', en: 'Code walkthrough' },
-      { id: 'l4-qa', zh: '问答', en: 'Q&A · §4.5' },
-    ],
-  });
+
+  /* 导航组注册已提升至 data.js 的 NAV（按讲懒加载后，冷启动侧栏也要完整） */
   const l4 = D.otherLectures.find(l => l.no === 4);
   if (l4) l4.done = true;
 })();

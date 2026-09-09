@@ -100,6 +100,15 @@ window.ROOT_TEMPLATE = `
     <!-- ═══════════ 主内容 ═══════════ -->
     <main class="content" ref="content" @scroll="onScroll">
 
+      <!-- 按讲懒加载占位：进入未加载讲时显示（深链冷启动 / 跨讲跳转 / 讲筛选） -->
+      <div v-if="loadingLec" class="lazy-loading" role="status" aria-live="polite">
+        <span class="ll-spinner" aria-hidden="true"></span>
+        <span class="ll-text">
+          <span class="zh">正在加载 L{{ loadingLec }} 讲内容…</span>
+          <span class="en">Loading lecture L{{ loadingLec }}…</span>
+        </span>
+      </div>
+
       <template v-if="section==='home'">
         <home-hero @go="go"></home-hero>
         <lecture-index @go="go"></lecture-index>

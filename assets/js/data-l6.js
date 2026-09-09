@@ -237,20 +237,8 @@ def sgd_mean(samples, alpha=0.1, w0=0.0):
       a: { zh: 'MBGD（小批量）是 SGD 与 BGD（全批量）的中间版本：比 SGD 用更多样本所以更稳（随机性小），比 BGD 不必用全部样本所以更灵活。图 6.5 显示 m 越大路径越平滑、越靠近解。', en: 'MBGD (mini-batch) is the middle ground between SGD and full-batch BGD: more samples than SGD makes it steadier (less randomness), fewer than BGD keeps it flexible. Figure 6.5 shows larger m yields smoother paths ending closer to the solution.' } },
   ];
 
-  /* ═══ 注册导航 ═══ */
-  D.navGroups.push({
-    lecture: 6,
-    label: 'L6 · 随机近似',
-    items: [
-      { id: 'l6-incremental', zh: '增量均值与 α_k', en: '§6.1 Incremental means' },
-      { id: 'l6-rm', zh: 'Robbins-Monro 算法', en: '§6.2 The RM algorithm' },
-      { id: 'l6-sgd', zh: 'SGD 与 MBGD', en: '§6.4 SGD & MBGD' },
-      { id: 'l6-summary', zh: '本章总结', en: '§6.5 Summary' },
-      { id: 'l6-reasoning', zh: '连贯长推理', en: 'The long reasoning' },
-      { id: 'l6-code', zh: '代码精讲', en: 'Code walkthrough' },
-      { id: 'l6-qa', zh: '问答', en: 'Q&A · §6.6' },
-    ],
-  });
+
+  /* 导航组注册已提升至 data.js 的 NAV（按讲懒加载后，冷启动侧栏也要完整） */
   const l6 = D.otherLectures.find(l => l.no === 6);
   if (l6) l6.done = true;
 })();

@@ -18,10 +18,30 @@ fs.mkdirSync(OUT, { recursive: true });
   page.on('console', (m) => { if (m.type() === 'error') errors.push('[console] ' + m.text()); });
   page.on('pageerror', (e) => errors.push('[pageerror] ' + e.message));
 
+  // 0. 懒加载冒烟：冷启动首页不注入任何讲脚本；深链进入 L7 后注入 data-l7 而 data-l8 仍缺席
+  try {
+    await page.goto('http://localhost:8642/', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(800);
+    const coldL7 = await page.$('script[src*="data-l7"]');
+    const coldL2 = await page.$('script[src*="data-l2"]');
+    if (coldL7) errors.push('[smoke-lazy] cold home already has script[src*="data-l7"]');
+    if (coldL2) errors.push('[smoke-lazy] cold home already has script[src*="data-l2"]');
+    await page.goto('http://localhost:8642/#sec-l7-qlearning', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1500);
+    const hotL7 = await page.$('script[src*="data-l7"]');
+    const hotL8 = await page.$('script[src*="data-l8"]');
+    if (!hotL7) errors.push('[smoke-lazy] deep-link L7 missing script[src*="data-l7"]');
+    if (hotL8) errors.push('[smoke-lazy] deep-link L7 unexpectedly loaded script[src*="data-l8"]');
+    console.log('lazy-load assert: cold data-l7=' + (coldL7 ? 'PRESENT' : 'null')
+      + ' cold data-l2=' + (coldL2 ? 'PRESENT' : 'null')
+      + ' | deep-link L7: data-l7=' + (hotL7 ? 'PRESENT' : 'null')
+      + ' data-l8=' + (hotL8 ? 'PRESENT' : 'null'));
+  } catch (e) { errors.push('[smoke-lazy] ' + e.message); }
+
   // 0a. 深链冒烟：全新加载直接打开 #sec-l7-qlearning，应直达该节（L7 单讲视图）
   try {
     await page.goto('http://localhost:8642/#sec-l7-qlearning', { waitUntil: 'networkidle' });
-    await page.waitForTimeout(900);
+    await page.waitForTimeout(1500);
     const chip = await page.textContent('.lecture-filter .lf-chip.active');
     const nSections = (await page.$$('.lesson-section')).length;
     const secTop = await page.$eval('#sec-l7-qlearning', el => el.getBoundingClientRect().top);
@@ -48,9 +68,9 @@ fs.mkdirSync(OUT, { recursive: true });
   // 1. 首页整页
   await page.screenshot({ path: path.join(OUT, '01-home.png'), fullPage: true });
 
-  // 2. 进入 lesson：点侧栏第一项
+  // 2. 进入 lesson：点侧栏第一项（懒加载：等待 components-l1 注入完成）
   await page.click('text=网格世界');
-  await page.waitForTimeout(800);
+  await page.waitForTimeout(1800);
 
   const secIds = await page.$$eval('.lesson-section', els => els.map(e => e.id));
   console.log('sections:', secIds.join(', '));
@@ -222,7 +242,7 @@ fs.mkdirSync(OUT, { recursive: true });
   ];
   for (const lec of lectures) {
     await page.click('.lecture-filter .lf-chip:has-text("' + lec.chip + '")');
-    await page.waitForTimeout(400);
+    await page.waitForTimeout(1400);   // chip 切讲 = 懒加载注入 data+components，等待加长
     await lec.smoke();
     const ids = lec.ids;
     for (let i = 0; i < ids.length && i < lec.shots.length; i++) {

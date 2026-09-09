@@ -261,22 +261,8 @@ def q_learning(env, episodes=5000, gamma=0.9, alpha=0.1, eps=0.1, max_steps=200)
       a: { zh: '三个字：快、稳、在线。不用等轨迹结束（可边走边学）、方差小（只吃一步噪声）、内存 O(1)（无需存轨迹）。偏差会随着 q 估计变准而自我修正——自举的偏差是"会呼吸的偏差"，MC 的高方差才是真正难缠的。', en: 'Three words: fast, steady, online. No waiting for episode ends (learn while walking), low variance (one step of noise per update), O(1) memory (no trajectory storage). The bias self-corrects as q sharpens — a living bias; MC’s high variance is the truly stubborn one.' } },
   ];
 
-  /* ═══ 注册导航 ═══ */
-  D.navGroups.push({
-    lecture: 7,
-    label: 'L7 · 时序差分方法',
-    items: [
-      { id: 'l7-td0', zh: 'TD(0)：走一步更新一步', en: '§7.1 TD learning' },
-      { id: 'l7-sarsa', zh: 'Sarsa', en: '§7.2 Sarsa' },
-      { id: 'l7-nstep', zh: 'n-step Sarsa', en: '§7.3 n-step Sarsa' },
-      { id: 'l7-qlearning', zh: 'Q-learning', en: '§7.4 Q-learning' },
-      { id: 'l7-unified', zh: '统一视角', en: '§7.5 A unified view' },
-      { id: 'l7-summary', zh: '本章总结', en: '§7.6 Summary' },
-      { id: 'l7-reasoning', zh: '连贯长推理', en: 'The long reasoning' },
-      { id: 'l7-code', zh: '代码精讲', en: 'Code walkthrough' },
-      { id: 'l7-qa', zh: '问答', en: 'Q&A · §7.7' },
-    ],
-  });
+
+  /* 导航组注册已提升至 data.js 的 NAV（按讲懒加载后，冷启动侧栏也要完整） */
   const l7 = D.otherLectures.find(l => l.no === 7);
   if (l7) l7.done = true;
 })();
