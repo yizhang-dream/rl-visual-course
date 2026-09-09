@@ -210,7 +210,7 @@
         const n = 25;
         let v = new Array(n).fill(0);
         let pi = null;
-        let k = 0;
+        let k;
         for (k = 1; k <= 300; k++) {
           const vn = new Array(n).fill(0);
           pi = [];

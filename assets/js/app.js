@@ -17,7 +17,7 @@
     try {
       const t = localStorage.getItem('rl-viz-theme');
       if (THEMES.some(x => x.key === t)) return t;
-    } catch (e) {}
+    } catch { /* localStorage 不可用（隐私模式等）→ 落到默认主题 */ }
     return document.documentElement.dataset.theme || 'chalk';
   }
 
@@ -27,10 +27,10 @@
     try {
       const arr = JSON.parse(localStorage.getItem(VISITED_KEY) || '[]');
       return new Set(Array.isArray(arr) ? arr.filter(x => typeof x === 'string') : []);
-    } catch (e) { return new Set(); }
+    } catch { return new Set(); }
   }
   function saveVisited(set) {
-    try { localStorage.setItem(VISITED_KEY, JSON.stringify([...set])); } catch (e) {}
+    try { localStorage.setItem(VISITED_KEY, JSON.stringify([...set])); } catch { /* 写不进（隐私模式）就不记 */ }
   }
 
   // 双语段落渲染：中文 + 英文（CSS 控制显示模式）
@@ -45,7 +45,7 @@
     try {
       const el = document.head.querySelector('meta[property="og:title"]');
       if (el) el.setAttribute('content', content);
-    } catch (e) {}
+    } catch { /* DOM/文档流异常时静默跳过 */ }
   }
 
   const app = createApp({
@@ -107,7 +107,7 @@
               trust: true,           // 数据源是自家 data 文件；\htmlClass 用于主题色标记
               strict: 'ignore',
             });
-          } catch (e) { el.textContent = tex; }
+          } catch { el.textContent = tex; }
         });
       },
       // 三层导航：把一讲的小节按 navClusters 分组（items 解析回 nav 对象）
@@ -127,14 +127,14 @@
       },
       setLang(k) {
         this.lang = k;
-        try { localStorage.setItem('rl-viz-lang', k); } catch (e) {}
+        try { localStorage.setItem('rl-viz-lang', k); } catch { /* 写不进就本次会话不记 */ }
         document.body.dataset.lang = k;
         document.documentElement.lang = k === 'en' ? 'en' : 'zh-CN';
       },
       setTheme(k) {
         this.theme = k;
         document.documentElement.dataset.theme = k;
-        try { localStorage.setItem('rl-viz-theme', k); } catch (e) {}
+        try { localStorage.setItem('rl-viz-theme', k); } catch { /* 写不进就本次会话不记 */ }
       },
       // ── hash 路由（按讲懒加载版）─────────────────────────────
       // go() 只写地址栏；状态同步统一走 syncFromHash → applyRoute，
@@ -265,7 +265,7 @@
           if (cur && cur !== this.activeId) {
             this.activeId = cur;
             this.markVisited(cur);
-            try { history.replaceState(null, '', '#sec-' + cur); } catch (e) {}
+            try { history.replaceState(null, '', '#sec-' + cur); } catch { /* 历史栈不可用时静默跳过 */ }
           }
         }
       },

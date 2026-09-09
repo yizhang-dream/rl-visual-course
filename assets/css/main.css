@@ -11,7 +11,7 @@
   --surface: #ffffff;
   --ink: #1a2530;
   --ink-2: #46566a;
-  --ink-3: #7b8a9c;
+  --ink-3: #5f6e80;
   --line: #e3e9ef;
   --line-strong: #c9d4de;
 
@@ -946,7 +946,7 @@ html[data-theme="swiss"] {
   --surface: #ffffff;
   --ink: #15171b;
   --ink-2: #3f444d;
-  --ink-3: #83878f;
+  --ink-3: #656972;
   --line: #e4e4de;
   --line-strong: #c9c9c1;
   --accent: #2138e0;
@@ -989,7 +989,7 @@ html[data-theme="quant"] {
   --surface: #0f1730;
   --ink: #e9effc;
   --ink-2: #aebadb;
-  --ink-3: #71809f;
+  --ink-3: #7a89a8;
   --line: rgba(126, 158, 255, .15);
   --line-strong: rgba(126, 158, 255, .3);
   --accent: #3ce6c2;
@@ -1032,7 +1032,7 @@ html[data-theme="forest"] {
   --surface: #fffdf6;
   --ink: #1f2b22;
   --ink-2: #47544a;
-  --ink-3: #83897b;
+  --ink-3: #616858;
   --line: #e2dccb;
   --line-strong: #c8c0a8;
   --accent: #2e6b45;

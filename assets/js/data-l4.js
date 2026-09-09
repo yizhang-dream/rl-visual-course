@@ -83,6 +83,12 @@
       ]},
       { t: 'p', zh: '给 GPI 一个力学图像：<strong>评估步把价值拉向当前策略，改进步把策略拉向当前价值</strong>——两股方向相反的力轮流作用，每次交换都让两个量更接近彼此的"一致点"，而唯一稳定的一致点就是 (v*, π*)。这个图像在第 5、7 章会反复出现：MC 把"拉价值"的力换成样本平均，TD 换成一步自举——力换了，力学结构不变。判断任何新算法时先问：它的评估力和改进力各是什么？两个力是否在交替？', en: 'A mechanical image for GPI: <strong>evaluation pulls the value toward the current policy, improvement pulls the policy toward the current value</strong> — two opposing forces applied in turns, each exchange bringing the two quantities closer to mutual consistency, and the only stable consistency point is (v*, π*). The image recurs in Chapters 5 and 7: MC replaces the value-pulling force with sample averages, TD with one-step bootstrapping — the forces change, the mechanics do not. When judging any new algorithm, ask first: what are its evaluation force and improvement force, and do they alternate?' },
       { t: 'callout', variant: 'idea', zh: '<strong>有模型时代的谢幕</strong>：本章三种算法都要求手里有 p(s′|s,a) 和 p(r|s,a)。第 5 章起进入<strong>无模型（model-free）</strong>时代——模型没有，就用采样凑。你会看到：把策略迭代的"评估步"换成"用经验平均回报估计价值"，就得到了蒙特卡洛学习。', en: '<strong>Farewell to the model-based era</strong>: all three algorithms require p(s′|s,a) and p(r|s,a) in hand. From Chapter 5 we enter the <strong>model-free</strong> era — no model, so sample instead. You will see that replacing policy iteration\'s evaluation step with "estimate values by averaging experienced returns" yields Monte Carlo learning.' },
+      { t: 'widget', component: 'concept-chain', props: { nodes: [
+        {"zh":"三种算法","en":"three algorithms","d":{"zh":"值迭代、策略迭代、截断策略迭代：每轮两步，一步更新价值、一步更新策略。","en":"Value iteration, policy iteration, truncated policy iteration: every round has two moves — update values, update policy."}},
+        {"zh":"广义策略迭代","en":"GPI","d":{"zh":"评估步把价值拉向策略、改进步把策略拉向价值，唯一稳定的一致点是 (v*, π*)。","en":"Evaluation pulls values toward the policy, improvement pulls policy toward values; the only stable agreement is (v*, π*)."}},
+        {"zh":"三档代价","en":"cost profiles","d":{"zh":"VI 单轮最便宜轮数最多，PI 单轮最贵轮数最少，截断式夹在中间——工程上常是默认起点。","en":"VI is cheapest per sweep but needs many; PI is priciest but fewest; truncated sits between — the usual engineering start."}},
+        {"zh":"有模型谢幕","en":"model era ends","d":{"zh":"三种算法都要求 p(s′|s,a) 与 p(r|s,a)；第 5 章起模型没有，就用采样凑。","en":"All three need p(s′|s,a) and p(r|s,a); from Chapter 5, samples stand in for the missing model."}},
+      ] } },
     ],
   };
 

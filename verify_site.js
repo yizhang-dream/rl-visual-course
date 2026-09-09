@@ -3,7 +3,7 @@ const { chromium } = require('playwright-core');
 const fs = require('fs');
 const path = require('path');
 
-const EDGE = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
+const EDGE = process.env.EDGE_PATH || 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
 const OUT = path.join(__dirname, 'shots');
 fs.mkdirSync(OUT, { recursive: true });
 
@@ -18,6 +18,10 @@ fs.mkdirSync(OUT, { recursive: true });
   page.on('console', (m) => { if (m.type() === 'error') errors.push('[console] ' + m.text()); });
   page.on('pageerror', (e) => errors.push('[pageerror] ' + e.message));
 
+  // 冒烟断言集中计数：ok(条件, 失败文案) —— 失败文案进 errors，计数进汇总行
+  let assertTotal = 0, assertFail = 0;
+  const ok = (cond, failMsg) => { assertTotal++; if (!cond) { assertFail++; errors.push(failMsg); } return cond; };
+
   // 0. 懒加载冒烟：冷启动首页不注入任何讲脚本；深链进入 L7 后注入 data-l7 而 data-l8 仍缺席
   try {
     await page.goto('http://localhost:8642/', { waitUntil: 'networkidle' });
@@ -25,17 +29,17 @@ fs.mkdirSync(OUT, { recursive: true });
     const coldL7 = await page.$('script[src*="data-l7"]');
     const coldL2 = await page.$('script[src*="data-l2"]');
     const coldKatex = await page.$('script[src*="katex"]');
-    if (coldL7) errors.push('[smoke-lazy] cold home already has script[src*="data-l7"]');
-    if (coldL2) errors.push('[smoke-lazy] cold home already has script[src*="data-l2"]');
-    if (coldKatex) errors.push('[smoke-lazy] cold home already has script[src*="katex"]');
+    ok(!coldL7, '[smoke-lazy] cold home already has script[src*="data-l7"]');
+    ok(!coldL2, '[smoke-lazy] cold home already has script[src*="data-l2"]');
+    ok(!coldKatex, '[smoke-lazy] cold home already has script[src*="katex"]');
     await page.goto('http://localhost:8642/#sec-l7-qlearning', { waitUntil: 'networkidle' });
     await page.waitForTimeout(1500);
     const hotL7 = await page.$('script[src*="data-l7"]');
     const hotL8 = await page.$('script[src*="data-l8"]');
     const hotKatex = await page.$('script[src*="katex"]');
-    if (!hotL7) errors.push('[smoke-lazy] deep-link L7 missing script[src*="data-l7"]');
-    if (hotL8) errors.push('[smoke-lazy] deep-link L7 unexpectedly loaded script[src*="data-l8"]');
-    if (!hotKatex) errors.push('[smoke-lazy] deep-link L7 (has formula blocks) missing script[src*="katex"]');
+    ok(hotL7, '[smoke-lazy] deep-link L7 missing script[src*="data-l7"]');
+    ok(!hotL8, '[smoke-lazy] deep-link L7 unexpectedly loaded script[src*="data-l8"]');
+    ok(hotKatex, '[smoke-lazy] deep-link L7 (has formula blocks) missing script[src*="katex"]');
     console.log('lazy-load assert: cold data-l7=' + (coldL7 ? 'PRESENT' : 'null')
       + ' cold data-l2=' + (coldL2 ? 'PRESENT' : 'null')
       + ' cold katex=' + (coldKatex ? 'PRESENT' : 'null')
@@ -51,9 +55,9 @@ fs.mkdirSync(OUT, { recursive: true });
     const chip = await page.textContent('.lecture-filter .lf-chip.active');
     const nSections = (await page.$$('.lesson-section')).length;
     const secTop = await page.$eval('#sec-l7-qlearning', el => el.getBoundingClientRect().top);
-    if (!/L7/.test(chip || '')) errors.push('[smoke-deeplink] active chip = ' + chip);
-    if (nSections !== 9) errors.push('[smoke-deeplink] L7 sections = ' + nSections + ' (expect 9)');
-    if (secTop == null || secTop > 220) errors.push('[smoke-deeplink] section top = ' + secTop);
+    ok(/L7/.test(chip || ''), '[smoke-deeplink] active chip = ' + chip);
+    ok(nSections === 9, '[smoke-deeplink] L7 sections = ' + nSections + ' (expect 9)');
+    ok(secTop != null && secTop <= 220, '[smoke-deeplink] section top = ' + secTop);
     await page.screenshot({ path: path.join(OUT, 'smoke-deeplink-l7.png') });
 
     // 0b. 后退冒烟：pn 底栏 goto 下一节后 goBack() 应回到 l7-qlearning
@@ -63,8 +67,8 @@ fs.mkdirSync(OUT, { recursive: true });
     await page.waitForTimeout(900);
     const backHash = await page.evaluate(() => location.hash);
     const backTop = await page.$eval('#sec-l7-qlearning', el => el.getBoundingClientRect().top);
-    if (backHash !== '#sec-l7-qlearning') errors.push('[smoke-back] hash after goBack = ' + backHash);
-    if (backTop == null || backTop > 220) errors.push('[smoke-back] section top after goBack = ' + backTop);
+    ok(backHash === '#sec-l7-qlearning', '[smoke-back] hash after goBack = ' + backHash);
+    ok(backTop != null && backTop <= 220, '[smoke-back] section top after goBack = ' + backTop);
     await page.screenshot({ path: path.join(OUT, 'smoke-back-nav.png') });
   } catch (e) { errors.push('[smoke-deeplink/back] ' + e.message); }
 
@@ -139,11 +143,11 @@ fs.mkdirSync(OUT, { recursive: true });
         return !!(el && el.classList && el.classList.contains('qa-card'));
       });
     }
-    if (!focusedCard) errors.push('[smoke-qa-keyboard] qa-card not reachable via Tab (150 tries)');
+    ok(focusedCard, '[smoke-qa-keyboard] qa-card not reachable via Tab (150 tries)');
     await page.keyboard.press('Enter');
     await page.waitForTimeout(350);
     const flipped = await page.$eval('.qa-card', el => el.classList.contains('flipped'));
-    if (!flipped) errors.push('[smoke-qa-keyboard] card not flipped after Enter');
+    ok(flipped, '[smoke-qa-keyboard] card not flipped after Enter');
     await page.screenshot({ path: path.join(OUT, 'smoke-qa-keyboard.png') });
   } catch (e) { errors.push('[smoke-qa-keyboard] ' + e.message); }
 
@@ -266,7 +270,7 @@ fs.mkdirSync(OUT, { recursive: true });
     await page.evaluate(() => document.getElementById('sec-l4-vi').scrollIntoView());
     await page.waitForTimeout(700);
     const l4Katex = await page.$$eval('#sec-l4-vi .katex', els => els.length);
-    if (l4Katex < 1) errors.push('[smoke-katex] sec-l4-vi .katex count = ' + l4Katex);
+    ok(l4Katex >= 1, '[smoke-katex] sec-l4-vi .katex count = ' + l4Katex);
     await page.screenshot({ path: path.join(OUT, 'smoke-katex-l4-vi-chalk.png') });
 
     // L2 矩阵节（重点验收：pmatrix 竖排 + 分式上下结构）
@@ -279,11 +283,11 @@ fs.mkdirSync(OUT, { recursive: true });
     const mtable = await page.$$('#sec-l2-matrix .mtable');
     const l2Frac = await page.$$eval('.lesson-section .mfrac', els => els.length);
     const parseErr = await page.$eval('#sec-l2-matrix', el => el.textContent.includes('KaTeX parse error'));
-    if (katexCount < 1) errors.push('[smoke-katex] sec-l2-matrix .katex count = ' + katexCount);
-    if (!mathml) errors.push('[smoke-katex] sec-l2-matrix missing .katex-mathml (accessibility layer)');
-    if (mtable.length < 1) errors.push('[smoke-katex] sec-l2-matrix missing .mtable (pmatrix not vertical)');
-    if (l2Frac < 1) errors.push('[smoke-katex] L2 view missing .mfrac (fraction not stacked)');
-    if (parseErr) errors.push('[smoke-katex] KaTeX parse error text visible in sec-l2-matrix');
+    ok(katexCount >= 1, '[smoke-katex] sec-l2-matrix .katex count = ' + katexCount);
+    ok(mathml, '[smoke-katex] sec-l2-matrix missing .katex-mathml (accessibility layer)');
+    ok(mtable.length >= 1, '[smoke-katex] sec-l2-matrix missing .mtable (pmatrix not vertical)');
+    ok(l2Frac >= 1, '[smoke-katex] L2 view missing .mfrac (fraction not stacked)');
+    ok(!parseErr, '[smoke-katex] KaTeX parse error text visible in sec-l2-matrix');
     await page.screenshot({ path: path.join(OUT, 'smoke-katex-l2-matrix-chalk.png') });
     // 3×3 pmatrix 卡片特写（矩阵竖排证据）
     const pmatrixCard = page.locator('#sec-l2-matrix .formula-card:has(.mtable)').first();
@@ -323,15 +327,13 @@ fs.mkdirSync(OUT, { recursive: true });
       await page.waitForTimeout(400);
       const whites = await page.$$eval('#' + d.id + ' .lab svg', els =>
         els.filter(el => getComputedStyle(el).backgroundColor === 'rgb(255, 255, 255)').length);
-      if (whites) errors.push('[smoke-dark ' + d.chip + '] ' + whites + ' chart svg still white');
+      ok(!whites, '[smoke-dark ' + d.chip + '] ' + whites + ' chart svg still white');
       const labLoc = page.locator('#' + d.id + ' .lab').first();
       await labLoc.scrollIntoViewIfNeeded();
       await labLoc.screenshot({ path: path.join(OUT, d.shot + '.png') });
     }
     await page.click('.theme-switch .theme-btn >> nth=0');   // 切回 chalk 默认
   } catch (e) { errors.push('[smoke-dark] ' + e.message); }
-
-console.log(errors.length ? 'ERRORS:\n' + errors.join('\n') : 'NO CONSOLE ERRORS');
 
   // ── file:// 双击可用冒烟：KaTeX 相对路径 css/字体在 file 协议下可加载、公式可渲染 ──
   try {
@@ -345,10 +347,10 @@ console.log(errors.length ? 'ERRORS:\n' + errors.join('\n') : 'NO CONSOLE ERRORS
     const fKatex = await p2.$$eval('#sec-l2-matrix .katex', els => els.length);
     const fMathml = await p2.$('#sec-l2-matrix .katex-mathml');
     const fTable = await p2.$('#sec-l2-matrix .mtable');
-    if (fKatex < 1) errors.push('[smoke-file] file:// sec-l2-matrix .katex = ' + fKatex);
-    if (!fMathml) errors.push('[smoke-file] file:// missing .katex-mathml');
-    if (!fTable) errors.push('[smoke-file] file:// missing .mtable');
-    if (errs2.length) errors.push('[smoke-file] console errors: ' + errs2.join(' | '));
+    ok(fKatex >= 1, '[smoke-file] file:// sec-l2-matrix .katex = ' + fKatex);
+    ok(fMathml, '[smoke-file] file:// missing .katex-mathml');
+    ok(fTable, '[smoke-file] file:// missing .mtable');
+    ok(!errs2.length, '[smoke-file] console errors: ' + errs2.join(' | '));
     await p2.screenshot({ path: path.join(OUT, 'smoke-katex-file-url.png') });
     await p2.close();
     console.log('file:// assert: .katex=' + fKatex + ' mathml=' + (fMathml ? 'PRESENT' : 'null')
@@ -356,4 +358,11 @@ console.log(errors.length ? 'ERRORS:\n' + errors.join('\n') : 'NO CONSOLE ERRORS
   } catch (e) { errors.push('[smoke-file] ' + e.message); }
 
   await browser.close();
+
+  // 汇总：断言计数 + 退出码（CI/脚本可据此判定失败）
+  console.log(assertFail
+    ? 'ERRORS:\n' + errors.join('\n')
+    : 'NO CONSOLE ERRORS');
+  console.log((assertTotal - assertFail) + '/' + assertTotal + ' smoke asserts passed');
+  process.exitCode = errors.length ? 1 : 0;
 })();

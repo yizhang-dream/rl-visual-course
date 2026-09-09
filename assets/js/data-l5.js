@@ -53,6 +53,12 @@
         tex: String.raw`q(s,a) \leftarrow q(s,a) + \frac{1}{N(s,a)}\big( g - q(s,a) \big)`,
         note: '⟺ N 个回报的算术平均（α<sub>t</sub> = 1/t 的出生地）' },
       { t: 'callout', variant: 'key', zh: '<strong>新的代价：exploring starts 条件</strong>。所有动作价值都要被"从它出发"的样本喂过，才估得准——MC Basic/Exploring Starts 都要求从<strong>每个</strong> (s,a) 出发都有足够多的回合。现实系统（机器人、真用户）里强行从任意状态-动作对启动往往做不到。能不能去掉这个条件？能——下一节的 soft 策略。', en: '<strong>The new price: the exploring-starts condition</strong>. Every action value needs samples "starting from it" to be estimated well — both MC Basic and Exploring Starts require sufficiently many episodes from <strong>every</strong> (s,a). Real systems (robots, real users) cannot simply be launched from arbitrary state-action pairs. Can this condition be removed? Yes — soft policies, next section.' },
+      { t: 'widget', component: 'concept-chain', props: { nodes: [
+        {"zh":"尾部即样本","en":"tails are samples","d":{"zh":"每访问到一个 (s,a)，其后的轨迹尾部就是一份 q 估计；every-visit 全部榨干。","en":"Each visit to (s,a) leaves a tail that is one q-estimate; every-visit squeezes them all."}},
+        {"zh":"反向扫描","en":"reverse sweep","d":{"zh":"从轨迹末端倒扫 g ← γg + r，一次扫描算出全部访问点的折扣回报。","en":"Sweep backwards with g ← γg + r: one pass yields the discounted return at every visited point."}},
+        {"zh":"增量式","en":"incremental","d":{"zh":"q ← q + (1/N)(g − q)：第 N 个样本的 1/N 恰是算术平均，内存 O(1)、历史不用重算。","en":"q ← q + (1/N)(g − q): the Nth sample's 1/N is exactly the running average — memory O(1), no recomputation."}},
+        {"zh":"新代价","en":"the new price","d":{"zh":"exploring starts：每个 (s,a) 都要被\"从它出发\"的样本喂过才估得准——现实系统往往做不到。","en":"Exploring starts: every (s,a) needs samples started from it — rarely feasible in real systems."}},
+      ] } },
     ],
   };
 
@@ -88,6 +94,12 @@
         { zh: '<strong>共同骨架</strong>：两边都是"评估 + 贪心改进"的广义策略迭代——MC 只换了评估步的引擎，底盘原封未动。', en: '<strong>Shared skeleton</strong>: both run the generalised policy iteration loop of "evaluation + greedy improvement" — MC swaps the evaluation engine and leaves the chassis untouched.' },
       ]},
       { t: 'p', zh: '<strong>三个算法的演化逻辑：每次只换一个零件。</strong>MC Basic 把策略迭代的评估步换成"采样平均"——解决<strong>能不能</strong>（无模型可行吗）；MC Exploring Starts 把样本利用从 initial-visit 升级为 every-visit + 反向扫描 + 逐回合改进——解决<strong>省不省</strong>（样本效率）；MC ε-Greedy 把贪心换成 ε-贪心、用 soft 策略解除 exploring starts——解决<strong>行不行</strong>（现实里做得到吗）。正确性 → 效率 → 可行性，一条清晰的升级链。以后读论文遇到新算法，也建议这样拆：它换了哪个零件、又付出什么新代价。', en: '<strong>The evolution of the three algorithms: one part swapped at a time.</strong> MC Basic replaces policy iteration’s evaluation step with "sample averaging" — answering <strong>whether it is possible</strong> (does model-free work). MC Exploring Starts upgrades sample usage from initial-visit to every-visit + backward sweeps + episode-wise improvement — answering <strong>whether it is efficient</strong> (sample economy). MC ε-Greedy swaps greedy for ε-greedy and dissolves exploring starts with soft policies — answering <strong>whether it is practical</strong> (feasible in the real world). Correctness → efficiency → feasibility: a clean upgrade chain. When you meet a new algorithm in a paper, take it apart the same way: which part was swapped, and at what new price.' },
+      { t: 'widget', component: 'concept-chain', props: { nodes: [
+        {"zh":"均值估计","en":"mean estimation","d":{"zh":"状态值/动作值都是期望，期望用样本平均来估——本书第一批无模型算法的核心思想。","en":"Values are expectations and expectations are estimated by sample averages — the core idea of the book's first model-free algorithms."}},
+        {"zh":"三级放大","en":"three magnifications","d":{"zh":"MC Basic 揭示思想，MC Exploring Starts 提样本效率，MC ε-Greedy 解除 exploring starts 条件。","en":"MC Basic reveals the idea, MC Exploring Starts raises sample efficiency, MC ε-greedy removes the exploring-starts condition."}},
+        {"zh":"与 DP 对照","en":"against DP","d":{"zh":"DP 查模型精确计算、零偏差零方差；MC 只看轨迹、逐回合更新、无偏但高方差。","en":"DP looks the model up — exact, zero bias and variance; MC reads trajectories, updates per episode — unbiased but high-variance."}},
+        {"zh":"每次只换一个零件","en":"one part at a time","d":{"zh":"正确性 → 效率 → 可行性，一条清晰的升级链；读新算法也这样拆。","en":"Correctness, then efficiency, then feasibility — a clean upgrade chain; dissect new algorithms the same way."}},
+      ] } },
       { t: 'callout', variant: 'idea', zh: '下一课预告：MC 必须等一条轨迹走完才能算回报（g 要从末端倒推）。如果走一步就想更新一次呢？这需要把"未来回报"换成"当前奖励 + 下一状态价值的估计"——自举的回归，<strong>时序差分学习</strong>。它背后还有一个 170 年的老算法撑腰：随机近似。', en: 'Next lecture teaser: MC must wait for a trajectory to finish before computing a return (g works backwards from the end). What if we want to update every single step? Replace "future returns" by "current reward + an estimate of the next state\'s value" — the return of bootstrapping, <strong>temporal-difference learning</strong>. Behind it stands a 170-year-old algorithm: stochastic approximation.' },
     ],
   };

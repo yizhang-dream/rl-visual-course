@@ -4,7 +4,6 @@
    各讲专属组件在 components-l1.js…components-l10.js。
    ═══════════════════════════════════════════════════════════ */
 (function () {
-  const { createApp } = Vue;
   const D = window.DATA;
 
   /* ---------- 几何与规则助手 ---------- */
@@ -15,7 +14,6 @@
     const { r, c } = s2rc(s, n);
     return { x: PAD + c * CELL + CELL / 2, y: PAD + r * CELL + CELL / 2 };
   };
-  const stName = (s) => 's' + s;
 
   // 可种子化随机（mulberry32）：训练类实验台 Reset 时以同一 seed 重建，
   // 保证「Reset 再训练」轨迹逐点可复现
@@ -270,12 +268,15 @@
             :aria-label="clickable ? cellLabel(st) : null"
             @keydown.enter.prevent="clickCell(st)" @keydown.space.prevent="clickCell(st)"/>
     </svg>`,
-    setup(props) { return { CELL, PAD, s2rc, center, STAR }; },
+    setup() { return { CELL, PAD, s2rc, center, STAR }; },
   };
 
   /* ═════════════ §1.8 概念链 ═════════════ */
+  // props.nodes：各讲小节传入的自定义链条（数据形态与 concepts 条目一致：
+  // { k?, zh, en, d: { zh, en } }）；不传时回退到 L1 的默认十条。
   const ConceptChain = {
     name: 'ConceptChain',
+    props: { nodes: { type: Array, default: null } },
     data: () => ({ hot: -1, lock: false, open: null, timer: null }),
     concepts: [
       { k: 'grid', zh: '网格世界', en: 'grid world', d: { zh: '舞台：智能体、格子、禁区、目标。', en: 'The stage: agent, cells, forbidden areas, target.' } },
@@ -292,11 +293,14 @@
     mounted() {
       this.timer = setInterval(() => {
         if (this.lock) return;
-        this.hot = (this.hot + 1) % this.$options.concepts.length;
+        this.hot = (this.hot + 1) % this.list.length;
       }, 1100);
     },
     unmounted() { if (this.timer) clearInterval(this.timer); },
     setup() { return { bi }; },
+    computed: {
+      list() { return (this.nodes && this.nodes.length) ? this.nodes : this.$options.concepts; },
+    },
     methods: {
       enter(i) { this.lock = true; this.hot = i; },
       leave() { this.lock = false; },
@@ -306,7 +310,7 @@
     <div class="lab">
       <div class="lab-head"><span class="lab-title">概念依赖链 · 悬停查看 · 点击固定 / Concept chain — hover, click to pin</span></div>
       <div class="chain" style="row-gap:12px">
-        <template v-for="(c,i) in $options.concepts" :key="c.k">
+        <template v-for="(c,i) in list" :key="c.k || i">
           <span v-if="i>0" class="chain-arrow" style="font-size:15px">→</span>
           <button class="chain-node" style="cursor:pointer; min-width:74px"
                   :class="{now: hot===i, past: open===i}" @mouseenter="enter(i)" @mouseleave="leave" @click="toggle(i)">
@@ -318,8 +322,8 @@
       <div v-if="open!=null" class="callout idea" :key="open" style="margin:14px 0 0">
         <div class="callout-icon">🔗</div>
         <div class="callout-body">
-          <p class="bi duo" style="font-weight:700">{{ $options.concepts[open].zh }} · {{ $options.concepts[open].en }}</p>
-          <p class="bi duo" style="font-size:14px" v-html="bi($options.concepts[open].d.zh, $options.concepts[open].d.en)"></p>
+          <p class="bi duo" style="font-weight:700">{{ list[open].zh }} · {{ list[open].en }}</p>
+          <p class="bi duo" style="font-size:14px" v-html="bi(list[open].d.zh, list[open].d.en)"></p>
         </div>
       </div>
     </div>`,

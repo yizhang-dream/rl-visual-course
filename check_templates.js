@@ -76,7 +76,7 @@ if (orphans.length) { console.log('WARN  orphan sections (no nav):', orphans.joi
 const clusters = D.navClusters;
 let clusterBad = 0;
 if (!clusters || typeof clusters !== 'object') {
-  fail++; clusterBad++;
+  fail++;   // 该分支不会再读 clusterBad（汇总读在 else 内），计数交给 fail
   console.log('FAIL  navClusters: missing (window.DATA.navClusters not defined)');
 } else {
   const lectureSet = new Set(D.navGroups.map(g => g.lecture));

@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    name: templates / lint / data
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Template compilation & nav integrity
+        run: node check_templates.js
+      - name: ESLint
+        run: npm run lint
+      - name: Data integrity (88 sections / 44 components / 57 formulas)
+        run: node scripts/check_data.js
+
+  smoke:
+    name: headless Edge smoke
+    runs-on: ubuntu-latest
+    needs: check
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Install Microsoft Edge (stable)
+        run: |
+          curl -fSsL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft-edge.gpg
+          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-edge.gpg] https://packages.microsoft.com/repos/edge stable main" | sudo tee /etc/apt/sources.list.d/microsoft-edge.list
+          sudo apt-get update
+          sudo apt-get install -y microsoft-edge-stable
+      - name: Serve statically on :8642
+        run: |
+          python3 -m http.server 8642 --bind 127.0.0.1 &
+          echo $! > server.pid
+          sleep 2
+      - name: Run verify_site (headless Edge, EDGE_PATH override)
+        run: EDGE_PATH=/usr/bin/microsoft-edge node verify_site.js
+      - name: Upload smoke screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-shots
+          path: shots/
+          if-no-files-found: ignore
+      - name: Stop server
+        if: always()
+        run: kill "$(cat server.pid)" 2>/dev/null || true

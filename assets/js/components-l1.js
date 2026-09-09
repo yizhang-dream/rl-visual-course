@@ -84,7 +84,6 @@
           : { size: 4, forbidden: [8, 10], target: 12, start: 1 };
       },
       infoLines() {
-        const c = this.cfg;
         return this.world === 3
           ? [bi('9 个状态 · 5 个动作 · 禁区 s6、s7 · 目标 s9', '9 states · 5 actions · forbidden s6, s7 · target s9')]
           : [bi('16 个状态 · 5 个动作 · 禁区 s8、s10 · 目标 s12', '16 states · 5 actions · forbidden s8, s10 · target s12'),
@@ -225,7 +224,7 @@
         const out = [];
         const n = this.cfg.size;
         for (let s = 1; s <= n * n; s++) {
-          let val = 0;
+          let val;
           if (this.wind && this.world === 3 && this.selS === 1 && this.selA === 2) {
             val = s === 2 ? 0.8 : s === 5 ? 0.2 : 0;
           } else {
@@ -266,7 +265,6 @@
         this.agentS = res.next;
       },
       rwCell(s, a) {
-        const n = this.cfg.size;
         if (this.world === 3 && this.mode === 'book') return D.R3SYM[s - 1][a - 1];
         const r = stepOnce(s, a, this.cfg);
         return r.sym === 0 ? 0 : r.sym;
