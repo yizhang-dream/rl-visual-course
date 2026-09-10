@@ -9,8 +9,16 @@ window.RLVLoader = (function () {
   const registered = {};  // 组件名 → true（已补挂到根应用的组件）
   let katexInflight = null; // KaTeX 注入 Promise（幂等，同 ensureLecture 的缓存模式）
 
+  // 版本参数：index.html 内联定义 window.RLV_VERSION（发版即改），让 /assets/ 的
+  // nginx 长缓存能被新版立刻穿透；file:// 无 RLV_VERSION 时原样返回
+  function withVersion(src) {
+    if (!window.RLV_VERSION || src.indexOf('v=') > -1) return src;
+    return src + (src.indexOf('?') > -1 ? '&' : '?') + 'v=' + window.RLV_VERSION;
+  }
+
   // 经典 script 注入；async=false 保证多文件按插入顺序执行（data 先于 components）
   function inject(src) {
+    src = withVersion(src);
     return new Promise((resolve, reject) => {
       const s = document.createElement('script');
       s.src = src;
@@ -67,7 +75,7 @@ window.RLVLoader = (function () {
     if (katexInflight) return katexInflight;
     const css = document.createElement('link');
     css.rel = 'stylesheet';
-    css.href = 'assets/vendor/katex/katex.min.css';
+    css.href = withVersion('assets/vendor/katex/katex.min.css');
     (document.head || document.documentElement).appendChild(css);
     katexInflight = inject('assets/vendor/katex/katex.min.js').then(function () {
       if (!window.katex) throw new Error('katex.min.js loaded but window.katex missing');
