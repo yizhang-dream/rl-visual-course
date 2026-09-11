@@ -204,6 +204,7 @@
     blocks: [
       { t: 'p', zh: '书上一口气放了七个问答，全部直击本章要害。这里挑六张做成卡片，外加一张"常见错误"代码卡。', en: 'The book packs seven Q&As, all hitting vital spots. Six become cards here, plus one bonus card on a common coding mistake.' },
       { t: 'widget', component: 'qa-lab', props: { source: 'l2' } },
+      { t: 'widget', component: 'fill-lab', props: { source: 'l2' } },
     ],
   };
 
@@ -364,6 +365,213 @@ if __name__ == "__main__":
     { tag: 'Q7 · 代码补充', q: { zh: '迭代策略评估里，为什么必须"整轮算完再覆盖"，而不是边算边更新？', en: 'In iterative policy evaluation, why buffer a full sweep instead of updating in place?' },
       a: { zh: '同步更新（整轮缓冲）对应书上的 v<sub>k+1</sub> = r<sub>π</sub> + γP<sub>π</sub>v<sub>k</sub>，收敛证明就是按这个形式给的；边算边覆盖是异步（in-place）变体，通常收敛更快，但那是不同的更新规则，需要重新证明。初学阶段先写同步版：行为可预测、和教材一一对应、便于验收。', en: 'Synchronous updates (full buffering) correspond exactly to v<sub>k+1</sub> = r<sub>π</sub> + γP<sub>π</sub>v<sub>k</sub>, whose convergence the book proves in that form; in-place updating is an asynchronous variant that often converges faster but follows a different update rule requiring a fresh proof. Learn the synchronous version first: predictable behaviour, one-to-one with the textbook, easy to verify.' } },
   ];
+
+  /* ═══════════════════════════════════════════════════════════
+     L2 · 知识填空（fill-lab 组件按 fillSets[source] 渲染，
+     [[n]] 为第 n 空、从 1 连续编号，空数须与 items 的一致）
+     ═══════════════════════════════════════════════════════════ */
+  D.fillSets['l2'] = {
+    title: { zh: '第二讲 · 知识填充', en: 'Lecture 2 · Knowledge Fill-in' },
+    items: [
+      {
+        // ★ 三张等价表示：矩阵形的圆缺——r_π 与 P_π 各是什么
+        kind: 'choice',
+        tag: { zh: '矩阵形式', en: 'Matrix form' },
+        stem: {
+          zh: '同一件事有三张等价面孔：逐状态的 Bellman 大公式（每个 s 一条）、动作价值版 q<sub>π</sub>(s,a)、矩阵-向量形 v<sub>π</sub> = r<sub>π</sub> + γP<sub>π</sub>v<sub>π</sub>。第三张最紧凑，代价是先认清两个"策略消化物"：r<sub>π</sub> 与 P<sub>π</sub> 各是什么？[[1]]',
+          en: 'One equation, three equivalent faces: the per-state Bellman formula (one line per s), the action-value version q<sub>π</sub>(s,a), and the matrix-vector form v<sub>π</sub> = r<sub>π</sub> + γP<sub>π</sub>v<sub>π</sub>. The third is the tightest — provided you can name its two policy-digested objects: what exactly are r<sub>π</sub> and P<sub>π</sub>? [[1]]',
+        },
+        blanks: [
+          {
+            choices: {
+              zh: [
+                'r<sub>π</sub>(s) 是按 π 平均后的即时奖励均值；P<sub>π</sub> 的第 (i,j) 元是按 π 加权的转移概率 p<sub>π</sub>(s<sub>j</sub>|s<sub>i</sub>)——全矩阵非负、每行和为 1',
+                'r<sub>π</sub> 就是模型里每步的即时奖励 r 原样摞成的向量；P<sub>π</sub> 就是原始转移 p(s′|s,a) 排成的矩阵——策略没参与消化',
+                'r<sub>π</sub> 是状态价值向量 v<sub>π</sub> 的别名；P<sub>π</sub> 每行是 π 在该状态最大概率动作的取值——行和不必为 1',
+              ],
+              en: [
+                'r<sub>π</sub>(s) is the π-averaged mean of immediate rewards; entry (i,j) of P<sub>π</sub> is the π-weighted transition probability p<sub>π</sub>(s<sub>j</sub>|s<sub>i</sub>) — the whole matrix is nonnegative with every row summing to 1',
+                'r<sub>π</sub> is just the model’s per-step immediate rewards stacked as they are; P<sub>π</sub> is the raw transition matrix of p(s′|s,a) — the policy never joined the digestion',
+                'r<sub>π</sub> is another name for the state-value vector; the rows of P<sub>π</sub> hold the probability of π’s most likely action per state — row sums need not be 1',
+              ],
+            },
+            answer: 0,
+            why: {
+              zh: '双层查表现场拼装：对每个 π(a|s) &gt; 0 的 (s,a)，P<sub>π</sub> 的第 s 行第 s′ 列 += π(a|s)，r<sub>π</sub>(s) += π(a|s)·r——用 += 是因为两个动作可能通向同一状态，概率要合并。§2.6 在 3×3 世界实拼过：行 (s5, s6, s8) × 列 (s6, s8, s9) 的子块是 [[0.5, 0.5, 0], [0, 0, 1], [0, 0, 1]]，r<sub>π</sub> = (−0.5, 1, 1)。P<sub>π</sub> ≥ 0 与 P<sub>π</sub>1 = 1 这两条随机矩阵性质，正是下一节收敛证明的全部原料。',
+              en: 'The double-lookup assembly, live: for every (s,a) with π(a|s) &gt; 0, entry (s, s′) of P<sub>π</sub> gains += π(a|s) and r<sub>π</sub>(s) gains += π(a|s)·r — plus-equals because two actions may share a destination and probabilities must merge. §2.6 assembled a real sub-block on the 3×3 world: rows (s5, s6, s8) × columns (s6, s8, s9) give [[0.5, 0.5, 0], [0, 0, 1], [0, 0, 1]] with r<sub>π</sub> = (−0.5, 1, 1). The two stochastic-matrix properties P<sub>π</sub> ≥ 0 and P<sub>π</sub>1 = 1 are the entire raw material of the convergence proof.',
+            },
+          },
+        ],
+      },
+      {
+        // ★ 由 v 求 q：即时奖励 + 打折的下游价值，一遍过、不碰策略
+        kind: 'choice',
+        tag: { zh: '由 v 求 q', en: 'From v to q' },
+        stem: {
+          zh: '手里已有整张 v 表，要把尺子磨细到每一个动作。补全换算式：q<sub>π</sub>(s,a) = r(s,a) + [[1]]。',
+          en: 'With the full v table in hand, sharpen the ruler to every single action. Complete the conversion: q<sub>π</sub>(s,a) = r(s,a) + [[1]].',
+        },
+        blanks: [
+          {
+            choices: {
+              zh: [
+                'γ Σ<sub>s′</sub> p(s′|s,a)·v<sub>π</sub>(s′)：按转移概率把下一状态的价值加权平均，再打 γ 折',
+                'γ Σ<sub>a′</sub> π(a′|s′)·q<sub>π</sub>(s′,a′)：把下一状态的动作价值再按策略平均一遍',
+                'γ·v<sub>π</sub>(s′)：下一步只有一个去向，直接乘 γ，不必加权',
+              ],
+              en: [
+                'γ Σ<sub>s′</sub> p(s′|s,a)·v<sub>π</sub>(s′): weight the next-state values by the transition probabilities, then discount by γ',
+                'γ Σ<sub>a′</sub> π(a′|s′)·q<sub>π</sub>(s′,a′): average the next state’s action values under the policy once more',
+                'γ·v<sub>π</sub>(s′): the next step has a single destination — multiply by γ directly, no weighting needed',
+              ],
+            },
+            answer: 0,
+            why: {
+              zh: 'v → q 只做一次模型加权、一遍过，完全不碰策略——按 π 平均是 q → v（v<sub>π</sub>(s) = Σ<sub>a</sub>π(a|s)q<sub>π</sub>(s,a)）的分工。数字对账（§2.5，γ = 0.9）：q(s5,a2) = −1 + 0.9×10 = 8，q(s5,a3) = 0 + 0.9×10 = 9。第三个选项错在 s′ 未必唯一：一般情形同一个 (s,a) 可通向多个 s′，漏掉加权就是漏掉一部分未来。',
+              en: 'v → q is one model-weighted pass and never touches the policy — π-weighting belongs to q → v (v<sub>π</sub>(s) = Σ<sub>a</sub>π(a|s)q<sub>π</sub>(s,a)). Numeric check (§2.5, γ = 0.9): q(s5,a2) = −1 + 0.9×10 = 8, q(s5,a3) = 0 + 0.9×10 = 9. The third option fails because s′ need not be unique: in general one (s,a) may lead to several next states, and skipping the weights skips part of the future.',
+            },
+          },
+        ],
+      },
+      {
+        // ★ 迭代收敛：误差每轮乘 γ（读数取自本讲实验台实跑序列）
+        kind: 'number',
+        tag: { zh: '迭代收敛', en: 'Iterative convergence' },
+        stem: {
+          zh: '迭代评估实验台：5×5 书本世界，γ = 0.9，好策略 1（书 Figure 2.7a）从 v₀ = 0 起扫。台面读数 max|Δv| 一路是 1.000 → 0.900 → 0.810 → [[1]]，且每一轮都等于前一轮乘 [[2]]。',
+          en: 'The iterative-evaluation lab: the 5×5 book world, γ = 0.9, Good 1 (book Fig. 2.7a) swept from v₀ = 0. The readout max|Δv| runs 1.000 → 0.900 → 0.810 → [[1]], and every round equals the previous one times [[2]].',
+        },
+        blanks: [
+          {
+            answer: 0.729, tol: 0.001,
+            hint: { zh: '0.9 的三次幂。', en: '0.9 cubed.' },
+            why: {
+              zh: '误差递推 δ<sub>k+1</sub> = γP<sub>π</sub>δ<sub>k</sub>：每扫一轮，误差向量被 P<sub>π</sub> 搅拌一次、再整体乘 0.9。1.000 × 0.9³ = 0.729，与台面读数逐位吻合。γ &lt; 1 是收敛的全部理由——L1 那个折扣率在这里第二次立功。',
+              en: 'The error recursion δ<sub>k+1</sub> = γP<sub>π</sub>δ<sub>k</sub>: each sweep stirs the error once through P<sub>π</sub> and multiplies it wholesale by 0.9. 1.000 × 0.9³ = 0.729, matching the readout digit for digit. γ &lt; 1 is the entire reason this converges — the discount rate’s second triumph after L1.',
+            },
+          },
+          {
+            answer: 0.9, tol: 0.01,
+            hint: { zh: '拿相邻两个读数相除：0.900/1.000、0.810/0.900。', en: 'Divide adjacent readings: 0.900/1.000, 0.810/0.900.' },
+            why: {
+              zh: '比值就是 γ = 0.9 本身。压到精度预算 θ = 1e−6 需要 k ≈ 132 轮（0.9¹³² ≈ 1e−6）——γ 越靠近 1，1/(1−γ) 量级的轮数越贵，这正是"γ 是远见与可算性的折中旋钮"在计算账上的体现。',
+              en: 'The ratio is γ = 0.9 itself. Squeezing to the accuracy budget θ = 1e−6 takes k ≈ 132 sweeps (0.9¹³² ≈ 1e−6) — the closer γ sits to 1, the pricier the 1/(1−γ)-scale sweep count: the compute side of "γ trades farsightedness against tractability".',
+            },
+          },
+        ],
+      },
+      {
+        // ★ code：迭代解核心行——从 v 表构造 q（挖 γ 与索引）
+        kind: 'code',
+        tag: { zh: '代码精讲', en: 'Code' },
+        stem: {
+          zh: '迭代解的核心行就是"从 v 表构造 q"：每累加一个动作，即 pa × (即时奖励 + 折扣系数 × 下一状态价值)。补全代码行——系数 [[1]] 与下标 [[2]]。',
+          en: 'The core line of the iterative solver builds q from the v table: per action, pa × (immediate reward + discount coefficient × next state’s value). Complete the line — the coefficient [[1]] and the index [[2]].',
+        },
+        code: {
+          zh: 'q += pa * (r + [[1]] * v[[2]])   # <- the Bellman right-hand side',
+          en: 'q += pa * (r + [[1]] * v[[2]])   # <- the Bellman right-hand side',
+        },
+        blanks: [
+          {
+            choices: ['gamma', 'theta', 'pa'],
+            answer: 0,
+            why: {
+              zh: 'gamma（γ = 0.9）是折扣因子。theta 是收敛精度预算（默认 1e−6），填进去 γv(s′) 一项几乎清零，q 退化成只剩即时奖励；pa 已经乘在括号外——再乘一次等于把 π(a|s) 算两遍。',
+              en: 'gamma (γ = 0.9) is the discount factor. theta is the convergence budget (default 1e−6): put it there and the γv(s′) term nearly vanishes, reducing q to the immediate reward alone; pa is already multiplied outside the brackets — multiplying again counts π(a|s) twice.',
+            },
+          },
+          {
+            choices: ['s_next', 's', 'k'],
+            answer: 0,
+            why: {
+              zh: 's_next 是动作 a 的去向状态（s_next = y·env_size[0] + x）。写成 s 读到的是 v(s) 自己——动作还没走、价值先定了，等于宣布"走哪步都一样"；写成 k 则拿扫的轮数当状态号，完全错位。',
+              en: 's_next is the destination of action a (s_next = y·env_size[0] + x). Writing s reads v(s) itself — the value is fixed before any move, declaring "every action alike"; writing k mistakes the sweep counter for a state index.',
+            },
+          },
+        ],
+      },
+      {
+        // 评估与改进之别：评估只打分，不动策略
+        kind: 'choice',
+        tag: { zh: '评估≠改进', en: 'Evaluation ≠ improvement' },
+        stem: {
+          zh: '"策略评估"评的是什么、动的又是什么？[[1]]',
+          en: 'In "policy evaluation", what exactly is evaluated, and what is left untouched? [[1]]',
+        },
+        blanks: [
+          {
+            choices: {
+              zh: [
+                '解当前策略的 Bellman 方程，产出它的逐格 v 表；策略一根箭头都不动——"改箭头"叫改进，是下一步的活',
+                '评估时顺手把每格箭头改成指向价值最大的邻居——评完策略已经变好',
+                '把 v 表逐格取 max 直接得到最优策略——评估与寻优是同一件事',
+              ],
+              en: [
+                'solve the current policy’s Bellman equation and produce its cell-wise v table; not a single arrow moves — moving arrows is "improvement", a separate step',
+                'while evaluating, also repoint each arrow at the highest-valued neighbour — the policy is already better when evaluation ends',
+                'take the cell-wise max of the v table to obtain the optimal policy directly — evaluation and optimisation are one act',
+              ],
+            },
+            answer: 0,
+            why: {
+              zh: '评估只回答"给定 π 值多少"：已知 π 和模型，解 v<sub>π</sub> = r<sub>π</sub> + γP<sub>π</sub>v<sub>π</sub>（闭式或迭代），输出就是这张策略的成绩单。改箭头是第 4 章策略迭代的"改进"步——在 q 表上逐格 argmax，评估是它的内环。实验台的彩蛋也在这：好 1 与好 2 只差两格箭头，价值表完全相同——评估对策略打分是逐格 ≥ 的比较，它不负责生产更好的策略。',
+              en: 'Evaluation answers one question — "what is the given π worth?": with π and the model known, solve v<sub>π</sub> = r<sub>π</sub> + γP<sub>π</sub>v<sub>π</sub> (closed form or iteration); the output is that policy’s report card. Moving arrows is the "improvement" step of Chapter 4’s policy iteration — a per-cell argmax on the q table, with evaluation as its inner loop. The lab hides an easter egg: Good 1 and Good 2 differ in two arrows yet share identical values — evaluation grades policies cell-wise with ≥; it does not manufacture better ones.',
+            },
+          },
+        ],
+      },
+      {
+        // 闭式解 = 几何级数的矩阵版，也是迭代解跑到底的极限
+        kind: 'choice',
+        tag: { zh: '闭式解', en: 'Closed form' },
+        stem: {
+          zh: '把 v<sub>π</sub> = r<sub>π</sub> + γP<sub>π</sub>v<sub>π</sub> 移项，得闭式解 v<sub>π</sub> = (I − γP<sub>π</sub>)⁻¹r<sub>π</sub>。把逆按 γ 的幂展开，它就是[[1]]',
+          en: 'Rearranging v<sub>π</sub> = r<sub>π</sub> + γP<sub>π</sub>v<sub>π</sub> gives the closed form v<sub>π</sub> = (I − γP<sub>π</sub>)⁻¹r<sub>π</sub>. Expand the inverse in powers of γ: it is [[1]]',
+        },
+        blanks: [
+          {
+            choices: {
+              zh: [
+                'I + γP<sub>π</sub> + γ²P<sub>π</sub>² + …——几何级数的矩阵版；从 v₀ = 0 迭代，每扫一轮恰好多收进一项',
+                'I + γP<sub>π</sub> + γ²P<sub>π</sub> + γ³P<sub>π</sub> + …——γ 的幂照常升，P<sub>π</sub> 一直是一次方',
+                'I − γP<sub>π</sub>⁻¹ + γ²P<sub>π</sub>⁻² − …——先把 P<sub>π</sub> 求逆，再逐项乘方，符号正负交替',
+              ],
+              en: [
+                'I + γP<sub>π</sub> + γ²P<sub>π</sub>² + … — the matrix version of the geometric series; iterating from v₀ = 0 collects exactly one more term per sweep',
+                'I + γP<sub>π</sub> + γ²P<sub>π</sub> + γ³P<sub>π</sub> + … — the powers of γ keep rising while P<sub>π</sub> stays first order',
+                'I − γP<sub>π</sub>⁻¹ + γ²P<sub>π</sub>⁻² − … — invert P<sub>π</sub> first, then power term by term, signs alternating',
+              ],
+            },
+            answer: 0,
+            why: {
+              zh: '(I − γP<sub>π</sub>)⁻¹ = I + γP<sub>π</sub> + γ²P<sub>π</sub>² + …，γ ∈ (0,1) 保证收敛。这一行还剧透了迭代解的身份：闭式解就是迭代解跑到底的极限，v₀ = 0 出发每轮收一项。但闭式解有两笔账：求逆 O(n³)（4×4 的 16 个状态无所谓，十万级先爆 O(n²) 存储）、要求完整模型（r<sub>π</sub>、P<sub>π</sub> 每个元素都得已知）——所以它管理论与验算（本讲两版实现互校，差 1e−9），实践交给迭代解。',
+              en: '(I − γP<sub>π</sub>)⁻¹ = I + γP<sub>π</sub> + γ²P<sub>π</sub>² + …, convergent for γ ∈ (0,1). The line also reveals the iterative solution’s identity: the closed form is the iteration run to its limit, one series term collected per sweep from v₀ = 0. But the closed form carries two bills: inversion costs O(n³) (nothing for the 16 states of a 4×4; at a hundred thousand states the O(n²) storage blows up first), and it demands the full model (every entry of r<sub>π</sub> and P<sub>π</sub> known) — so it runs theory and cross-checks (this lecture’s two implementations agree to 1e−9) while practice iterates.',
+            },
+          },
+        ],
+      },
+      {
+        // number：§2.5 数值例的 q(s5,a2) = −1 + 0.9×10 = 8
+        kind: 'number',
+        tag: { zh: '动作价值', en: 'Action value' },
+        stem: {
+          zh: '§2.5 的 3×3 数值例，γ = 0.9：在 s5 取 a2 会踩进禁区 s6，即时奖励 −1；而 v(s6) = 1 + 0.9×10 = 10。q(s5, a2) = [[1]]。',
+          en: 'The §2.5 numeric run on the 3×3 world, γ = 0.9: taking a2 at s5 steps into the forbidden s6 for an immediate −1, and v(s6) = 1 + 0.9×10 = 10. q(s5, a2) = [[1]].',
+        },
+        blanks: [
+          {
+            answer: 8, tol: 0.01,
+            hint: { zh: '即时奖励 + γ × 下游价值。', en: 'Immediate reward + γ × downstream value.' },
+            why: {
+              zh: 'q = 即时奖励 + γ×下游价值 = −1 + 0.9×10 = 8。同格的 a3（向下进 s8）：0 + 0.9×10 = 9。策略层再平均：v(s5) = 0.5×8 + 0.5×9 = 8.5，比纯向下策略的 9 少 0.5——恰是半次踩禁区的期望罚金 0.5×(9−8)。',
+              en: 'q = immediate reward + γ × downstream value = −1 + 0.9×10 = 8. The neighbouring a3 (down into s8): 0 + 0.9×10 = 9. One more π-weighted average: v(s5) = 0.5×8 + 0.5×9 = 8.5, which is 0.5 below the pure-down 9 — exactly the expected fine 0.5×(9−8) for half a step into the forbidden cell.',
+            },
+          },
+        ],
+      },
+    ],
+  };
 
 
   /* 导航组注册已提升至 data.js 的 NAV（按讲懒加载后，冷启动侧栏也要完整） */

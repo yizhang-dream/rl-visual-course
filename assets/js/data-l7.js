@@ -179,6 +179,7 @@
       { t: 'p', zh: 'on/off-policy 之辨、学习率之争、要不要学全部状态——本章最容易被面试官追问的点都在这里。', en: 'The on/off-policy distinction, the learning-rate dispute, and "do we need all states optimal" — the points interviewers love, all here.' },
       { t: 'p', zh: '翻卡前先过三题：① "TD 的目标为什么是 r + γv(s′) 而不是别的形状"（Bellman 期望方程 + 自举 + 一步采样，三视角缺一不可）；② "Sarsa 和 Q-learning 到底差在哪"（目标里的 a′ 换成 max——一个评估自己、一个瞄准最优，on/off-policy 之分全由此起）；③ "学习率到底该衰减还是常数"（平稳目标衰减、非平稳目标小常数——被评估的策略一直在变，这正是 L6 两种记忆的现场应用）。', en: 'Before flipping, run through three: ① “Why is the TD target r + γv(s′) and not some other shape” (Bellman expectation equation + bootstrapping + one-step sampling — no view may be missing); ② “Where exactly do Sarsa and Q-learning differ” (a′ in the target replaced by max — one evaluates itself, the other aims at the optimum; the on/off-policy split starts exactly there); ③ “Should the learning rate decay or stay constant” (decay for stationary targets, small constants for nonstationary ones — the policy being evaluated keeps changing, L6’s two kinds of memory applied on the spot).' },
       { t: 'widget', component: 'qa-lab', props: { source: 'l7' } },
+      { t: 'widget', component: 'fill-lab', props: { source: 'l7' } },
     ],
   };
 
@@ -291,6 +292,121 @@ def q_learning(env, episodes=5000, gamma=0.9, alpha=0.1, eps=0.1, max_steps=200)
       a: { zh: '三个字：快、稳、在线。不用等轨迹结束（可边走边学）、方差小（只吃一步噪声）、内存 O(1)（无需存轨迹）。偏差会随着 q 估计变准而自我修正——自举的偏差是"会呼吸的偏差"，MC 的高方差才是真正难缠的。', en: 'Three words: fast, steady, online. No waiting for episode ends (learn while walking), low variance (one step of noise per update), O(1) memory (no trajectory storage). The bias self-corrects as q sharpens — a living bias; MC’s high variance is the truly stubborn one.' } },
   ];
 
+
+  /* ═══ L7 知识填充 ═══ */
+  D.fillSets = D.fillSets || {};
+  D.fillSets['l7'] = {
+    title: { zh: '第七讲 · 知识填充', en: 'Lecture 7 · Knowledge Fill-in' },
+    items: [
+      {
+        kind: 'choice',
+        tag: { zh: 'TD 误差 · δ', en: 'TD error · δ' },
+        stem: { zh: 'Q-learning 一步更新的驱动力是 TD 误差：δ = r + γ[[1]] − q(s,a)，更新写作 q(s,a) ← q(s,a) + αδ；目标里的 q(s′,·) 直接读当前估计表。', en: 'The driving force of a Q-learning update is the TD error: δ = r + γ[[1]] − q(s,a), applied as q(s,a) ← q(s,a) + αδ; the q(s′,·) in the target is read straight off the current estimate table.' },
+        blanks: [
+          { choices: [
+              { zh: 'max q(s′,·)', en: 'max q(s′,·)' },
+              { zh: 'q(s′,a′)', en: 'q(s′,a′)' },
+              { zh: 'v(s′)', en: 'v(s′)' },
+            ], answer: 0,
+            why: { zh: 'max 进目标，解的是动作价值版 Bellman 最优方程（Box 7.5）——max 进方程，最优性进解。换成 q(s′,a′) 就是 Sarsa 的目标，评估的是带探索噪声的当前策略；v(s′) 是状态值，动作价值的更新里没有它的位置。δ 只报告"估计离目标多远"，是驱动力不是损失函数。', en: 'The max in the target solves the action-value Bellman optimality equation (Box 7.5) — max enters, optimality enters. Swap in q(s′,a′) and you get Sarsa’s target, evaluating the current policy with its exploration noise; v(s′) is a state value and has no seat in an action-value update. δ only reports how far the estimate sits from the target — a driving force, not a loss.' } },
+        ],
+      },
+      {
+        kind: 'choice',
+        tag: { zh: '自举 · bootstrapping', en: 'Bootstrapping' },
+        stem: { zh: 'TD 三兄弟的目标 r + γv(s′)、r + γq(s′,a′)、r + γmax q(s′,·) 形状各异，却共享同一个特征——[[1]]，这正是它们有偏的根源。', en: 'The three TD targets r + γv(s′), r + γq(s′,a′), r + γmax q(s′,·) differ in shape yet share one trait — [[1]] — which is exactly where their bias comes from.' },
+        blanks: [
+          { choices: [
+              { zh: '目标里含当前估计值：拿估计更新估计', en: 'the target contains a current estimate: updating estimates with estimates' },
+              { zh: '目标全部由真实奖励构成', en: 'the target is built entirely from real rewards' },
+              { zh: '更新必须等整条轨迹走完', en: 'the update must wait for a full trajectory' },
+            ], answer: 0,
+            why: { zh: '目标里的 v(s′)、q(s′,a′) 或 max q(s′,·) 都是估计表上的读数——拿估计估估计，所以有偏；代价换来方差小（只吃一步噪声）且走一步就能更新。MC 的目标 G 全是真实奖励：不自举、无偏，但方差大还得等回合结束。好消息：自举的偏差会呼吸——估计越准，偏差越小。', en: 'The v(s′), q(s′,a′) or max q(s′,·) inside the target is a reading from the estimate table — estimating with estimates, hence biased; the price buys low variance (one step of noise) and per-step updates. MC’s target G is all real rewards: no bootstrapping, no bias, but high variance and a wait for the episode to end. The good news: bootstrapped bias breathes — as the estimates sharpen, the bias shrinks.' } },
+        ],
+      },
+      {
+        kind: 'number',
+        tag: { zh: 'MC vs TD · 3×3 世界', en: 'MC vs TD · 3×3 world' },
+        stem: { zh: '书 3×3 世界（γ=0.9）：沿最优路 s₁→s₂→s₅→s₈→s₉ 的真实回报 G₀ = 0.9³×1 = [[1]]；而全零初始化下 TD 的第一个目标只有 r + γv(s₂) = 0。', en: 'The book’s 3×3 world (γ=0.9): the true return along the optimal route s₁→s₂→s₅→s₈→s₉ is G₀ = 0.9³×1 = [[1]]; yet TD’s very first target from an all-zero initialisation is only r + γv(s₂) = 0.' },
+        blanks: [
+          { answer: 0.729, tol: 0.005,
+            hint: { zh: '0.9 的三次方。', en: '0.9 cubed.' },
+            why: { zh: 'G₀ = 0.9³×1 = 0.729，恰好等于 v*(s₁) ≈ 0.73。MC 开局就看到完整的 0.729，但换个轨迹可能完全是另一个数（高方差）；TD 开局只看到诚实的 0（有偏），却几乎每次都一样（低方差）。这就是偏差-方差权衡的定量样本。', en: 'G₀ = 0.9³×1 = 0.729, exactly v*(s₁) ≈ 0.73. MC’s opening move sees the complete 0.729, though another trajectory could give a totally different number (high variance); TD’s opening sees an honest 0 (biased) that is nearly identical every time (low variance). A quantitative specimen of the bias–variance trade-off.' } },
+        ],
+      },
+      {
+        kind: 'choice',
+        tag: { zh: 'on/off-policy · 一行之差', en: 'on/off-policy · one line apart' },
+        stem: { zh: 'Sarsa 与 Q-learning 的目标只差一处：Sarsa 取 r + γq(s′,a′)，其中 a′ 是 [[1]]；Q-learning 取 r + γmax q(s′,·)，完全不看 a′。', en: 'Sarsa and Q-learning differ in exactly one spot: Sarsa takes r + γq(s′,a′), where a′ is [[1]]; Q-learning takes r + γmax q(s′,·), ignoring a′ altogether.' },
+        blanks: [
+          { choices: [
+              { zh: '当前 ε-greedy 策略实际采出的下一步', en: 'the next action actually drawn by the current ε-greedy policy' },
+              { zh: '历史旧策略采过的那个动作', en: 'the action drawn by some older policy' },
+              { zh: '值迭代里假设的最优动作', en: 'the optimal action assumed as in value iteration' },
+            ], answer: 0,
+            why: { zh: 'a′ 必须是自己（ε-greedy）实际采的下一步：Sarsa 评估的是"我带着探索噪声走路时这条路值多少"，被评估的策略 = 产生数据的策略，这就是 on-policy。max 只对着 q 表算，不需要下一个动作真的被采到——数据采集与评估解耦，这就是 off-policy。一行之差决定两个身份。', en: 'a′ must be the next action actually drawn by its own ε-greedy policy: Sarsa evaluates “what this route is worth while I walk with exploration noise on” — the evaluated policy is the data-generating one, i.e. on-policy. The max reads the q-table and never asks whether the next action was really taken — data collection decoupled from evaluation, i.e. off-policy. One line decides two identities.' } },
+        ],
+      },
+      {
+        kind: 'code',
+        tag: { zh: '代码 · Q-learning 更新行', en: 'Code · the Q-learning line' },
+        stem: { zh: '两个算法只差一行：把 Q-learning 更新行（td_algorithms.py 第 35 行）里的目标空补上：[[1]]', en: 'The two algorithms differ by a single line: fill the target gap in the Q-learning update (line 35 of td_algorithms.py): [[1]]' },
+        code: { zh: 'q[s,a] += alpha * (r + gamma * [[1]] - q[s,a])', en: 'q[s,a] += alpha * (r + gamma * [[1]] - q[s,a])' },
+        blanks: [
+          { choices: ['max(q[s_next, :])', 'q[s_next, a_next]', 'mean(q[s_next, :])'], answer: 0,
+            why: { zh: 'max 直指下一状态的最优价值——哪怕探索走了臭棋，更新仍按"下一步最好"记账，这是 off-policy 的能量来源（代码里即 np.max(q[s2])）。把这行换成 q[s_next, a_next]（先 eps_greedy 采出 a_next 再更新）就是 Sarsa——on-policy，评估自己带探索噪声的策略。mean(q[s_next, :]) 不对应任何 Bellman 方程——既不是期望方程也不是最优方程，收敛不到任何真值。', en: 'The max points straight at the next state’s optimal value — even a bad exploratory step is booked as if the best were taken next: the energy source of off-policy (np.max(q[s2]) in the code). Replace this line with q[s_next, a_next] (sample a_next by eps_greedy first) and you get Sarsa — on-policy, evaluating its own noisy policy. mean(q[s_next, :]) matches no Bellman equation at all — neither the expectation one nor the optimality one — so it converges to nothing.' } },
+        ],
+      },
+      {
+        kind: 'choice',
+        tag: { zh: '经验回放的门票', en: 'The replay ticket' },
+        stem: { zh: 'L8 的经验回放（拿旧样本反复训练）配得上 Q-learning 却配不上 Sarsa，因为 Q-learning 的目标 [[1]]。', en: 'Experience replay in L8 (training repeatedly on old samples) pairs with Q-learning but not with Sarsa, because Q-learning’s target [[1]].' },
+        blanks: [
+          { choices: [
+              { zh: 'r + γmax q(s′,a) 不含 a′、不依赖行为策略', en: 'r + γmax q(s′,a) contains no a′ and does not depend on the behavior policy' },
+              { zh: '也含 a′，只是允许事后补采', en: 'also contains a′, merely allowing it to be patched in afterwards' },
+              { zh: '带 max，任何旧数据都会被自动纠正成最优', en: 'carries a max, so any stale data is automatically corrected toward optimality' },
+              { zh: '对样本新旧不敏感，靠的是 α 衰减得够快', en: 'is insensitive to sample age because α decays fast enough' },
+            ], answer: 0,
+            why: { zh: 'max q(s′,·) 是 q 表上的最优读数，与谁、何时采的样本无关——只要探索到位，旧样本一样有效。Sarsa 的目标里 a′ 必须是当前策略采出的动作：用昨天策略的五元组更新今天的 q，等于在解旧策略的 Bellman 期望方程，而策略改进已经往前走。数据必须新鲜，是 on-policy 的宿命，也是它样本效率的天花板。', en: 'max q(s′,·) is the optimal reading on the q-table, indifferent to who drew the sample or when — given enough exploration, old samples work just as well. Sarsa’s a′ must come from the current policy: updating today’s q with yesterday’s quintuple solves the old policy’s Bellman expectation equation while improvement has already moved on. Fresh data is the on-policy fate, and the ceiling on its sample efficiency.' } },
+        ],
+      },
+      {
+        kind: 'number',
+        tag: { zh: '两张表 · ε=0.2', en: 'Two tables · ε=0.2' },
+        stem: { zh: '3×3 世界（γ=0.9，ε=0.2）实测：q*(s₁,→) = 0.73，而 Sarsa 表的 q(s₁,→) ≈ [[1]]——数值整体被探索风险压低。', en: 'Measured on the 3×3 world (γ=0.9, ε=0.2): q*(s₁,→) = 0.73, while the Sarsa table reads q(s₁,→) ≈ [[1]] — its values are pushed down overall by exploration risk.' },
+        blanks: [
+          { answer: 0.51, tol: 0.01,
+            hint: { zh: '比 0.73 低两成多，在 0.5 上下。', en: 'Some twenty percent below 0.73, around 0.5.' },
+            why: { zh: '实测 0.51。每一步都有 20% 的概率乱走（撞边界 −1、绕远路），Sarsa 诚实地给探索风险记了账；Q-learning 的 max 只认最优，不管行为策略多吵。ε 越大压得越低——Sarsa 收敛到的是 ε-greedy 家族内的最优，不是全局 q*。', en: 'The measurement reads 0.51. Each step carries a 20% chance of a wild move (bumping a wall −1, taking the long way), and Sarsa honestly books that exploration risk; Q-learning’s max only acknowledges the optimum, however noisy the behavior policy. Larger ε pushes it lower — Sarsa converges to the best within the ε-greedy family, not the global q*.' } },
+        ],
+      },
+      {
+        kind: 'number',
+        tag: { zh: '悬崖行走 · 数值', en: 'Cliff walking · the number' },
+        stem: { zh: '书外延伸：把 3×3 世界的禁区奖励加深成 −10（当陷阱），ε=0.1 跑数值实验——执行 ε-greedy(Sarsa 表) 的平均折扣回报 ≈ [[1]]，比执行 ε-greedy(Q* 表) 的 0.269 反而更高。', en: 'Beyond the book: deepen the forbidden-cell reward of the 3×3 world to −10 (a pit) and run the numbers with ε=0.1 — executing ε-greedy on the Sarsa table earns an average discounted return ≈ [[1]], higher than the 0.269 earned on the Q* table.' },
+        blanks: [
+          { answer: 0.282, tol: 0.01,
+            hint: { zh: '在 0.27 与 0.29 之间，比 0.269 略高。', en: 'Between 0.27 and 0.29, a shade above 0.269.' },
+            why: { zh: '实测 ≈ 0.282。Q* 表只认最优价值，执行时一旦探索失足掉进陷阱（−10）就要自己扛全额账单；Sarsa 的表在学的时候就把"探索可能掉坑"定价进去了——离陷阱近的状态被压低，恢复动作更保守。Q-learning 学最短的危险路线，Sarsa 学安全的绕行路线，没有谁错。', en: 'The measurement reads ≈ 0.282. The Q* table only acknowledges optimal values, so a stumble into the pit (−10) during execution is paid in full; Sarsa’s table priced “exploration may fall in” while learning — states near the pit are pushed down and its recovery actions stay conservative. Q-learning takes the short dangerous route, Sarsa the safe detour — neither is wrong.' } },
+        ],
+      },
+      {
+        kind: 'choice',
+        tag: { zh: '悬崖行走 · 为什么', en: 'Cliff walking · the why' },
+        stem: { zh: '同一个悬崖实验：Sarsa 表 0.282 > Q* 表 0.269，决定性的原因是 [[1]]。', en: 'Same cliff experiment: Sarsa’s table earns 0.282 against the Q* table’s 0.269 — the decisive reason is [[1]].' },
+        blanks: [
+          { choices: [
+              { zh: 'Sarsa 在学表时就把探索掉坑的风险定价进了表里', en: 'Sarsa priced the risk of exploratory falls into its table while learning' },
+              { zh: '执行时 Sarsa 的 ε 更小，掉坑次数更少', en: 'Sarsa runs with a smaller ε at execution time, falling in less often' },
+              { zh: 'Sarsa 的表收敛到了更高的真值', en: 'Sarsa’s table converged to a higher truth' },
+              { zh: 'Q-learning 的 max 目标在负奖励下不收敛', en: 'Q-learning’s max target fails to converge under negative rewards' },
+            ], answer: 0,
+            why: { zh: '两张表优化的对象本来就不是同一个：Sarsa 评估"带探索噪声走路"的价值，陷阱附近的 q 被系统性压低，于是绕行；Q* 表按无探索的最优记账，执行时 ε 一触发失足就付 −10。执行时两者用的是同一个 ε-greedy，掉坑概率没有差别——差别全在表里，不在执行里。', en: 'The two tables were never optimising the same object: Sarsa evaluates “walking with exploration noise on”, so q near the pit is pushed down systematically and it detours; the Q* table books the no-exploration optimum and pays −10 the moment ε trips at execution. At execution both use the same ε-greedy — the fall rate is identical. The difference lives in the tables, not in the execution.' } },
+        ],
+      },
+    ],
+  };
 
   /* 导航组注册已提升至 data.js 的 NAV（按讲懒加载后，冷启动侧栏也要完整） */
   const l7 = D.otherLectures.find(l => l.no === 7);

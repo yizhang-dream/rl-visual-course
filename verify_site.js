@@ -355,6 +355,48 @@ fs.mkdirSync(OUT, { recursive: true });
       + ' canvas=' + (!!(await page.$('#g3d-canvas canvas'))));
   } catch (e) { errors.push('[graph3d] ' + e.message); }
 
+  // ── fill-lab 知识填空冒烟：深链 L7 qa 节 → .fill-lab 渲染 → 点槽出选项 → 选项 → 检查出讲解 → localStorage → 元素级截图 ──
+  try {
+    await page.goto('http://localhost:8642/#sec-l7-qa', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1500);   // 冷深链 = 懒加载注入 data-l7，等 fillSets 注入后 fill-lab 渲染
+    await page.evaluate(() => {
+      const el = document.getElementById('sec-l7-qa');
+      if (el) el.scrollIntoView({ behavior: 'instant', block: 'start' });
+    });
+    await page.waitForTimeout(400);
+    const fillLab = page.locator('#sec-l7-qa .fill-lab');
+    const labCount = await fillLab.count();
+    ok(labCount === 1, '[smoke-fill] #sec-l7-qa .fill-lab count = ' + labCount + ' (expect 1)');
+    ok(labCount === 1 && await fillLab.isVisible(), '[smoke-fill] #sec-l7-qa .fill-lab not visible');
+    const nItems = await page.locator('#sec-l7-qa .fill-item').count();
+    ok(nItems >= 5, '[smoke-fill] #sec-l7-qa .fill-item count = ' + nItems + ' (expect >= 5)');
+
+    // 第一条（choice 单空题）：点槽 → 选项浮层 → 选首项（即正确答案）→ 检查 → 判分 + 讲解展开
+    const item1 = page.locator('#sec-l7-qa .fill-item').first();
+    await item1.locator('.fill-slot').first().click();
+    await page.waitForTimeout(300);
+    ok(await item1.locator('.fill-opts').isVisible(), '[smoke-fill] .fill-opts not shown after slot click');
+    const nOpts = await item1.locator('.fill-opt').count();
+    ok(nOpts >= 2, '[smoke-fill] .fill-opt count = ' + nOpts + ' (expect >= 2)');
+    await item1.locator('.fill-opt').first().click();
+    await page.waitForTimeout(250);
+    const checkBtn = item1.locator('.fill-item-foot button.btn');
+    ok(await checkBtn.isEnabled(), '[smoke-fill] check button still disabled with the only blank filled');
+    await checkBtn.click();
+    await page.waitForTimeout(450);
+    ok(await item1.locator('.fill-why').isVisible(), '[smoke-fill] .fill-why not visible after check');
+    // 双语模式下同一空在 zh/en 两行各渲染一个槽（共享作答状态），故 .right 槽数 = 语言行数 >= 1
+    ok(await item1.locator('.fill-slot.right').count() >= 1, '[smoke-fill] slot lacks .right mark after correct check');
+    const stored = await page.evaluate(() => localStorage.getItem('rl-viz-fill-l7'));
+    ok(!!stored && stored.indexOf('"checked":true') >= 0,
+      '[smoke-fill] localStorage rl-viz-fill-l7 = ' + String(stored || 'null').slice(0, 90));
+    await fillLab.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(300);
+    await fillLab.screenshot({ path: path.join(OUT, 'smoke-fill-lab.png') });   // 元素级证据图（勿用视口截图）
+    console.log('fill-lab assert: items=' + nItems + ' opts=' + nOpts
+      + ' stored=' + (stored ? 'PRESENT' : 'null'));
+  } catch (e) { errors.push('[smoke-fill] ' + e.message); }
+
   // ── file:// 双击可用冒烟：KaTeX 相对路径 css/字体在 file 协议下可加载、公式可渲染 ──
   try {
     const fileUrl = 'file:///' + encodeURI(__dirname.replace(/\\/g, '/')) + '/index.html#sec-l2-matrix';

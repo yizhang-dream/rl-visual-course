@@ -125,6 +125,7 @@
       { t: 'p', zh: '为什么需要评论家、基线为什么白赚、确定性策略怎么求导——收官六问。', en: 'Why a critic, why baselines are free, how deterministic policies differentiate — the closing six.' },
       { t: 'p', zh: '翻卡前先过三题：① "评论家和演员的学习率能共用一个吗"（不能——两个更新的尺度、噪声、收敛速度都不同，失衡即翻车）；② "δ 是优势本身吗"（不是——它是优势的单步采样代理，期望等于优势仅当 v 收敛，平时有偏但方差小）；③ "actor-critic 收敛到全局最优吗"（不保证——J(θ) 非凸、评分还在动，实践中以"稳定改进"为目标，理论缺口靠工程纪律补）。', en: 'Before flipping, run through three: ① “Can the critic and actor share one learning rate” (no — the two updates differ in scale, noise, and convergence speed; imbalance means a crash); ② “Is δ itself the advantage” (no — it is a one-step sample proxy whose expectation equals the advantage only once v has converged; biased in general, but low-variance); ③ “Does actor-critic converge to the global optimum” (not guaranteed — J(θ) is nonconvex and the scores keep moving; practice aims for “steady improvement”, and engineering discipline fills the theoretical gap).' },
       { t: 'widget', component: 'qa-lab', props: { source: 'l10' } },
+      { t: 'widget', component: 'fill-lab', props: { source: 'l10' } },
     ],
   };
 
@@ -216,6 +217,143 @@ def a2c(env, episodes=4000, gamma=0.9, alpha_theta=0.02, alpha_w=0.1,
     { tag: 'Q5 · 补充', q: { zh: '从这里通往现代算法（PPO/SAC 等）的路标？', en: 'What are the signposts from here to modern algorithms (PPO/SAC, etc.)?' },
       a: { zh: '方差治理：REINFORCE→A2C→GAE（多步优势）；trust region：TRPO/PPO（限制每步更新幅度防崩坏）；off-policy + 确定性：DPG→DDPG→TD3（连续控制）；随机策略正则：SAC（熵正则最大化探索）。另有模型基、多智能体、分布式 RL 等分支——本书的地基都在它们的地基里。', en: 'Variance governance: REINFORCE→A2C→GAE (multi-step advantages); trust regions: TRPO/PPO (bounding each update against collapse); off-policy + deterministic: DPG→DDPG→TD3 (continuous control); stochastic-policy regularisation: SAC (entropy-maximised exploration). Branches extend to model-based, multi-agent, and distributional RL — this book’s foundations underlie all of them.' } },
   ];
+
+
+  /* ═══ L10 知识填空 ═══ */
+  D.fillSets = D.fillSets || {};
+  D.fillSets['l10'] = {
+    title: { zh: '第十讲 · 知识填充', en: 'Lecture 10 · Knowledge Fill-in' },
+    items: [
+      {
+        kind: 'choice',
+        tag: { zh: '分工 · 两行更新', en: 'Roles · two update lines' },
+        stem: { zh: 'actor-critic 单循环里的分工：演员握着 [[1]]，负责行动、被推着改进；评论家握着 [[2]]，负责打分、被 TD 误差修正。每走一步两家各更一次——“整幕价值评估完再改策略”的老节奏就此作废。',
+                en: 'The single-loop division of labour: the actor holds [[1]] and acts, pushed to improve; the critic holds [[2]] and scores, corrected by its own TD error. Both update once per step — the old rhythm of “evaluate a whole episode, then touch the policy” is retired.' },
+        blanks: [
+          { choices: [
+              { zh: '策略 π(a|s,θ)', en: 'the policy π(a|s,θ)' },
+              { zh: '价值函数 q̂(s,a,w)', en: 'the value function q̂(s,a,w)' },
+              { zh: '真实回报 G_t', en: 'the true return G_t' },
+            ], answer: 0,
+            why: { zh: '演员是策略函数 π(a|s,θ)：沿 ∇θln π · q̂ 做梯度上升，评论家的分就是推力；评论家是价值函数 q̂(s,a,w)：沿 TD 误差 r + γq̂(s′,a′,w) − q̂ 做梯度下降，修正自己的评分表。两条更新在每个时间步里交替执行——QAC 把 L4 广义策略迭代的交替粒度压到了单步。G_t 是 REINFORCE 的评分员，评论家一登台它就退场了。', en: 'The actor is the policy function π(a|s,θ): it climbs along ∇θln π · q̂, with the critic’s score as the push. The critic is the value function q̂(s,a,w): it descends along the TD error r + γq̂(s′,a′,w) − q̂, correcting its own scoring table. The two updates alternate inside every time step — QAC compresses L4’s generalised policy iteration to the single-step grain. G_t was REINFORCE’s grader; it exits the moment the critic takes the seat.' } },
+          { choices: [
+              { zh: '价值函数 q̂(s,a,w)', en: 'the value function q̂(s,a,w)' },
+              { zh: '策略 π(a|s,θ)', en: 'the policy π(a|s,θ)' },
+              { zh: '折扣率 γ', en: 'the discount rate γ' },
+            ], answer: 0,
+            why: { zh: '打分的席位属于价值函数 q̂(s,a,w)：它给动作评分，自己的 TD 误差又兼任修正量。把席位给策略，两家职能就撞车——策略给自己打分，等于没有评分员；γ 只是双方共用的一个标量系数，不属于任何一方。', en: 'The scoring seat belongs to the value function q̂(s,a,w): it rates actions, and its own TD error doubles as the correction. Give the seat to the policy and the roles collide — a policy scoring itself means no grader at all; γ is a scalar coefficient shared by both sides, nobody’s property.' } },
+        ],
+      },
+      {
+        kind: 'choice',
+        tag: { zh: '自举目标', en: 'the bootstrap target' },
+        stem: { zh: '评论家修正评分的 one-step target 取 [[1]]，δ = target − q̂(s,a,w) 单步可得；REINFORCE 的 [[2]] 则要等整条轨迹倒推，方差还大。',
+                en: 'The critic’s one-step target is [[1]], so δ = target − q̂(s,a,w) is available every step; REINFORCE’s [[2]] must be traced back once the whole trajectory ends, variance riding along.' },
+        blanks: [
+          { choices: [
+              { zh: 'r + γ·q̂(s′,a′,w)', en: 'r + γ·q̂(s′,a′,w)' },
+              { zh: 'max q̂(s′,·,w)', en: 'max q̂(s′,·,w)' },
+              { zh: 'G_t − b(s_t)', en: 'G_t − b(s_t)' },
+            ], answer: 0,
+            why: { zh: 'QAC 是 on-policy：target 沿实际采到的 (s,a,r,s′,a′) 记账，a′ 必须是当前策略真实采出的下一步。max q̂(s′,·,w) 是 Q-learning/DQN 的目标——off-policy 的最优读数，从不追问 a′ 是否真被采到；G_t − b(s_t) 是 REINFORCE+baseline 的评分，照样要等回合结束。', en: 'QAC is on-policy: the target books along the actually drawn (s,a,r,s′,a′), and a′ must be the next action the current policy really took. max q̂(s′,·,w) is Q-learning/DQN’s target — the off-policy optimal reading that never asks whether a′ was drawn; G_t − b(s_t) is REINFORCE+baseline’s score, still waiting for the episode to end.' } },
+          { choices: [
+              { zh: '整条回报 G_t', en: 'the whole-trajectory return G_t' },
+              { zh: '即时奖励 r', en: 'the immediate reward r' },
+              { zh: '优势 A(s,a)', en: 'the advantage A(s,a)' },
+            ], answer: 0,
+            why: { zh: 'REINFORCE 评分用真实回报 G_t：无偏，但更新押后到回合末，整条轨迹的运气全算在一个数上。r 单独当 target 是评论家没热身时的退化形态——v ≈ 0 时 δ ≈ r，评分塌缩成只看即时奖励；优势 A(s,a) 是 δ 收敛后的期望身份——它是 δ 长大后要当的角色，不是 target 本身。', en: 'REINFORCE scores with the true return G_t: unbiased, but updates wait for the episode’s end and a whole trajectory’s luck lands on one number. Using r alone as the target is the degenerate form of an unwarmed critic — with v ≈ 0, δ ≈ r and scoring collapses to the immediate reward; the advantage A(s,a) is δ’s expectation once converged — the role δ grows into, not the target itself.' } },
+        ],
+      },
+      {
+        kind: 'choice',
+        tag: { zh: '方差从哪降', en: 'where the variance falls' },
+        stem: { zh: '评分员从 G_t 换成 q̂ 能把方差打下来，根本原因是 [[1]]；账单上多出的一项是 [[2]]。',
+                en: 'Swapping the grader from G_t to q̂ slams the variance down because [[1]]; the extra item on the bill is [[2]].' },
+        blanks: [
+          { choices: [
+              { zh: 'G_t 把从 t 到回合末的每一步运气叠乘在一个数上；q̂ 把下游所有随机性压缩成一个估计，噪声只剩这一步', en: 'G_t multiplies every step of luck from t to the episode’s end into one number, while q̂ compresses all downstream randomness into a single estimate — only this step’s noise remains' },
+              { zh: 'q̂ 是对许多条轨迹的回报取平均，样本多了方差自然小', en: 'q̂ averages returns over many trajectories, so more samples naturally mean less variance' },
+              { zh: 'q̂ 与 G_t 期望相同而方差更小，等于白赚', en: 'q̂ shares G_t’s expectation with smaller variance — a free lunch' },
+            ], answer: 0,
+            why: { zh: 'G_t 里装着三重运气：每步奖励的噪声、后续每个动作的采样、每个后继状态的转移——全部叠乘进一个数。q̂(s′,a′,w) 用一个读数顶替“下游的一切”，随机性只剩单步的 (r, s′, a′)。另两个说法都不成立：q̂ 一次只吃一个样本，不是多轨迹平均；自举恰恰牺牲了无偏，“期望相同”并不成立。', en: 'G_t packs a triple luck: per-step reward noise, the sampling of every later action, the transition into every later state — all folded into one number. q̂(s′,a′,w) stands in for “everything downstream” with a single reading, leaving only this step’s (r, s′, a′). The other two claims fail: q̂ swallows one sample at a time, it is no multi-trajectory average; and bootstrapping precisely trades away unbiasedness, so “same expectation” does not hold.' } },
+          { choices: [
+              { zh: '偏差——q̂ 不准时，target 跟着系统性地歪', en: 'bias — an inaccurate q̂ tilts the target systematically' },
+              { zh: '更高的方差——自举把噪声逐层放大', en: 'even higher variance — bootstrapping amplifies the noise layer by layer' },
+              { zh: '失去在线更新的能力', en: 'losing the ability to update online' },
+            ], answer: 0,
+            why: { zh: 'target 里的 q̂(s′,a′,w) 是估计值——拿估计估估计，偏差由此进门（L7 的老账）。两条缓解：q̂ 越准偏差越小（偏差会呼吸）；δ = r + γq̂(s′) − q̂(s) 的相减让两处价值误差部分对消。用方差换偏差，是偏差-方差谱上一次清醒的移动——与 L7 的 n-step 谱完全同构。', en: 'The q̂(s′,a′,w) inside the target is an estimate — estimating with estimates, so bias walks in (L7’s old ledger). Two reliefs: the bias shrinks as q̂ sharpens (bias breathes), and in δ = r + γq̂(s′) − q̂(s) the subtraction lets the two value errors partly cancel. Variance traded for bias: a deliberate move along the bias–variance spectrum, exactly isomorphic to L7’s n-step one.' } },
+        ],
+      },
+      {
+        kind: 'choice',
+        tag: { zh: '对比 REINFORCE', en: 'vs REINFORCE' },
+        stem: { zh: '两代算法对账：REINFORCE 评分用 [[1]]，无偏但要等回合、方差大；QAC 评分用 TD 现估的 q̂(s,a,w)，能 [[2]]，代价是评分有偏。',
+                en: 'Reconciling the two generations: REINFORCE scores with [[1]] — unbiased, but episode-bound and high-variance; QAC scores with the TD estimate q̂(s,a,w) and can [[2]], at the price of biased scores.' },
+        blanks: [
+          { choices: [
+              { zh: '真实回报 G_t', en: 'the true return G_t' },
+              { zh: 'TD 现估的 q̂(s,a,w)', en: 'the TD estimate q̂(s,a,w)' },
+              { zh: '基线 b(s_t)', en: 'a baseline b(s_t)' },
+            ], answer: 0,
+            why: { zh: 'REINFORCE 的评分员是真实回报 G_t：期望恰为 q_π(s,a)，无偏；但要等整条轨迹、方差巨大，且每条 G 用完即弃。QAC 的痛点逐一对照：q̂ 每步被 TD 修正（不等回合）、只吃一步噪声（低方差）、跨回合持续积累（经验复用）。', en: 'REINFORCE’s grader is the true return G_t: its expectation is exactly q_π(s,a), unbiased; but it waits a whole trajectory, carries enormous variance, and each G is single-use. QAC treats the pains one by one: q̂ is corrected by TD every step (no waiting), swallows one step of noise (low variance), and accumulates across episodes (experience reuse).' } },
+          { choices: [
+              { zh: '每个时间步各更新一次演员与评论家', en: 'update both actor and critic at every time step' },
+              { zh: '只在回合结束时更新一次', en: 'update once, only at the episode’s end' },
+              { zh: '攒满一批整轨迹再统一更新', en: 'accumulate a full batch of whole trajectories, then update' },
+            ], answer: 0,
+            why: { zh: '每步两行更新：评论家先用最新 (s,a,r,s′,a′) 修评分（评估半步），演员再沿新评分改进策略（改进半步）——评估不必收敛、改进不必彻底，两家各进一小格。这是单步粒度的 GPI；REINFORCE 的更新只能押后到回合末，长回合与持续任务直接卡死。攒批整轨迹只改善统计效率，救不了“回合内无更新”。', en: 'Each step is two lines: the critic first corrects its scores with the freshest (s,a,r,s′,a′) (an evaluation half-step), then the actor improves along the new scores (an improvement half-step) — evaluation need not converge, improvement need not be thorough, both advance a small notch. This is GPI at single-step grain; REINFORCE must defer its update to the episode’s end, stalling on long episodes and continuing tasks. Batching whole trajectories only improves statistical efficiency — it cannot rescue “no updates mid-episode”.' } },
+        ],
+      },
+      {
+        kind: 'code',
+        tag: { zh: 'code · δ 一行喂两张表', en: 'code · one δ feeds two tables' },
+        stem: { zh: 'δ 是 a2c.py 全文件的枢纽——一个数喂两张表。把这一行的空补上：[[1]]',
+                en: 'δ is the pivot of the whole a2c.py file — one number feeding two tables. Complete this line: [[1]]' },
+        code: { zh: 'delta = r + gamma * [[1]] - q_w(s,a)',
+                en: 'delta = r + gamma * [[1]] - q_w(s,a)' },
+        blanks: [
+          { choices: ['q_w(s_next, a_next)', 'G_t（整条回报）', 'max q_w(s_next, :)'], answer: 0,
+            why: { zh: 'one-step target 用下一步动作价值的现估拼成：δ = r + γq̂(s′,a′,w) − q̂(s,a,w)。这一个 δ 喂两张表——评论家 w ← w + α_w·δ·∇w q̂（TD 误差修评分），演员 θ ← θ + α_θ·δ·∇ln π（同一个 δ 换个方向推策略）；演员那行与 L9 的 REINFORCE 逐字同构，仅 G 换成 δ。填 G_t 就退回整条轨迹评分，单步更新作废；填 max q_w(s_next, :) 是 Q-learning/DQN 的 off-policy 最优目标——QAC 是 on-policy，a′ 必须是策略实际采出的下一步。', en: 'The one-step target is assembled from the current estimate of the next action’s value: δ = r + γq̂(s′,a′,w) − q̂(s,a,w). One δ feeds two tables — the critic w ← w + α_w·δ·∇w q̂ (the TD error fixes the scores) and the actor θ ← θ + α_θ·δ·∇ln π (the same δ pushes the policy the other way); the actor’s line is verbatim L9’s REINFORCE with G swapped for δ. Fill in G_t and you are back to whole-trajectory scoring — per-step updates gone; fill in max q_w(s_next, :) and you have Q-learning/DQN’s off-policy optimal target — QAC is on-policy, a′ must be the action the policy actually drew.' } },
+        ],
+      },
+      {
+        kind: 'number',
+        tag: { zh: '实验台 · 两个步长', en: 'ac-lab · two step sizes' },
+        stem: { zh: '本讲 ac-lab 实验台默认 α_w = 0.10、α_θ = 0.05：评论家步长是演员的 [[1]] 倍——正合“两率同量级、critic 略快半拍”的工程建议。',
+                en: 'This lecture’s ac-lab defaults to α_w = 0.10 and α_θ = 0.05: the critic’s step size is [[1]] times the actor’s — exactly the engineering advice “same order of magnitude, critic half a beat ahead”.' },
+        blanks: [
+          { answer: 2, tol: 0.01,
+            hint: { zh: '0.10 ÷ 0.05', en: '0.10 ÷ 0.05' },
+            why: { zh: '0.10 ÷ 0.05 = 2：评分先稳半拍，演员才不在一张乱表上狂奔。两个失衡方向各有病：α_θ ≫ α_w，梯度方向是噪声，策略越跑越偏；α_w ≫ α_θ，评分表每步被单样本猛拉，抖得演员无所适从。a2c.py 里这对数是 0.1 对 0.02（5 倍），同一个思想：critic 略快。', en: '0.10 ÷ 0.05 = 2: the scores steady themselves half a beat ahead, so the actor never sprints on a messy sheet. Each unbalanced direction has its own disease: α_θ ≫ α_w makes the gradient direction pure noise and the policy veers off; α_w ≫ α_θ lets every single sample yank the score sheet, leaving the actor without bearings. In a2c.py the pair is 0.1 vs 0.02 (5×) — the same idea: the critic runs slightly faster.' } },
+        ],
+      },
+      {
+        kind: 'number',
+        tag: { zh: '折扣率 γ', en: 'the discount γ' },
+        stem: { zh: 'a2c.py 与 ac-lab 实验台的折扣率都取 γ = [[1]]——持续任务里若顺手设成 1，折扣回报会发散，这是本讲点名的经典隐性 bug。',
+                en: 'Both a2c.py and the ac-lab take the discount as γ = [[1]] — casually setting it to 1 in a continuing task makes the discounted return diverge: this lecture’s classic hidden bug.' },
+        blanks: [
+          { answer: 0.9, tol: 0.001,
+            hint: { zh: '0 与 1 之间的一位小数', en: 'a one-decimal value between 0 and 1' },
+            why: { zh: '两处都是 γ = 0.9：a2c.py 的函数默认参数，实验台 δ = r + 0.9·v(s′) − v(s) 的系数。γ < 1 把“接下来的人生”折现成有限数，自举 target 才有界；γ = 1 时持续任务的 G_t 是无穷步奖励的直接累加，REINFORCE 的更新式连定义都保不住——出路要么老实 γ < 1，要么改用第 9 章的平均奖励目标 r̄_π。', en: 'Both use γ = 0.9: a2c.py’s function default, and the coefficient inside the lab’s δ = r + 0.9·v(s′) − v(s). γ < 1 discounts “the rest of one’s life” into a finite number, keeping the bootstrap target bounded; with γ = 1 the continuing task’s G_t is a direct sum over infinitely many rewards and REINFORCE’s update cannot even stay defined — the two proper roads are an honest γ < 1, or Chapter 9’s average-reward objective r̄_π.' } },
+        ],
+      },
+      {
+        kind: 'choice',
+        tag: { zh: '书外延伸·比值裁剪', en: 'beyond the book · ratio clipping' },
+        stem: { zh: 'off-policy AC 里 ρ = π(a|s)/β(a|s) 可以无界：β 采到 π 几乎不选的动作时，比值能任意大，一条样本独占梯度。实战的对策是 [[1]]——PPO 把这一思想工程化成了截断目标。',
+                en: 'In off-policy AC the ratio ρ = π(a|s)/β(a|s) is unbounded: when β draws an action π almost never chooses, the ratio can grow arbitrarily large and one sample monopolises the gradient. The practical remedy is [[1]] — PPO engineered this very idea into its clipped objective.' },
+        blanks: [
+          { choices: [
+              { zh: '给 ρ 设裁剪上限（clip），摁住单次运气的权重', en: 'clip ρ at a ceiling, capping the weight of any single stroke of luck' },
+              { zh: '把所有 ρ 归一化到 [0,1]，方差随之消失', en: 'normalise all ρ into [0,1], so the variance vanishes' },
+              { zh: '直接丢弃 ρ 超限的样本，恢复无偏', en: 'drop the samples whose ρ exceeds the cap, restoring unbiasedness' },
+            ], answer: 0,
+            why: { zh: 'ρ 的病灶是“分布错位 × 轨迹长度”：β 越偏离 π、轨迹越长，权重越忽大忽小。裁剪上限保住“把 β 的经验折算回 π”的意图，同时摁住方差——代价是折算不再精确（有偏）。归一化会重排样本间的相对权重，丢样本则让重要性采样的期望修正失真，两者都不对症。PPO 的截断目标正是“不让单步更新被个别样本劫持”的工程化。', en: 'The ratio’s lesion is “distribution mismatch × trajectory length”: the further β strays from π and the longer the trajectory, the wilder the weights swing. A clip ceiling keeps the intent — converting β’s experience back into π’s expectation — while pinning down the variance, at the price of an imprecise conversion (bias). Normalising rearranges the samples’ relative weights, and dropping samples distorts the very expectation correction importance sampling exists to provide — neither addresses the disease. PPO’s clipped objective is exactly “no single sample hijacks an update”, engineered.' } },
+        ],
+      },
+    ],
+  };
 
 
   /* 导航组注册已提升至 data.js 的 NAV（按讲懒加载后，冷启动侧栏也要完整） */

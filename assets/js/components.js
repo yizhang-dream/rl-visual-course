@@ -576,6 +576,323 @@
     </div>`,
   };
 
+  /* ═════════════ 知识填空 FillLab ═════════════ */
+  // —— 纯函数（不碰 DOM，node 可直接测；经 window.RLV 暴露给校验脚本）——
+  // [[n]] 解析："a [[1]] b [[2]]" → { segs: [txt|{t:'b',n}...], nums: ['1','2'] }
+  // 段含首尾文本段（split 语义），文本段可能为空串
+  function parseBlanks(text) {
+    const parts = String(text == null ? '' : text).split(/(\[\[\d+\]\])/);
+    const segs = [];
+    const nums = [];
+    parts.forEach((p) => {
+      const m = /^\[\[(\d+)\]\]$/.exec(p);
+      if (m) { segs.push({ t: 'b', n: parseInt(m[1], 10) }); nums.push(m[1]); }
+      else segs.push({ t: 'txt', s: p });
+    });
+    return { segs, nums };
+  }
+  // number 空解析：空串 → NaN（防 Number('')===0 误判对）；逗号按欧洲小数点容错
+  function parseNum(s) {
+    const t = String(s == null ? '' : s).trim();
+    if (t === '') return NaN;
+    return Number(t.replace(',', '.'));
+  }
+  // 判一个空：choices 型比下标；number 型比 |x−answer|≤tol
+  function judgeBlank(val, blank) {
+    if (!blank) return false;
+    if (blank.choices) return val === blank.answer;
+    const x = parseNum(val);
+    if (Number.isNaN(x)) return false;
+    const tol = typeof blank.tol === 'number' ? blank.tol : 0;
+    // +1e-9 吸收浮点表示误差，保证 |x−answer|===tol 的边界按 ≤ 判
+    return Math.abs(x - blank.answer) <= tol + 1e-9;
+  }
+
+  const FillLab = {
+    name: 'FillLab',
+    props: { source: { type: String, default: 'l1' } },
+    // st[i] = 每条状态 { vals: 每空作答（choice=下标 / number=原始字符串）,
+    //                   marks: 每空对错（null 未判 / true / false）, checked: 已检查 }
+    // open = 当前展开选项组的空 { i, b }（同时只开一个）
+    data: () => ({ st: [], open: null }),
+    computed: {
+      // 整讲缺失 → bank 为 null → v-if 不渲染（优雅降级）
+      bank() { return (D.fillSets && D.fillSets[this.source]) || null; },
+      items() { return this.bank ? this.bank.items : []; },
+      storeKey() { return 'rl-viz-fill-' + this.source; },
+      checkedCount() { return this.st.filter((s) => s && s.checked).length; },
+      rightCount() { return this.st.filter((s) => s && s.checked && s.marks.every(Boolean)).length; },
+      scoreText() {
+        const en = this.$root && this.$root.lang === 'en';
+        const body = this.checkedCount + '/' + this.items.length + ' · ' + this.rightCount;
+        return en ? 'checked ' + body : '已检查 ' + body;
+      },
+    },
+    watch: {
+      source: { immediate: true, handler() { this.load(); } },
+      items() { this.load(); },   // 题库可能随讲数据懒加载注入
+    },
+    setup() { return { bi }; },
+    methods: {
+      /* ── 渲染辅助 ── */
+      // 一条 = stem 行（双语各行）+ code 等宽行（仅 kind='code'）；code.zh===code.en 时双语只出一行
+      lineLangs(it, field) {
+        const lang = this.$root && this.$root.lang;
+        if (lang === 'zh') return ['zh'];
+        if (lang === 'en') return ['en'];
+        const o = (it && it[field]) || {};
+        return String(o.zh) === String(o.en) ? ['zh'] : ['zh', 'en'];
+      },
+      itemLines(it) {
+        const out = [];
+        this.lineLangs(it, 'stem').forEach((lgk) => out.push({ lgk, mono: false, segs: this.segs(it, 'stem', lgk) }));
+        if (it.kind === 'code') {
+          this.lineLangs(it, 'code').forEach((lgk) => out.push({ lgk, mono: true, segs: this.segs(it, 'code', lgk) }));
+        }
+        return out;
+      },
+      segs(it, field, lgk) {
+        const o = (it && it[field]) || {};
+        return parseBlanks(o[lgk]).segs;
+      },
+      isNum(it, b) {
+        const bl = it.blanks && it.blanks[b];
+        return !!bl && !bl.choices;   // choices 型（数组或 {zh,en}）→ 槽按钮，其余 → 数字输入
+      },
+      // choices 兼容三种形态（题库实际三种都在用）：
+      // ['a','b'] · [{zh,en},...] · { zh:['a'], en:['b'] } → 统一成显示对象数组
+      choiceList(blank) {
+        const c = blank && blank.choices;
+        if (!c) return [];
+        const opt = (o) => (o && typeof o === 'object')
+          ? { zh: o.zh == null ? '' : String(o.zh), en: o.en == null ? '' : String(o.en) }
+          : { plain: String(o) };
+        if (Array.isArray(c)) return c.map(opt);
+        const zh = Array.isArray(c.zh) ? c.zh : [];
+        const en = Array.isArray(c.en) ? c.en : [];
+        const out = [];
+        for (let k = 0; k < Math.max(zh.length, en.length); k++) {
+          out.push({ zh: zh[k] == null ? '' : String(zh[k]), en: en[k] == null ? '' : String(en[k]) });
+        }
+        return out;
+      },
+      // 选项的可读文本（槽上文案 / aria / title 共用；随语言切换）
+      optTitle(o) {
+        if (!o) return '';
+        if (o.plain != null) return o.plain;
+        const lang = this.$root && this.$root.lang;
+        if (lang === 'en') return o.en || o.zh || '';
+        if (lang === 'zh') return o.zh || o.en || '';
+        return o.zh === o.en ? (o.zh || '') : [o.zh, o.en].filter(Boolean).join(' · ');
+      },
+      optOf(i, b) {
+        const v = this.st[i] && this.st[i].vals[b];
+        if (v == null) return null;
+        return this.choiceList(this.items[i].blanks[b])[v] || null;
+      },
+      numVal(i, b) {
+        const v = this.st[i] && this.st[i].vals[b];
+        return v == null ? '' : String(v);
+      },
+      numHint(i, b) {
+        const bl = this.items[i].blanks && this.items[i].blanks[b];
+        const h = bl && bl.hint;
+        if (!h) return '…';
+        const en = this.$root && this.$root.lang === 'en';
+        return String(en ? (h.en || h.zh || '') : (h.zh || h.en || ''));
+      },
+      markCls(i, b) {
+        const s = this.st[i];
+        if (!s || !s.checked || s.marks[b] == null) return '';
+        return s.marks[b] ? 'right' : 'wrong';
+      },
+      hasVal(i, b) {
+        const v = this.st[i] && this.st[i].vals[b];
+        return v != null && v !== '';
+      },
+      slotLabel(i, b) {
+        const it = this.items[i];
+        const bl = it && it.blanks && it.blanks[b];
+        if (!bl) return '';
+        const en = this.$root && this.$root.lang === 'en';
+        let s = en ? 'blank ' + (b + 1) : '第 ' + (b + 1) + ' 空';
+        s += bl.choices ? (en ? ', pick an option' : '，选一项') : (en ? ', type a number' : '，填数字');
+        if (!bl.choices && bl.hint) s += en ? ', ' + (bl.hint.en || bl.hint.zh) : '，' + (bl.hint.zh || bl.hint.en);
+        if (this.hasVal(i, b)) {
+          const picked = bl.choices ? this.optTitle(this.optOf(i, b)) : this.numVal(i, b);
+          if (picked) s += en ? ', current: ' + picked : '，当前填了：' + picked;
+        }
+        if (this.st[i] && this.st[i].checked && this.st[i].marks[b] === false) {
+          const ans = bl.choices ? this.optTitle(this.choiceList(bl)[bl.answer]) : String(bl.answer);
+          s += en ? ', wrong — correct answer: ' + ans : '，答错，正确答案：' + ans;
+        }
+        return s;
+      },
+      slotTitle(i, b) {
+        // 答错的空：tooltip 给出正确项（其余不占 title）
+        const it = this.items[i];
+        const bl = it && it.blanks && it.blanks[b];
+        if (!bl) return '';
+        const s = this.st[i];
+        if (!s || !s.checked || s.marks[b] !== false) return '';
+        const en = this.$root && this.$root.lang === 'en';
+        const ans = bl.choices ? this.optTitle(this.choiceList(bl)[bl.answer]) : String(bl.answer);
+        return (en ? 'Correct answer: ' : '正确答案：') + ans;
+      },
+      optsLabel() {
+        const en = this.$root && this.$root.lang === 'en';
+        return en ? 'Options for blank ' + (this.open.b + 1) : '第 ' + (this.open.b + 1) + ' 空的选项';
+      },
+      allFilled(i) {
+        const s = this.st[i];
+        const it = this.items[i];
+        if (!s || !it || !it.blanks) return false;
+        return it.blanks.every((bl, b) =>
+          (bl.choices ? this.hasVal(i, b) : String(s.vals[b] == null ? '' : s.vals[b]).trim() !== ''));
+      },
+      verdictCls(i) {
+        const s = this.st[i];
+        return s && s.checked ? (s.marks.every(Boolean) ? 'good' : 'bad') : '';
+      },
+      verdictText(i) {
+        const s = this.st[i];
+        if (!s || !s.checked) return '';
+        const en = this.$root && this.$root.lang === 'en';
+        const total = s.marks.length;
+        const right = s.marks.filter(Boolean).length;
+        return right === total
+          ? (en ? '✓ Correct · ' + total + '/' + total + ' blanks' : '✓ 答对 · ' + total + '/' + total + ' 空')
+          : (en ? '✗ Wrong · ' + right + '/' + total + ' — correct answers marked on the blanks'
+                : '✗ 答错 · ' + right + '/' + total + ' —— 正确答案已标在空上');
+      },
+      /* ── 交互 ── */
+      toggleOpts(i, b) {
+        this.open = this.open && this.open.i === i && this.open.b === b ? null : { i, b };
+      },
+      choose(i, b, oi) {
+        this.st[i].vals[b] = oi;
+        if (this.st[i].checked) this.clearMarks(i);   // 改答案 → 本条判分作废，须重查
+        this.open = null;
+        this.save();
+      },
+      onNum(i, b, e) {
+        this.st[i].vals[b] = e.target.value;
+        if (this.st[i].checked) this.clearMarks(i);
+        this.save();
+      },
+      clearMarks(i) {
+        const s = this.st[i];
+        s.checked = false;
+        s.marks = s.marks.map(() => null);
+      },
+      checkItem(i) {
+        const s = this.st[i];
+        s.marks = this.items[i].blanks.map((bl, b) => judgeBlank(s.vals[b], bl));
+        s.checked = true;
+        this.save();
+      },
+      reset() {
+        this.st = this.fresh();
+        this.open = null;
+        try { localStorage.removeItem(this.storeKey); } catch { /* 写不进（隐私模式）就不记 */ }
+      },
+      /* ── 持久化：localStorage 'rl-viz-fill-<source>'，恢复含已检查的 why 展开态 ── */
+      fresh() {
+        return this.items.map((it) => ({
+          vals: (it.blanks || []).map(() => null),
+          marks: (it.blanks || []).map(() => null),
+          checked: false,
+        }));
+      },
+      load() {
+        const items = this.items;
+        let saved;
+        try { saved = JSON.parse(localStorage.getItem(this.storeKey) || 'null'); } catch { saved = null; }
+        const ok = saved && Array.isArray(saved.items) && saved.items.length === items.length &&
+          saved.items.every((s, i) =>
+            s && Array.isArray(s.vals) && Array.isArray(s.marks) &&
+            s.vals.length === (items[i].blanks || []).length &&
+            s.marks.length === (items[i].blanks || []).length);
+        this.st = ok ? saved.items.map((s) => ({
+          vals: s.vals.slice(),
+          marks: s.marks.map((m) => (m == null ? null : !!m)),
+          checked: !!s.checked,
+        })) : this.fresh();
+        this.open = null;
+      },
+      save() {
+        try { localStorage.setItem(this.storeKey, JSON.stringify({ v: 1, items: this.st })); } catch { /* 写不进就不记 */ }
+      },
+    },
+    template: `
+    <div v-if="bank" class="lab fill-lab">
+      <div class="lab-head">
+        <span class="lab-title"><span v-html="bi(bank.title.zh, bank.title.en)"></span></span>
+        <span class="fill-sub" v-html="bi('填空并检查——答错也会给出讲解', 'Fill the blanks and check — wrong answers come with explanations')"></span>
+      </div>
+
+      <div v-for="(it, i) in items" :key="i" class="fill-item">
+        <div class="fill-item-head">
+          <span class="fill-tag"><span class="zh">{{ it.tag.zh }}</span><span class="en">{{ it.tag.en }}</span></span>
+        </div>
+
+        <!-- stem 行与 code 等宽行：同一空号 n 的槽共享同一份作答状态 -->
+        <div class="fill-lines">
+          <template v-for="(ln, li) in itemLines(it)" :key="'ln' + i + '-' + li">
+            <p class="fill-line" :class="[ln.lgk, ln.mono ? 'mono' : '']">
+              <template v-for="(seg, si) in ln.segs" :key="'sg' + si">
+                <span v-if="seg.t === 'txt'">{{ seg.s }}</span>
+                <input v-else-if="isNum(it, seg.n - 1)" type="text" inputmode="decimal" class="fill-num"
+                       :class="markCls(i, seg.n - 1)" :value="numVal(i, seg.n - 1)"
+                       :placeholder="numHint(i, seg.n - 1)" :aria-label="slotLabel(i, seg.n - 1)"
+                       :title="slotTitle(i, seg.n - 1)" @input="onNum(i, seg.n - 1, $event)">
+                <span v-else-if="seg.n > (it.blanks || []).length">{{ '[[[' + seg.n + ']]]' }}</span>
+                <button v-else type="button" class="fill-slot" :class="markCls(i, seg.n - 1)"
+                        :aria-pressed="hasVal(i, seg.n - 1) ? 'true' : 'false'"
+                        :aria-label="slotLabel(i, seg.n - 1)" :title="slotTitle(i, seg.n - 1)"
+                        @click="toggleOpts(i, seg.n - 1)">
+                  <span v-if="hasVal(i, seg.n - 1)" class="fill-slot-txt">{{ optTitle(optOf(i, seg.n - 1)) }}</span>
+                  <span v-else class="fill-slot-ph">{{ seg.n }}</span>
+                </button>
+              </template>
+            </p>
+          </template>
+        </div>
+
+        <!-- 当前空的选项组（单选语义；真实按钮，Tab + Enter 可用） -->
+        <div v-if="open && open.i === i" class="fill-opts" role="group" :aria-label="optsLabel()">
+          <button v-for="(o, oi) in choiceList(items[i].blanks[open.b])" :key="oi" type="button"
+                  class="fill-opt" :class="{ picked: st[i].vals[open.b] === oi }"
+                  :aria-pressed="st[i].vals[open.b] === oi ? 'true' : 'false'"
+                  @click="choose(i, open.b, oi)">
+            <span v-if="o.plain != null">{{ o.plain }}</span>
+            <template v-else><span class="zh">{{ o.zh }}</span><span class="en">{{ o.en }}</span></template>
+          </button>
+        </div>
+
+        <div class="fill-item-foot">
+          <button type="button" class="btn sm primary" :disabled="!allFilled(i)" @click="checkItem(i)">
+            ✓ <span v-html="bi('检查', 'Check')"></span>
+          </button>
+          <span class="fill-verdict" :class="verdictCls(i)" aria-live="polite">{{ verdictText(i) }}</span>
+        </div>
+
+        <!-- 已检查后展开的逐空讲解（再次作答即收起，须重查） -->
+        <div v-if="st[i].checked" class="fill-why">
+          <p v-for="(bl, ki) in it.blanks" :key="'w' + ki" class="fill-why-line">
+            <span class="fill-why-no">{{ ki + 1 }}</span>
+            <span class="fill-why-body bi duo" v-html="bi(bl.why.zh, bl.why.en)"></span>
+          </p>
+        </div>
+      </div>
+
+      <div class="fill-foot">
+        <span class="fill-score">{{ scoreText }}</span>
+        <button type="button" class="btn ghost sm" @click="reset">↺ <span v-html="bi('重置本组', 'Reset this set')"></span></button>
+      </div>
+    </div>`,
+  };
+
   /* ═════════════ 首页 ═════════════ */
   const HomeHero = {
     name: 'HomeHero',
@@ -788,7 +1105,8 @@
 
   /* ═════════════ 注册 ═════════════ */
   // 共享助手：后续 per-lecture 组件文件通过 window.RLV 复用
-  window.RLV = { stepOnce, s2rc, rc2s, center, bi, TYPE_LABEL, hlPy, CELL, PAD, STAR, rng };
+  window.RLV = { stepOnce, s2rc, rc2s, center, bi, TYPE_LABEL, hlPy, CELL, PAD, STAR, rng,
+    parseBlanks, parseNum, judgeBlank };
 
   window.COMPONENTS = {
     GridBoard,
@@ -796,6 +1114,7 @@
     'code-lab': CodeLab,
     'reasoning-lab': ReasoningLab,
     'qa-lab': QaLab,
+    'fill-lab': FillLab,
     'home-hero': HomeHero,
     'lecture-index': LectureIndex,
     'course-map': CourseMap,

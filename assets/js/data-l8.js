@@ -159,6 +159,7 @@
     blocks: [
       { t: 'p', zh: '检索方式、更新方式、泛化能力、平稳分布的角色——本章问答聚焦"两种表示的本质差异"。', en: 'Retrieval, update, generalisation, and the role of the stationary distribution — the Q&As focus on the essential differences between the two representations.' },
       { t: 'widget', component: 'qa-lab', props: { source: 'l8' } },
+      { t: 'widget', component: 'fill-lab', props: { source: 'l8' } },
     ],
   };
 
@@ -286,6 +287,125 @@ for episode in range(N):
     { tag: 'Q5 · 补充', q: { zh: 'DQN 的两个技巧分别在治什么病？', en: 'Which illness does each DQN trick cure?' },
       a: { zh: '目标网络治"自己追自己"——目标和被优化对象共享参数会让目标不断移动，冻结副本给梯度一个稳定靶子。经验回放治"样本相关"——连续决策的样本高度相关，violates i.i.d.，随机抽批打散它。两药合用驯服致命三角。', en: 'The target network cures “chasing oneself” — target and optimised object sharing parameters makes the target move; a frozen copy gives the gradient a stable mark. Experience replay cures “correlated samples” — sequential decisions are strongly correlated, violating i.i.d.; random mini-batches shuffle it away. Together they tame the deadly triad.' } },
   ];
+
+
+  /* ═══ L8 知识填充 ═══ */
+  D.fillSets = D.fillSets || {};   // 兜底：data.js 尚未预置 fillSets 容器（与 reasoningSets/qaSets 同级的懒加载注册）
+  D.fillSets['l8'] = {
+    title: { zh: '第八讲 · 知识填充', en: 'Lecture 8 · Knowledge Fill-in' },
+    items: [
+      { kind: 'choice',
+        tag: { zh: '致命三角', en: 'the deadly triad' },
+        stem: { zh: '自举、函数近似、off-policy——三件套里，[[1]] 时收敛保证才彻底缺席；任意两角组合都还有定理压阵。',
+                en: 'Bootstrapping, function approximation, off-policy — convergence guarantees vanish only when [[1]]; any two corners still have theorems standing behind them.' },
+        blanks: [
+          { choices: {
+              zh: ['三者全部同开', '任意两者组合', '仅 off-policy 单开'],
+              en: ['all three run together', 'any two of the three', 'off-policy alone'],
+            }, answer: 0,
+            why: { zh: '两角组合各有保底：on-policy 线性半梯度 TD（自举+近似）收敛到 PBE 不动点；表格 Q-learning（自举+off-policy）收敛到 q*。三角全占时"目标追着 w 跑、误差沿共享特征传播、分布错位"三病齐发——Baird 反例证明 7 个状态的线性小问题都能发散。', en: 'Any two corners have a safety net: on-policy linear semi-gradient TD (bootstrap + approximation) converges to the PBE fixed point; tabular Q-learning (bootstrap + off-policy) converges to q*. With all three, “the target chases w, errors travel shared features, distributions mismatch” strike at once — Baird’s counterexample diverges with a mere 7-state linear problem.' } },
+        ] },
+      { kind: 'choice',
+        tag: { zh: '书外延伸·分期冻结', en: 'beyond the book · frozen in instalments' },
+        stem: { zh: '“DQN 挂上目标网络和经验回放，致命三角就摘掉一角了”——对这个说法的正确评价是 [[1]]。',
+                en: '“With its target network and experience replay, DQN removes one corner of the deadly triad” — the correct verdict is [[1]].' },
+        blanks: [
+          { choices: {
+              zh: ['两招只改训练节奏：目标网络分期冻结——自举还在，只是每 C 步换一次靶；经验回放只是逼近 i.i.d.——样本仍来自会过期的 ε-greedy 旧策略。三角全占，保证依然缺席',
+                   '目标网络用冻结副本 w_T 算目标，自举从此消除',
+                   '经验回放随机抽批、混匀新旧样本，离策略从此消除',
+                   '两招让更新变回真 SGD，收敛从此有了定理保证'],
+              en: ['both tricks only retune the rhythm: the target network freezes in instalments — bootstrapping remains, the mark merely switches every C steps; experience replay only approaches i.i.d. — samples still come from the aging ε-greedy behavior policy. The triad holds all three corners; guarantees stay absent',
+                   'the target network computes targets with the frozen copy w_T, so bootstrapping is eliminated',
+                   'experience replay shuffles and randomly samples, so off-policy is eliminated',
+                   'both tricks turn the update back into true SGD, so convergence is guaranteed by theorem'],
+            }, answer: 0,
+            why: { zh: '目标 r + γ·max q̂(s′,a;w_T) 仍是"用网络现算的下一步价值"——自举一分未少，w_T 只是被冻结、每 C 步才同步一次。回放池里的 (s,a,r,s′) 全部由 ε-greedy 行为策略产生，目标分布照样错位——离策略角原封不动。DQN 的胜利是"纪律补位"（小步长、梯度裁剪、奖励截断到 [−1,1]、盯住 q 值量级），不是定理回归。', en: 'The target r + γ·max q̂(s′,a;w_T) is still a network-computed next-step value — bootstrapping is untouched; w_T is merely frozen and synced every C steps. Every (s,a,r,s′) in the pool was produced by the ε-greedy behavior policy, so the distribution mismatch stays — the off-policy corner is intact. DQN’s win is “discipline standing in for theory” (small step sizes, gradient clipping, reward clipping to [−1,1], watching q magnitudes), not theorems returning.' } },
+        ] },
+      { kind: 'choice',
+        tag: { zh: '书外延伸·最大化偏差', en: 'beyond the book · maximization bias' },
+        stem: { zh: '各动作的估计都是"真值 + 零均值噪声"时，对它们逐个取 max 得到的目标会 [[1]]——高估误差经自举 r + γ·max q̂ 一代代往下传，这就是最大化偏差（maximization bias）。',
+                en: 'When every action’s estimate is “truth + zero-mean noise”, taking the max over actions yields a target that is systematically [[1]] — the upward error is bootstrapped onward through r + γ·max q̂, generation after generation: the maximization bias.' },
+        blanks: [
+          { choices: {
+              zh: ['偏高——max 只挑上偏一侧的噪声：哪个动作被高估得最狠，哪个就入选目标',
+                   '无偏——正负噪声在 max 里相互抵消',
+                   '偏低——max 压平了极端值'],
+              en: ['biased upward — max keeps only the upward side of the noise: whichever action is most overestimated gets into the target',
+                   'unbiased — positive and negative noise cancel inside the max',
+                   'biased downward — max flattens the extremes'],
+            }, answer: 0,
+            why: { zh: '把估计写成 q̂ = q + 噪声：max 比较的是总数，噪声为正的动作更容易冒头——动作数 n 越大、噪声方差越大，被选中的上偏越猛（n 个噪声里最大的那个几乎必为正）。上偏写进目标后又成为下一轮的"真值"，自举把它传下去。Double Q-learning 把"选动作"和"算价值"拆给两套独立估计，让高估无处藏身。', en: 'Write each estimate as q̂ = q + noise: the max compares totals, so actions with positive noise stick out — with n actions the largest of n noises is almost surely positive, and more actions or more variance mean a fiercer upward bias. The bias enters the target and becomes the next round’s “truth”. Double Q-learning splits “choosing the action” from “evaluating it” across two independent estimates, leaving overestimation nowhere to hide.' } },
+        ] },
+      { kind: 'code',
+        tag: { zh: 'code · DQN 目标', en: 'code · the DQN target' },
+        stem: { zh: 'DQN 损失 (y − q̂(s,a;w))² 的目标 y = r + γ·max q̂(s′,·;[[1]])——max 跑在哪套参数上，决定"靶子"多久动一次、梯度往哪流。',
+                en: 'In the DQN loss (y − q̂(s,a;w))², the target is y = r + γ·max q̂(s′,·;[[1]]) — which parameters the max runs on decides how often the mark moves and where gradients flow.' },
+        code: { zh: 'y = r + γ · max q̂(s′, ·; [[1]])　# 损失 (y − q̂(s,a;w))² 的梯度只沿预测侧回传',
+                en: 'y = r + γ · max q̂(s′, ·; [[1]])　# the gradient of (y − q̂(s,a;w))² flows into the prediction side only' },
+        blanks: [
+          { choices: {
+              zh: ['w_T（目标网参数）', 'w（在线参数）', 'θ（策略参数）'],
+              en: ['w_T (target-net params)', 'w (online params)', 'θ (policy params)'],
+            }, answer: 0,
+            why: { zh: 'max 用冻结副本 w_T：一个同步周期内 y 是常数，更新退回"靶子不动的 SGD"，梯度只流向 w。若填 w——目标随每次更新一起移动，自己追自己，抖动无法收敛；θ 是第 9 章策略梯度 π(a|s,θ) 的参数，与本式无关。', en: 'The max runs on the frozen copy w_T: within one sync period y is a constant and the update honestly becomes SGD on a still mark, gradients flowing into w only. Fill in w and the target moves with every update — chasing oneself, wobbling without convergence; θ belongs to Chapter 9’s policy π(a|s,θ), irrelevant here.' } },
+        ] },
+      { kind: 'number',
+        tag: { zh: '书外延伸·Baird 反例', en: 'beyond the book · Baird’s counterexample' },
+        stem: { zh: '发散反例：Baird 在 [[1]] 年用一个仅 [[2]] 个状态的小 MDP 证明——线性 v̂ + TD 半梯度 + off-policy，‖w‖ 每步增大直冲无穷。三角全占，连"线性"都救不了。',
+                en: 'The divergence counterexample: in [[1]] Baird used a tiny MDP with only [[2]] states to show that linear v̂ + TD semi-gradient + off-policy sends ‖w‖ growing every step toward infinity. The full triad defeats even linearity.' },
+        blanks: [
+          { answer: 1995, tol: 0.5,
+            hint: { zh: '20 世纪 90 年代中期', en: 'mid-1990s' },
+            why: { zh: '反例发表于 1995 年。它把"三角会爆炸"从担忧变成板上钉钉的事实：近似器是线性的也照样发散——病灶在 off-policy 的分布错位，不在模型大小。', en: 'The counterexample was published in 1995. It turns “the triad can explode” from a worry into a settled fact: even a linear approximator diverges — the lesion is the off-policy distribution mismatch, not model size.' } },
+          { answer: 7, tol: 0.5,
+            hint: { zh: '个位数——比 5×5 网格世界还小', en: 'single digits — smaller than the 5×5 grid world' },
+            why: { zh: '仅 7 个状态：规模不是挡箭牌，发散源于"自举+近似+off-policy"的结构本身——这也是"读论文三连问"的出处。', en: 'Only 7 states: scale is no shield; divergence comes from the structure of bootstrap + approximation + off-policy itself — the origin of this lecture’s “three questions for any new algorithm”.' } },
+        ] },
+      { kind: 'number',
+        tag: { zh: '实验台 · 拟合数字', en: 'lab · fitting numbers' },
+        stem: { zh: '§8.2 的拟合实验台把 [[1]] 个状态的真值驼峰交给 v̂(s,w) = φᵀ(s)w 现场学：把特征阶数 order 拉到 0，参数维度 dim = [[2]]——φ 只剩常数项，v̂ 退化成一条水平线，欠拟合到连驼峰的影子都没有。',
+                en: 'The §8.2 fitting lab hands the true-value hump of [[1]] states to v̂(s,w) = φᵀ(s)w to learn on the spot: drag the feature order to 0 and the parameter count dim = [[2]] — φ keeps only the constant term, v̂ flattens into a horizontal line, too crude to even hint at the hump.' },
+        blanks: [
+          { answer: 9, tol: 0.5,
+            hint: { zh: '个位数——就是图上金点（各状态真值）的个数', en: 'single digits — the number of gold dots (true values) on the chart' },
+            why: { zh: '实验台 nS = 9：金点 = 各状态真值，蓝点 = v̂ 的当前读数。状态取得少是刻意的——每个点的拟合过程都看得见。', en: 'The lab runs nS = 9 states: gold dots are true values, blue dots the current v̂ readings. Few states are deliberate — you can watch every point being fitted.' } },
+          { answer: 1, tol: 0.5,
+            hint: { zh: 'dim = order + 1', en: 'dim = order + 1' },
+            why: { zh: 'dim = order + 1：order=0 时 w 只剩 1 个分量，v̂(s) = w₀ 是水平线——表达与泛化双双归零，"特征决定上限"的最小演示。order 拉到 6 则 dim = 7，蓝线逐渐贴住金线。', en: 'dim = order + 1: at order 0, w has a single component and v̂(s) = w₀ is a horizontal line — expression and generalisation both gone, the minimal demo of “features set the ceiling”. At order 6, dim = 7 and the blue curve hugs the gold one.' } },
+        ] },
+      { kind: 'number',
+        tag: { zh: '代码 · 默认超参', en: 'code · default hyperparameters' },
+        stem: { zh: '两份参考代码里的数字：TD-Linear 默认 γ = [[1]]、α = [[2]]（Fourier order = 3 ⟹ 参数维度 4）；DQN 骨架每个小批量从回放池（容量 100,000）里随机抽 m = [[3]] 条经验。',
+                en: 'Numbers from the two reference codes: TD-Linear defaults to γ = [[1]], α = [[2]] (Fourier order = 3, so 4 parameters); the DQN skeleton samples m = [[3]] experiences per mini-batch from a pool of capacity 100,000.' },
+        blanks: [
+          { answer: 0.9, tol: 0.01,
+            hint: { zh: '0 与 1 之间——一步自举能"看见"的折扣视野', en: 'between 0 and 1 — the discounted horizon one bootstrap step can see' },
+            why: { zh: 'td_linear 默认 gamma=0.9：与 L7 网格世界同一量级，γ<1 保证自举目标有界。', en: 'td_linear defaults to gamma=0.9 — the same league as L7’s grid world; γ<1 keeps the bootstrapped target bounded.' } },
+          { answer: 0.01, tol: 0.001,
+            hint: { zh: '百分之一量级的步长', en: 'a step size on the order of one percent' },
+            why: { zh: '默认 alpha=0.01：归一化 LMS 下小步长换稳定——函数近似的更新牵一发而动全身，步长不敢开大。', en: 'The default alpha=0.01: small steps buy stability under normalized LMS — one function-approximation update moves everything, so steps stay timid.' } },
+          { answer: 32, tol: 0.5,
+            hint: { zh: '2 的 5 次方', en: '2 to the 5th power' },
+            why: { zh: 'm=32 是 DQN 系的惯用批大小：够大以摊平单样本噪声，够小以保住更新频率——回放池另存 100,000 条以打散时序相关性。', en: 'm=32 is the DQN-family staple: large enough to smooth single-sample noise, small enough to keep update frequency high — the pool stores 100,000 transitions to shuffle away temporal correlation.' } },
+        ] },
+      { kind: 'choice',
+        tag: { zh: '半梯度', en: 'semi-gradient' },
+        stem: { zh: 'TD-Linear 的更新里，目标 r + γv̂(s′,w) 自己也含 w，却只对预测侧 v̂(s,w) 求导——所谓"半"，指的是 [[1]]；代价是更新方向不再属于任何固定目标函数。',
+                en: 'In the TD-Linear update, the target r + γv̂(s′,w) contains w itself, yet only the prediction side v̂(s,w) is differentiated — the “semi” means [[1]]; the price is an update direction belonging to no fixed objective.' },
+        blanks: [
+          { choices: {
+              zh: ['目标侧的链式项 ∇w[r + γv̂(s′,w)] 被整体扔掉（目标被当成常数）',
+                   '步长只取一半（α/2），以保数值稳定',
+                   '特征只取一半：低频项保留、高频项丢弃'],
+              en: ['the target-side chain-rule term ∇w[r + γv̂(s′,w)] is discarded wholesale (the target is treated as a constant)',
+                   'only half the step size (α/2) is taken, for numerical stability',
+                   'only half the features are used: low frequencies kept, high frequencies dropped'],
+            }, answer: 0,
+            why: { zh: '完整梯度应含 −2(v_target − v̂)·∇w[r + γv̂(s′,w)] 这一项，半梯度把它当常数丢弃——换来单步更新、低方差、在线可学。即便收敛，去的也是 PBE 不动点而非 J 的极小值。DQN 的目标网络让这个"假装"在同步周期内变成真的：w_T 冻结期间，目标里真的不含正在更新的参数。', en: 'The full gradient would include −2(v_target − v̂)·∇w[r + γv̂(s′,w)]; the semi-gradient drops it as a constant — buying per-step updates, low variance, and online learning. Even at convergence the destination is the PBE fixed point, not a minimiser of J. DQN’s target network makes the pretence real for one sync period: while w_T is frozen, the target genuinely contains no parameter being updated.' } },
+        ] },
+    ],
+  };
 
 
   /* 导航组注册已提升至 data.js 的 NAV（按讲懒加载后，冷启动侧栏也要完整） */

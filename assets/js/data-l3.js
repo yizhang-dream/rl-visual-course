@@ -190,6 +190,7 @@
     blocks: [
       { t: 'p', zh: '书上的十个问答把本章钉得死死的，这里精选六张卡片 + 一张"旋钮速查"。', en: 'The book\'s ten Q&As nail this chapter shut; six selected cards plus one knob cheat-sheet follow.' },
       { t: 'widget', component: 'qa-lab', props: { source: 'l3' } },
+      { t: 'widget', component: 'fill-lab', props: { source: 'l3' } },
     ],
   };
 
@@ -328,6 +329,129 @@ if __name__ == "__main__":
     { tag: 'Q7 · 旋钮速查', q: { zh: '想让智能体"更怕禁区"或"更快到目标"，该拧哪个旋钮？', en: 'Which knob makes the agent fear forbidden cells more, or hurry more?' },
       a: { zh: '怕禁区：加大 r<sub>forbidden</sub> 的负值（−1 → −10），或调小 γ（眼前惩罚更痛）。更快到目标：<strong>不需要加步数惩罚</strong>——γ 本身就是时间成本（绕路 γ²/(1−γ) 小于直达 1/(1−γ)）；统一加负奖励是仿射变换、无效。想放大行为差距：调 α 缩放全部奖励。', en: 'Fear forbidden cells: push r<sub>forbidden</sub> down (−1 → −10), or lower γ so present penalties sting. Hurry: <strong>no step penalty needed</strong> — γ already charges for time (detour γ²/(1−γ) &lt; direct 1/(1−γ)); a uniform negative shift is affine and useless. To amplify behaviour gaps: scale all rewards by α.' } },
   ];
+
+  /* ═══ L3 知识填空 ═══ */
+  D.fillSets['l3'] = {
+    title: { zh: '第三讲 · 知识填充', en: 'Lecture 3 · Knowledge Fill-in' },
+    items: [
+      {
+        kind: 'choice',
+        tag: { zh: 'BOE · 消元', en: 'BOE · elimination' },
+        stem: { zh: '从 Bellman 方程 v_π = r_π + γP_π v_π 到 BOE：在约束 Σ_a π(a|s) = 1 下最大化 Σ_a π(a|s)q(s,a)（例 3.2），最优局部策略是[[1]]，π 由此被消去，方程只剩 v = f(v)。',
+          en: 'From the Bellman equation v_π = r_π + γP_π v_π to the BOE: maximise Σ_a π(a|s)q(s,a) under the constraint Σ_a π(a|s) = 1 (Example 3.2). The optimal local policy is [[1]], which eliminates π and leaves v = f(v).' },
+        blanks: [
+          { choices: { zh: ['把概率均分给所有动作', '把概率 1 全押在 q(s,a) 最大的动作上', '把概率押在即时奖励 r 最大的动作上'],
+              en: ['spread probability evenly over all actions', 'put probability 1 on the action with the greatest q(s,a)', 'put probability on the action with the greatest immediate reward r'] },
+            answer: 1,
+            why: { zh: '加权平均的上界就是最大的 qᵢ，全部概率押上去恰好取到（q₃ 最大就取 c₃* = 1）。均分是"平均给定策略"的老习惯，只平均不挑选；按即时奖励挑则丢掉 γ 折扣——本讲迷你世界里即时更大的"留"（0.4）恰是陷阱，远处每步 +1 的 s2 才是金山。',
+              en: 'The weighted average never exceeds the greatest qᵢ, and putting all probability on it attains that bound (if q₃ is largest, take c₃* = 1). Splitting evenly is the old "average a given policy" habit — averaging without choosing. Picking by immediate reward drops the γ discount: in this lecture’s miniature the fatter immediate reward of "stay" (0.4) is exactly the trap, while the +1-per-step s2 is the gold mine.' } },
+        ],
+      },
+      {
+        kind: 'choice',
+        tag: { zh: 'max 的位置', en: 'Where max sits' },
+        stem: { zh: '下一状态 S′ 以 0.5/0.5 落在 A 或 B，两动作的下一站价值为 q(A,a₁)=1、q(A,a₂)=0、q(B,a₁)=0、q(B,a₂)=1。则 E[max_a q(S′,a)] 与 max_a E[q(S′,a)] 分别等于[[1]]。',
+          en: 'The next state S′ lands on A or B with probability 0.5 each; the two actions’ next-stop values are q(A,a₁)=1, q(A,a₂)=0, q(B,a₁)=0, q(B,a₂)=1. Then E[max_a q(S′,a)] and max_a E[q(S′,a)] equal [[1]], respectively.' },
+        blanks: [
+          { choices: { zh: ['0.5 与 1', '1 与 1', '1 与 0.5'], en: ['0.5 and 1', '1 and 1', '1 and 0.5'] },
+            answer: 2,
+            why: { zh: '先到 S′ 再挑（max 对每个到达状态逐点取）：0.5×1 + 0.5×1 = 1；现在就锁死一个动作：max(0.5, 0.5) = 0.5。max 与期望不可交换，差整整一倍——BOE 的最优性靠"每一站抵达后还能重新决策"，所以下一动作的 max 必须待在 E[S′] 里面。',
+              en: 'Arrive first, then choose (the max is taken per arrival state): 0.5×1 + 0.5×1 = 1. Lock in an action now: max(0.5, 0.5) = 0.5. max and expectation do not commute — a factor of two apart. The BOE’s optimality rests on "re-deciding upon every arrival", so the next action’s max must stay inside E[S′].' } },
+        ],
+      },
+      {
+        kind: 'choice',
+        tag: { zh: 'v* vs π*', en: 'v* vs π*' },
+        stem: { zh: '关于 BOE 的解，正确的说法是[[1]]。',
+          en: 'About the solutions of the BOE, the correct statement is [[1]].' },
+        blanks: [
+          { choices: { zh: ['v* 唯一，是所有策略状态值的逐状态上确界；取到 v* 的最优策略可以不唯一', 'v* 与最优策略都唯一', 'v* 不唯一：每个最优策略有自己的 v*'],
+              en: ['v* is unique — the per-state supremum over all policies’ state values; the optimal policies attaining v* need not be unique', 'both v* and the optimal policy are unique', 'v* is not unique: each optimal policy has its own v*'] },
+            answer: 0,
+            why: { zh: '压缩映射定理保证不动点唯一，v* 就是全体策略价值表逐状态的"天花板"（上确界）；书 Figure 3.3 里 0.5/0.5 随机策略与一条确定性策略同时取到它。山顶只有一个，登顶路线可以多条——动作打平时，掷不掷硬币都最优。',
+              en: 'The contraction mapping theorem guarantees a unique fixed point, and v* is the per-state "ceiling" (supremum) over all policies’ value tables; in book Figure 3.3 a 0.5/0.5 stochastic policy and a deterministic one attain it simultaneously. One summit, many routes — and when actions tie, flipping a coin or not is equally optimal.' } },
+        ],
+      },
+      {
+        kind: 'choice',
+        tag: { zh: '压缩映射', en: 'Contraction' },
+        stem: { zh: '压缩映射是指：存在 γ ∈ (0,1)，使[[1]]；对 BOE 的右端 f(v) = max_π(r_π + γP_π v)，定理 3.2 保证它恰好压缩，系数就是 γ（∞-范数）。',
+          en: 'A contraction mapping admits some γ ∈ (0,1) such that [[1]]; for the BOE right side f(v) = max_π(r_π + γP_π v), Theorem 3.2 guarantees it is exactly a contraction with factor γ in the ∞-norm.' },
+        blanks: [
+          { choices: { zh: ['只要存在一对 x₁, x₂ 使距离缩小即可', '‖f(x₁)−f(x₂)‖ ≤ γ‖x₁−x₂‖ 对一切 x₁, x₂ 成立', 'γ 是放大系数：γ 越大，每轮迭代误差越大'],
+              en: ['it suffices that some single pair x₁, x₂ moves closer', '‖f(x₁)−f(x₂)‖ ≤ γ‖x₁−x₂‖ holds for all x₁, x₂', 'γ is a magnification factor: the larger γ, the larger the per-round error'] },
+            answer: 1,
+            why: { zh: '定义要求"一切点对"的距离都至少缩到 γ 倍，一对缩小不算数——书例 f(x) = 0.5 sin x 靠中值定理 |0.5cos x₃| ≤ 0.5 在全轴验证。γ 是收缩比不是放大系数：误差估计 ‖v_k−v*‖ ≤ γ^k‖v₀−v*‖ 里 γ 越接近 1，每轮只压走 1−γ 份额，收敛越慢。',
+              en: 'The definition demands that every pair of points shrink by at least a factor γ — one lucky pair proves nothing; the book’s f(x) = 0.5 sin x is verified on the whole axis via the mean value theorem, |0.5cos x₃| ≤ 0.5. γ is a contraction ratio, not a magnifier: in the error bound ‖v_k−v*‖ ≤ γ^k‖v₀−v*‖, the closer γ is to 1, the thinner the 1−γ share squeezed out per round and the slower the convergence.' } },
+        ],
+      },
+      {
+        kind: 'number',
+        tag: { zh: '几何收敛', en: 'Geometric rate' },
+        stem: { zh: '两状态迷你世界（γ = 0.5）：v*(s2) = 2 = 1/(1−γ)，值迭代从 v₀ = 0 出发，v(s2) 逐轮补齐为 2(1−0.5^k) = 1, 1.5, 1.75, …。第 3 轮后误差 |v*(s2) − v₃(s2)| = [[1]]。',
+          en: 'Two-state miniature (γ = 0.5): v*(s2) = 2 = 1/(1−γ), and value iteration from v₀ = 0 fills v(s2) in as 2(1−0.5^k) = 1, 1.5, 1.75, …. After round 3 the error |v*(s2) − v₃(s2)| = [[1]].' },
+        blanks: [
+          { answer: 0.25, tol: 0.001,
+            hint: { zh: 'v₃(s2) = 2(1−0.5³) = 1.75。', en: 'v₃(s2) = 2(1−0.5³) = 1.75.' },
+            why: { zh: 'v₃ = 2(1−0.5³) = 1.75，误差 2 − 1.75 = 0.25 = 2×0.5³。误差每轮恰好缩到上一轮的一半——这就是压缩映射的几何收敛，γ 本身就是收缩比：γ 越小跑得越快，γ → 1 越慢。',
+              en: 'v₃ = 2(1−0.5³) = 1.75, so the error is 2 − 1.75 = 0.25 = 2×0.5³. Each round shrinks the error to exactly half of the previous one — that is the contraction mapping’s geometric convergence, with γ itself as the ratio: smaller γ runs faster, γ → 1 crawls.' } },
+        ],
+      },
+      {
+        kind: 'code',
+        tag: { zh: 'code · 逐元素 max', en: 'code · elementwise max' },
+        stem: { zh: '本讲 code-lab 的值迭代先算齐全部 q(s,a)（形状 (n, n_a) 的表），再用一行取出每个状态的最大动作值。[[1]] 处应填：',
+          en: 'The value-iteration code in this lecture’s code lab first fills the whole q-table of shape (n, n_a), then extracts every state’s greatest action value in one line. What goes at [[1]]?' },
+        code: { zh: 'v_new = q_all.max([[1]])   # 逐状态取最大：BOE 的心脏',
+          en: 'v_new = q_all.max([[1]])   # per-state max: the heart of the BOE' },
+        blanks: [
+          { choices: { zh: ['axis=1', 'axis=0', 'axis=None'], en: ['axis=1', 'axis=0', 'axis=None'] },
+            answer: 0,
+            why: { zh: 'q_all 行是状态、列是动作，axis=1 沿动作轴逐行取 max，得到 n 维的 v_new——把 L2 的"π 加权平均"换成这一步 max，Bellman 方程就成了 BOE。axis=0 是跨状态比大小（不同状态的 q 没有可比性），不填轴向则整张表只出一个最大值。',
+              en: 'Rows of q_all are states, columns are actions; axis=1 takes the max along the action axis, yielding the n-dimensional v_new — swapping L2’s "π-weighted average" for this max turns the Bellman equation into the BOE. axis=0 would compare across states (q values of different states are not comparable), and omitting the axis collapses the whole table to a single number.' } },
+        ],
+      },
+      {
+        kind: 'code',
+        tag: { zh: 'code · 折扣位置', en: 'code · the discount spot' },
+        stem: { zh: '同一段代码的上一行：q 值由即时奖励加"折扣后的下一状态价值"组成。按 q(s,a) = r + γ·v(s′)（本讲 γ = 0.9），[[1]] 处应填：',
+          en: 'One line above in the same function: each q value is the immediate reward plus the discounted next-state value. Per q(s,a) = r + γ·v(s′) with γ = 0.9 as in this lecture, what goes at [[1]]?' },
+        code: { zh: 'q_all[s, a] = r + [[1]] * v[s_next]   # 未来价值打一次 γ 折',
+          en: 'q_all[s, a] = r + [[1]] * v[s_next]   # discount the future once more' },
+        blanks: [
+          { choices: { zh: ['gamma', '1 / gamma', '1 - gamma'], en: ['gamma', '1 / gamma', '1 - gamma'] },
+            answer: 0,
+            why: { zh: '每多走一步，未来就多打一次 γ 折，所以是 gamma（0.9）。写成 1 / gamma 会把越远的未来放得越大；写成 1 - gamma 则把 0.9 折变成 0.1 折、未来几乎归零——都是把折扣方向记反的典型笔误。γ < 1 正是右端成为压缩映射的来源。',
+              en: 'Each extra step discounts the future once more by γ, hence gamma (0.9). Writing 1 / gamma would magnify the distant future more and more; writing 1 - gamma turns a 0.9 keep-rate into 0.1, nearly zeroing the future — both are the classic direction-reversed typo. And γ < 1 is exactly what makes the right side a contraction.' } },
+        ],
+      },
+      {
+        kind: 'choice',
+        tag: { zh: '绕路与环路', en: 'Detours and circuits' },
+        stem: { zh: '走路不要钱（r_other = 0），关于最优策略的路径，正确的说法是[[1]]。',
+          en: 'Walking is free (r_other = 0). About the optimal policy’s path, the correct statement is [[1]].' },
+        blanks: [
+          { choices: { zh: ['它会故意兜风再进目标，反正走路不要钱', '最优路径永远是最短路，任何情况下都直奔目标', '它不兜风——γ 本身就是时间成本；但该绕时真绕：γ 小或禁区罚重时，最优策略在非目标态绕开禁区走远路'],
+              en: ['it joyrides before entering the target, since walking is free', 'the optimal path is always a shortest path and never avoids forbidden cells', 'it does not joyride — γ itself is the cost of time; yet it detours when needed: with small γ or harsher forbidden penalties the optimal policy leaves the shortest path to avoid forbidden cells'] },
+            answer: 2,
+            why: { zh: 'γ=0.9 时直走回报 1/(1−γ) = 10，晚两步只剩 γ²/(1−γ) = 8.1——折扣天生罚时间，兜风不划算。但安全是另一本账：γ=0.5 重解 3×3 世界，s3 穿禁区 q* = −1 + 0.5×2 = 0，绕行 q* = 0.25，最优策略立刻改绕行；r_forbidden 从 −1 加到 −10 后连 γ=0.9 也绕。时间账与安全账分开算。',
+              en: 'At γ = 0.9 the direct policy earns 1/(1−γ) = 10 while entering two steps late earns only γ²/(1−γ) = 8.1 — discounting charges for time by birth, so joyriding never pays. But safety is a different ledger: re-solve the 3×3 world at γ = 0.5 and at s3 the forbidden-crossing branch gives q* = −1 + 0.5×2 = 0 against the detour’s 0.25, so the optimal policy switches at once; push r_forbidden from −1 to −10 and even γ = 0.9 detours. Keep the time account and the safety account separate.' } },
+        ],
+      },
+      {
+        kind: 'number',
+        tag: { zh: 'γ 的利息', en: 'γ’s interest' },
+        stem: { zh: 'r_other = 0，γ = 0.9：直走策略的折扣回报 1/(1−γ) = 10；绕路策略晚两步进目标，回报是 γ²/(1−γ) = [[1]]。',
+          en: 'With r_other = 0 and γ = 0.9: the direct policy earns 1/(1−γ) = 10; the detour enters the target two steps later and earns γ²/(1−γ) = [[1]].' },
+        blanks: [
+          { answer: 8.1, tol: 0.01,
+            hint: { zh: '先算 0.9²，再除以 1 − 0.9。', en: 'Compute 0.9² first, then divide by 1 − 0.9.' },
+            why: { zh: '0.9²/(1−0.9) = 0.81/0.1 = 8.1，比直走的 10 少 1.9——晚两步就多打两次 0.9 折。所以 r_other = 0 时最优策略也不兜风，γ 已在对未来收"时间利息"；想改快慢去调 γ 或相对奖励差，统一加步数惩罚是仿射变换、无效。',
+              en: '0.9²/(1−0.9) = 0.81/0.1 = 8.1, a full 1.9 below the direct 10 — two steps later means discounted twice. So even with r_other = 0 the optimal policy never joyrides: γ already collects "time interest" on the future. To change hurry-behaviour, tune γ or the relative reward gaps; a uniform step penalty is an affine shift and does nothing.' } },
+        ],
+      },
+    ],
+  };
 
 
   /* 导航组注册已提升至 data.js 的 NAV（按讲懒加载后，冷启动侧栏也要完整） */

@@ -132,6 +132,7 @@
       { t: 'p', zh: '三个算法的关系、exploring starts 的来龙去脉、ε-greedy 的"是又不是"，全在问答里。', en: 'The relationship among the three algorithms, the full story of exploring starts, and the "yes and no" of ε-greedy all live in the Q&A.' },
       { t: 'p', zh: '翻卡前先在心里过三题：① MC 到底需不需要模型（不需要——env.step 就是全部接口）；② first-visit 与 every-visit 差在哪、为什么渐近一致（相关性不同，都收敛到 E[G|s,a]）；③ ε-greedy 策略"是不是最优"为什么是二义回答（在 ε-greedy 家族内最优，但不等于全局最优）。', en: 'Before flipping, settle three questions in your mind: ① does MC need a model (no — env.step is the entire interface); ② how do first-visit and every-visit differ, and why are they asymptotically consistent (different correlation, both converging to E[G|s,a]); ③ why is "is an ε-greedy policy optimal" a two-sided answer (optimal within the ε-greedy family, but not the global optimum).' },
       { t: 'widget', component: 'qa-lab', props: { source: 'l5' } },
+      { t: 'widget', component: 'fill-lab', props: { source: 'l5' } },
     ],
   };
 
@@ -277,6 +278,105 @@ def mc_basic(env, n_episodes=50, gamma=0.9, max_outer=20, max_steps=200):
     { tag: 'Q6 · 书上原问', q: { zh: 'MC Basic、MC Exploring Starts、MC ε-Greedy 是什么关系？', en: 'How do MC Basic, Exploring Starts, and ε-Greedy relate?' },
       a: { zh: '同一思想的三个版本：MC Basic 揭示核心（评估步换成 MC 估计）；Exploring Starts 调整样本利用（every-visit + 反向 + 逐回合改进）；ε-Greedy 去掉 exploring starts 条件（soft 策略）。核心简单，复杂化都是为效率服务——学习时要分层拆解。', en: 'Three versions of one idea: MC Basic reveals the core (evaluation step → MC estimation); Exploring Starts refines sample usage (every-visit, backward pass, episode-wise improvement); ε-Greedy removes the exploring-starts condition (soft policies). The core is simple; the complications all serve efficiency — learn them in layers.' } },
   ];
+
+
+  /* ═══ L5 知识填空 ═══ */
+  D.fillSets = D.fillSets || {};  /* fill-lab 容器：data.js 未预置时在此兜底，避免冷启动报错 */
+  D.fillSets['l5'] = {
+    title: { zh: '第五讲 · 知识填充', en: 'Lecture 5 · Knowledge Fill-in' },
+    items: [
+      { kind: 'choice', tag: { zh: '§5.1 · 地基', en: '§5.1 · Foundation' },
+        stem: { zh: '模型没了还能算价值，是因为 v(s)、q(s,a) 的定义都是[[1]]，而期望本质上就是均值——样本够多，大数定律保证估得准。',
+          en: 'Values survive the loss of the model because v(s) and q(s,a) are both defined as [[1]] — and an expectation is at heart a mean, pinned down by the law of large numbers given enough samples.' },
+        blanks: [
+          { choices: [
+              { zh: '回报的期望', en: 'expectations of returns' },
+              { zh: '转移概率的和', en: 'sums of transition probabilities' },
+              { zh: '即时奖励的平均', en: 'averages of immediate rewards' },
+            ], answer: 0,
+            why: { zh: 'q(s,a) = E[G_t|s,a]：主体是期望。掷硬币示范里 p(X=1)=p(X=−1)=0.5，均值是 0；分布未知就取样本平均 x̄=(1/n)Σx_j。大数定律：E[x̄]=E[X]（无偏），var[x̄]=var[X]/n（方差按 1/n 塌缩）。DP 与 MC 算的是同一个期望，区别只在查表还是采样。',
+              en: 'q(s,a) = E[G_t|s,a]: the object is an expectation. In the coin demo with p(X=1)=p(X=−1)=0.5 the mean is 0; with the distribution unknown, average the samples, x̄=(1/n)Σx_j. The law of large numbers: E[x̄]=E[X] (unbiased), var[x̄]=var[X]/n (variance collapses as 1/n). DP and MC evaluate the same expectation — one looks the model up, the other samples.' } },
+        ] },
+      { kind: 'choice', tag: { zh: '§5.3 · 三种访问', en: '§5.3 · Three visits' },
+        stem: { zh: '同一条轨迹里某 (s,a) 被访问 5 次：initial-visit 只用整条轨迹估计起点，every-visit 把 5 份尾部回报全部记账，first-visit 只记[[1]]的尾部回报——后两者在访问次数 → ∞ 时都收敛到 E[G|s,a]。',
+          en: 'In one trajectory the same (s,a) appears 5 times: initial-visit uses the whole episode only for the starting pair, every-visit books the tail returns of all five, and first-visit books only the tail return of [[1]] — the latter two both converge to E[G|s,a] as visits → ∞.' },
+        blanks: [
+          { choices: [
+              { zh: '第一次', en: 'the first visit' },
+              { zh: '每一次', en: 'every visit' },
+              { zh: '最后一次', en: 'the last visit' },
+            ], answer: 0,
+            why: { zh: '每条尾部都是从该 (s,a) 出发的一条合法迷你轨迹，所以两种策略一致（consistent），访问次数 → ∞ 时同归 E[G|s,a]。差别在统计品质：every-visit 的样本共享后缀、彼此强相关，有限样本下有偏。工程上仍常选 every-visit——本讲代码精讲用的正是它：一行不多写、样本全部榨干、偏差随迭代冲淡。反向扫描 g ← γg + r 一次就算出全部 5 份尾部（正向 O(n²)，反向 O(n)）。',
+              en: 'Every tail is a legitimate mini-trajectory started from that (s,a), so the two strategies are consistent and meet at E[G|s,a] as visits → ∞. They differ in statistical quality: every-visit samples share suffixes, correlate strongly, and stay biased in finite samples. Engineering still picks every-visit — exactly what this lecture’s code walkthrough uses: not one extra line, every sample squeezed, bias washed out over iterations. One backward sweep g ← γg + r yields all five tails at once (forward O(n²), backward O(n)).' } },
+        ] },
+      { kind: 'choice', tag: { zh: '§5.3 · exploring starts', en: '§5.3 · Exploring starts' },
+        stem: { zh: 'MC Basic / MC Exploring Starts 要求“从每个 (s,a) 出发都有足够多回合”——exploring starts 条件买到的是[[1]]，付出的代价是现实系统往往做不到任意启动。',
+          en: 'MC Basic / MC Exploring Starts demand “sufficiently many episodes started from every (s,a)” — what the exploring-starts condition buys is [[1]], and the price is that real systems can rarely be launched from arbitrary pairs.' },
+        blanks: [
+          { choices: [
+              { zh: '正确性：每个动作价值都被样本喂过，贪心才挑得出最优动作', en: 'correctness: every action value gets fed by samples, so greed can pick out the best action' },
+              { zh: '速度：让收敛更快、方差更小', en: 'speed: faster convergence and smaller variance' },
+              { zh: '内存：把记账开销降到 O(1)', en: 'memory: cutting the bookkeeping down to O(1)' },
+            ], answer: 0,
+            why: { zh: '没被出发过的 (s,a) 一条样本都没有，只能顶着初始估值——贪心永远看不见它，最优动作可能被永久漏判。它买的是正确性，不是速度：MC Basic 的短板恰恰是样本效率，每轮要对每个 (s,a) 采一整批回合。现实机器人/真用户给不了任意起点，于是 ε-greedy 用“行动任意”（每个动作概率 ≥ ε/|A| > 0）替换“起点任意”。',
+              en: 'A pair never started from has zero samples and keeps its initial estimate — greed never sees it, and the best action can be missed forever. The condition buys correctness, not speed: MC Basic’s actual weakness is sample efficiency, a full batch of episodes per (s,a) per round. Real robots and real users offer no arbitrary starting points, so ε-greedy replaces “any start” with “any action at any time” (probability ≥ ε/|A| > 0 each).' } },
+        ] },
+      { kind: 'choice', tag: { zh: '§5.4–5.5 · ε-greedy', en: '§5.4–5.5 · ε-greedy' },
+        stem: { zh: '只要 ε > 0，ε-greedy 策略就不可能是全局最优策略，因为[[1]]。',
+          en: 'As long as ε > 0, an ε-greedy policy cannot be the globally optimal policy, because [[1]].' },
+        blanks: [
+          { choices: [
+              { zh: '它以 ε/|A| 的概率强制选到非贪心动作，其中含严格劣于贪心的动作', en: 'it is forced onto non-greedy actions with probability ε/|A| each, and some of them are strictly worse than greedy' },
+              { zh: '它的 q 估计带噪声，永远到不了真值', en: 'its q estimates stay noisy and never reach the true values' },
+              { zh: 'ε 会随训练自动衰减到零', en: 'ε decays to zero automatically during training' },
+            ], answer: 0,
+            why: { zh: 'ε-greedy 给每个非贪心动作强制发 ε/|A| 的概率，走最优动作的时间只剩 1−((|A|−1)/|A|)ε：|A|=5、ε=0.5 时只有 60%。给定充足样本，算法收敛到的是 ε-greedy 家族 Π_ε 内最优——yes 也是 no。工程解法是人为衰减 ε：先大 ε 勘探，后小 ε 保最优。',
+              en: 'ε-greedy forcibly hands every non-greedy action a probability of ε/|A|, leaving only 1−((|A|−1)/|A|)ε of the time to the best action: with |A|=5 and ε=0.5, just 60%. Given enough samples the algorithm converges to the best policy within the ε-greedy family Π_ε — both yes and no. The engineering fix is decaying ε by hand: explore with large ε first, secure optimality with small ε later.' } },
+        ] },
+      { kind: 'code', tag: { zh: '§5.3 · 增量均值', en: '§5.3 · Incremental mean' },
+        stem: { zh: '代码精讲的增量均值：第 k 个样本到来时，权重取[[1]]才让估计严格等于 k 个回报的算术平均——这正是 α_t = 1/t 的出生地。',
+          en: 'The incremental mean in the code walkthrough: when the k-th sample arrives, the weight [[1]] is what makes the estimate exactly the arithmetic mean of the k returns — the birthplace of α_t = 1/t.' },
+        code: { zh: 'q = q + [[1]] * (g - q)    # 第 k 个样本到来',
+          en: 'q = q + [[1]] * (g - q)    # the k-th sample arrives' },
+        blanks: [
+          { choices: [
+              { zh: '1/k', en: '1/k' },
+              { zh: '1/(k+1)', en: '1/(k+1)' },
+              { zh: '常数 α', en: 'a constant α' },
+              { zh: 'k', en: 'k' },
+            ], answer: 0,
+            why: { zh: 'w=1/k 时更新恰等价于 k 个回报的算术平均：E[x̄]=E[X]、var[x̄]=var[X]/n——这就是 α_t=1/t 的出生地。1/(k+1) 是下标错位：第 1 个样本就被除以 2，初始值 q₀ 的拖累迟迟洗不掉。常数 α 把精确平均换成“带遗忘的学习”，平稳问题里估计永远带偏（非平稳场景才有用，收敛条件是 L6 的事）。权重取 k 则新样本系数随 k 增大，更新发散、估计震荡爆炸。',
+              en: 'With w=1/k the update is exactly the arithmetic mean of the k returns: E[x̄]=E[X], var[x̄]=var[X]/n — the birthplace of α_t=1/t. The 1/(k+1) slip is an off-by-one: the first sample is halved and the pull of the initial q₀ lingers on. A constant α swaps exact averaging for learning-with-forgetting, permanently biased on stationary problems (useful only for non-stationary ones; convergence is L6’s business). A weight of k makes the new sample’s coefficient grow with k — the update diverges and the estimate explodes.' } },
+        ] },
+      { kind: 'number', tag: { zh: '§5.5 · 覆盖实验', en: '§5.5 · Coverage experiment' },
+        stem: { zh: '书上的 ε-greedy 实验：ε = 1 时，百万步内每个动作被访问约[[1]]次。',
+          en: 'The book’s ε-greedy experiment: at ε = 1, each action is visited about [[1]] times within a million steps.' },
+        blanks: [
+          { answer: 10000, tol: 3000,
+            hint: { zh: '一个 1 后面跟着 4 个 0。', en: 'A 1 followed by four zeros.' },
+            why: { zh: 'ε=1 时动作完全均匀随机，访问次数按 N_t(s,a) ≥ (ε/|A|)·t 线性增长，覆盖极佳；ε 降到 0.5，访问次数骤降一个数量级（约 10³）。这就是探索的预算律——ε 每减半，覆盖时间翻倍。大 ε 买覆盖、牺牲最优性，所以工程上先大 ε 勘探、再衰减。',
+              en: 'At ε = 1 actions are uniformly random, so visits grow linearly as N_t(s,a) ≥ (ε/|A|)·t — excellent coverage; dropping ε to 0.5 cuts the visit counts by an order of magnitude (about 10³). That is the exploration budget law: halve ε and coverage time doubles. Large ε buys coverage at the price of optimality, hence explore big first, decay later.' } },
+        ] },
+      { kind: 'number', tag: { zh: '§5.2 · 实验台算账', en: '§5.2 · Lab arithmetic' },
+        stem: { zh: 'MC Basic 实验台：4×4 世界有 16 个状态、5 个动作，每轮对每个 (s,a) 采 n = 20 条回合——跑一轮外层一共要采[[1]]条回合。',
+          en: 'The MC Basic lab: a 4×4 world with 16 states and 5 actions, n = 20 episodes per (s,a) — one outer round samples [[1]] episodes in total.' },
+        blanks: [
+          { answer: 1600, tol: 0.5,
+            hint: { zh: '16 × 5 × 20。', en: '16 × 5 × 20.' },
+            why: { zh: '16 × 5 = 80 个 (s,a)，每对 20 条回合，一轮外层就是 80 × 20 = 1600 条。这笔账正是 MC Basic 的短板：样本效率低，每轮都要一整批。MC Exploring Starts 的对策是把一条长轨迹在每个访问点切成尾部样本，全部榨干。',
+              en: '16 × 5 = 80 pairs, 20 episodes each — 80 × 20 = 1600 episodes per outer round. The arithmetic is MC Basic’s weakness: poor sample efficiency, a full batch every round. MC Exploring Starts replies by slicing one long trajectory into tail samples at every visited point and squeezing them all.' } },
+        ] },
+      { kind: 'number', tag: { zh: '§5.1 · 实验台算账', en: '§5.1 · Lab arithmetic' },
+        stem: { zh: '均值估计实验台把 p(正面) 拧到 0.7：X = +1 的概率 0.7、X = −1 的概率 0.3——真实均值 E[X] = [[1]]。',
+          en: 'In the mean-estimation lab, twist p(heads) to 0.7: X = +1 with probability 0.7, X = −1 with probability 0.3 — the true mean is E[X] = [[1]].' },
+        blanks: [
+          { answer: 0.4, tol: 0.01,
+            hint: { zh: 'E[X] = 0.7×1 + 0.3×(−1)。', en: 'E[X] = 0.7×1 + 0.3×(−1).' },
+            why: { zh: 'E[X] = 0.7×1 + 0.3×(−1) = 0.4。样本够多时 x̄ 贴着 0.4 抖动，且 var[x̄] = var[X]/n 随 n 塌缩——模型驱动一步算出 0.4，数据驱动逐渐逼近 0.4，同一期望、两台机器。这也是“价值 = 期望 = 均值”最直观的一幕。',
+              en: 'E[X] = 0.7×1 + 0.3×(−1) = 0.4. With enough samples x̄ hugs 0.4 while var[x̄] = var[X]/n collapses as n grows — the model computes 0.4 in one step, sampling creeps toward 0.4: one expectation, two machines. The most vivid instance of “value = expectation = mean”.' } },
+        ] },
+    ],
+  };
 
 
   /* 导航组注册已提升至 data.js 的 NAV（按讲懒加载后，冷启动侧栏也要完整） */

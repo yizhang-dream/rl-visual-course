@@ -475,6 +475,7 @@ if __name__ == "__main__":
     blocks: [
       { t: 'p', zh: '书以两个问答收尾，问的都是初学者最容易犯嘀咕的地方。点击卡片翻面看答案；第三张是本站补充——读老师代码时最常见的疑惑。', en: 'The book closes with two questions every beginner asks. Click a card to flip it; the third card is our addition — the most common confusion when reading the teacher\'s code.' },
       { t: 'widget', component: 'qa-lab' },
+      { t: 'widget', component: 'fill-lab', props: { source: 'l1' } },
     ],
   };
 
@@ -797,16 +798,16 @@ if __name__ == "__main__":
 
   // widgets = 本讲交互实验台数（widget 块数不含 concept-chain 复盘链），须与数据实际一致
   const LECTURES = [
-    { no: 1, zh: '基本概念', en: 'Basic concepts', done: true, widgets: 12 },
-    { no: 2, zh: '状态价值与 Bellman 方程', en: 'Bellman equation', done: true, widgets: 8 },
-    { no: 3, zh: 'Bellman 最优方程', en: 'Bellman optimality', done: true, widgets: 7 },
-    { no: 4, zh: '值迭代与策略迭代', en: 'VI & PI', done: true, widgets: 6 },
-    { no: 5, zh: '蒙特卡洛方法', en: 'Monte Carlo', done: true, widgets: 6 },
-    { no: 6, zh: '随机近似', en: 'Stochastic approx.', done: true, widgets: 6 },
-    { no: 7, zh: '时序差分方法', en: 'Temporal-difference', done: true, widgets: 5 },
-    { no: 8, zh: '值函数近似', en: 'Value function approx.', done: true, widgets: 4 },
-    { no: 9, zh: '策略梯度方法', en: 'Policy gradient', done: true, widgets: 4 },
-    { no: 10, zh: 'Actor-Critic', en: 'Actor-Critic', done: true, widgets: 4 },
+    { no: 1, zh: '基本概念', en: 'Basic concepts', done: true, widgets: 13 },
+    { no: 2, zh: '状态价值与 Bellman 方程', en: 'Bellman equation', done: true, widgets: 9 },
+    { no: 3, zh: 'Bellman 最优方程', en: 'Bellman optimality', done: true, widgets: 8 },
+    { no: 4, zh: '值迭代与策略迭代', en: 'VI & PI', done: true, widgets: 7 },
+    { no: 5, zh: '蒙特卡洛方法', en: 'Monte Carlo', done: true, widgets: 7 },
+    { no: 6, zh: '随机近似', en: 'Stochastic approx.', done: true, widgets: 7 },
+    { no: 7, zh: '时序差分方法', en: 'Temporal-difference', done: true, widgets: 6 },
+    { no: 8, zh: '值函数近似', en: 'Value function approx.', done: true, widgets: 5 },
+    { no: 9, zh: '策略梯度方法', en: 'Policy gradient', done: true, widgets: 5 },
+    { no: 10, zh: 'Actor-Critic', en: 'Actor-Critic', done: true, widgets: 5 },
   ];
 
   return {
@@ -823,10 +824,210 @@ if __name__ == "__main__":
     // 三大"本章工具箱"容器必须在核心就绑定好，l3..l9 的写入不再依赖 l2 先加载
     reasoningSets: {},
     qaSets: {},
+    fillSets: {},
     codeFileSets: {},
     sections: S,
   };
 })();
+
+/* ═══════════════════════════════════════════════════════════
+   L1 · 知识填空（fill-lab 组件按 fillSets[source] 渲染，
+   [[n]] 为第 n 空、从 1 连续编号，空数须与 items 的一致）
+   ═══════════════════════════════════════════════════════════ */
+window.DATA.fillSets['l1'] = {
+  title: { zh: '第一讲 · 知识填充', en: 'Lecture 1 · Knowledge Fill-in' },
+  items: [
+    {
+      // ★ 策略是全场指令表，不是一条固定路径
+      kind: 'choice',
+      tag: { zh: '核心概念', en: 'Core' },
+      stem: {
+        zh: '同一张策略 π：从 s1 出发走出轨迹 s1→s2→s5→s8→s9，从 s5 出发走出的却是另一条。轨迹随起点变，指令表不变。所以 π 本质上是什么？[[1]]',
+        en: 'One policy π: from s1 it walks the trajectory s1→s2→s5→s8→s9; from s5 it walks a different one. Trajectories vary with the start; the instruction sheet does not. What is π, essentially? [[1]]',
+      },
+      blanks: [
+        {
+          choices: {
+            zh: [
+              '每个状态都有定义的全场指令表——起点不同、轨迹不同，但发到每个格子的指令卡是同一套',
+              '一条从起点到目标的固定路径——换一个起点，整张表就得重画',
+              '只给起点定义的动作规则——走出一格再临时决定下一步',
+            ],
+            en: [
+              'A full instruction sheet defined at every state — different starts give different trajectories, yet the card dealt to each cell is the same',
+              'A single fixed path from start to target — change the start and the whole sheet must be redrawn',
+              'A rule defined only at the start state — decide the next step on the fly after each move',
+            ],
+          },
+          answer: 0,
+          why: {
+            zh: 'π(a|s) 的定义域是整个状态空间：S 里每个 s 都有一行 π(·|s)，且 Σ_a π(a|s) = 1。Figure 1.4 的"一格一箭头"画的就是这张全场指令表；s1→s2→s5→s8→s9 只是它的一次执行（策略 1，回报 0+0+0+1 = 1）。确定性策略只是特例：s1 上 π(a2|s1) = 1、其余 4 个动作各为 0。',
+            en: 'π(a|s) is defined over the whole state space: every s in S has a row π(·|s) with Σ_a π(a|s) = 1. The one-arrow-per-cell Figure 1.4 is exactly this sheet; s1→s2→s5→s8→s9 is one execution of it (Policy 1, return 0+0+0+1 = 1). A deterministic policy is the special case: at s1, π(a2|s1) = 1 and the other 4 actions are 0.',
+          },
+        },
+      ],
+    },
+    {
+      // ★ 状态价值 = 回报的期望；确定性情形等于回报本身
+      kind: 'choice',
+      tag: { zh: '核心概念', en: 'Core' },
+      stem: {
+        zh: '同学甲说："状态价值 v(s) 就是从 s 出发能拿到的回报。"这句话漏了一个词。补上：状态价值是从 s 出发回报的[[1]]。',
+        en: 'A classmate says: "The state value v(s) is the return you get starting from s." One word is missing. Fill it in: the state value is the [[1]] of returns from s.',
+      },
+      blanks: [
+        {
+          choices: {
+            zh: [
+              '平均（期望）：随机策略下轨迹有很多条，v(s) = E[Gt | St = s] 按概率加权',
+              '最大值：智能体总能挑最好的一条轨迹走，v(s) 取所有轨迹回报的上界',
+              '第一步的即时奖励：v(s) = max_a r(s, a)，走一步定胜负',
+            ],
+            en: [
+              'average (expectation): a stochastic policy yields many trajectories, and v(s) = E[Gt | St = s] weights them by probability',
+              'maximum: the agent can always pick the best trajectory, so v(s) takes the upper bound over all trajectories',
+              'immediate reward of the first step: v(s) = max_a r(s, a), one step decides all',
+            ],
+          },
+          answer: 0,
+          why: {
+            zh: 'Table 1.2 的随机策略在 s1 上以 0.5 向右、0.5 向下：同一状态出发的回报是随机变量，单条没资格当"价值"。v(s) = E[Gt | St = s] 对所有轨迹按概率取平均。确定性是特例：轨迹只剩一条，期望塌缩成那条轨迹的回报本身——策略 1 下 v(s1) = 0+0+0+1 = 1。',
+            en: 'Under the Table 1.2 stochastic policy, s1 goes rightward with 0.5 and downward with 0.5: the return from one state is a random variable, and no single draw deserves to be "the value". v(s) = E[Gt | St = s] averages over trajectories by probability. Determinism is the special case: one trajectory only, and the expectation collapses to that return — under Policy 1, v(s1) = 0+0+0+1 = 1.',
+          },
+        },
+      ],
+    },
+    {
+      // ★ γ < 1 保证无穷和收敛；γ = 0.9 时 Σγᵏ = 1/(1−γ) = 10
+      kind: 'number',
+      tag: { zh: '回报与折扣', en: 'Return & discount' },
+      stem: {
+        zh: '作业里 γ = 0.9。到 s12 后策略让智能体原地领奖，奖励流 1 + 0.9 + 0.9² + 0.9³ + … 无穷延续。这个和收敛到多少？[[1]]',
+        en: 'The assignment sets γ = 0.9. After reaching s12 the policy keeps the agent in place collecting +1, so the reward stream 1 + 0.9 + 0.9² + 0.9³ + … runs forever. What does the sum converge to? [[1]]',
+      },
+      blanks: [
+        {
+          answer: 10, tol: 0.01,
+          hint: { zh: '等比级数：1 + γ + γ² + … = 1/(1−γ)，代入 γ = 0.9。', en: 'Geometric series: 1 + γ + γ² + … = 1/(1−γ); plug in γ = 0.9.' },
+          why: {
+            zh: '公比 γ < 1 的等比级数收敛于 1/(1−γ)：1 + 0.9 + 0.81 + 0.729 + … = 1/(1−0.9) = 10。若不打折，1+1+1+… = ∞，回报发散、当不了评价策略的尺子。γ < 1 的第一重使命就是保证无穷和有限；1/(1−γ) 同时是远近旋钮——γ = 0.9 意味着大约只看 10 步以内的未来。',
+            en: 'A geometric series with ratio γ < 1 converges to 1/(1−γ): 1 + 0.9 + 0.81 + 0.729 + … = 1/(1−0.9) = 10. Undiscounted, 1+1+1+… = ∞ — a divergent return cannot rank policies. γ < 1 first guarantees the infinite sum is finite; 1/(1−γ) is also the far-sightedness dial — γ = 0.9 means looking roughly 10 steps ahead.',
+          },
+        },
+      ],
+    },
+    {
+      // ★ 作业 4×4 的四个奖励数值（课件/代码默认值是坑）
+      kind: 'choice',
+      tag: { zh: '奖励设计', en: 'Reward design' },
+      stem: {
+        zh: '按作业要求配置 4×4 网格世界。r_boundary、r_forbidden、r_target、r_step 四个数依次应填[[1]]。',
+        en: 'Configure the 4×4 grid world as the assignment requires. The four numbers r_boundary, r_forbidden, r_target, r_step must be, in order, [[1]].',
+      },
+      blanks: [
+        {
+          choices: {
+            zh: ['−1、−1、+1、0', '−5、−5、+10、−1', '−1、−1、+1、−1'],
+            en: ['−1, −1, +1, 0', '−5, −5, +10, −1', '−1, −1, +1, −1'],
+          },
+          answer: 0,
+          why: {
+            zh: '作业规定 r_boundary = −1、r_forbidden = −1、r_target = +1、r_step(=r_other) = 0，γ = 0.9。第二项是 arguments.py 的默认值 reward_target = 10、reward_forbidden = −5、reward_step = −1——书里另一套设定，忘了改就是"图画对了、分扣了"。第三项只改了三个数，把走路成本留成 −1：机器人会为省步数去闯禁区。',
+            en: 'The assignment fixes r_boundary = −1, r_forbidden = −1, r_target = +1, r_step (= r_other) = 0, with γ = 0.9. The second option is arguments.py’s defaults reward_target = 10, reward_forbidden = −5, reward_step = −1 — the book’s other setting; forgetting to patch them is the classic "right figure, lost points". The third changes only three numbers and leaves walking at −1: the agent then trespasses to save steps.',
+          },
+        },
+      ],
+    },
+    {
+      // ★ code：action_space 列序（下右上左）≠ 书本 a1–a5（上右下左）
+      kind: 'code',
+      tag: { zh: '代码精讲', en: 'Code' },
+      stem: {
+        zh: '画作业的策略图：policy_matrix 每行是一个状态的 5 个动作概率，第 1 列的箭头朝向由 action_space 的列序决定。把 arguments.py 里那行注释补全：[[1]]',
+        en: 'Drawing the assignment policy figure: each row of policy_matrix holds the 5 action probabilities of one state, and where the column-1 arrow points is decided by the action_space order. Complete the comment from arguments.py: [[1]]',
+      },
+      code: {
+        zh: 'action_space = [(0,1), (1,0), (0,-1), (-1,0), (0,0)]  # [[1]]',
+        en: 'action_space = [(0,1), (1,0), (0,-1), (-1,0), (0,0)]  # [[1]]',
+      },
+      blanks: [
+        {
+          choices: [
+            'down, right, up, left, stay',
+            'up, right, down, left, still',
+            'up, down, left, right, stay',
+          ],
+          answer: 0,
+          why: {
+            zh: '代码列序是 down, right, up, left, stay：(0,1) 是 (dx, dy)，x 向右、y 在屏幕坐标系里向下，所以第 1 个元组是"下"。它与书 a1上、a2右、a3下、a4左、a5原地 是同一组动作的不同排列。策略矩阵列序必须跟代码走：add_policy 拿第 i 列去查 action_space[i]，若按 a1–a5 填，箭头全体转 90 度。',
+            en: 'The code order is down, right, up, left, stay: (0,1) is (dx, dy) with x rightward and y downward on screen, so the first tuple is "down". It is the same five actions as the book’s a1 up, a2 right, a3 down, a4 left, a5 still, merely permuted. Policy matrix columns must follow the code: add_policy looks up action_space[i] for column i; fill in a1–a5 order instead and every arrow turns 90°.',
+          },
+        },
+      ],
+    },
+    {
+      // ★ code：s8 的 (x, y) 坐标换算（作业禁区）
+      kind: 'code',
+      tag: { zh: '代码精讲', en: 'Code' },
+      stem: {
+        zh: '老师代码里状态编号从 0 数、坐标 (x, y) 以左上角为原点。换算公式 s_i ↔ (x, y) = ((i−1)%n, (i−1)//n)。补全下面代码行：s8 的代码坐标是 x = [[1]]、y = [[2]]。',
+        en: 'The teacher’s code numbers states from 0, with (x, y) coordinates originating at the top-left. Conversion: s_i ↔ (x, y) = ((i−1)%n, (i−1)//n). Complete the line: the code coordinates of the assignment’s forbidden s8 are x = [[1]], y = [[2]].',
+      },
+      code: {
+        zh: 's8:  x = (8-1) % 4 = [[1]],  y = (8-1) // 4 = [[2]]',
+        en: 's8:  x = (8-1) % 4 = [[1]],  y = (8-1) // 4 = [[2]]',
+      },
+      blanks: [
+        {
+          answer: 3, tol: 0.01,
+          hint: { zh: '7 除以 4 的余数。', en: 'The remainder of 7 divided by 4.' },
+          why: {
+            zh: '(8−1)%4 = 7%4 = 3。x = 3 是 0 基第 3 列，画到图上是第 4 列（render 的坐标轴标签从 1 数起）。s8 是作业两个禁区之一，就在第 4 列。',
+            en: '(8−1)%4 = 7%4 = 3. x = 3 is the 3rd column in 0-based terms, drawn as the 4th column (render labels the axes from 1). s8, one of the two forbidden cells, sits exactly in that column.',
+          },
+        },
+        {
+          answer: 1, tol: 0.01,
+          hint: { zh: '7 除以 4 再向下取整。', en: 'Floor of 7 divided by 4.' },
+          why: {
+            zh: '(8−1)//4 = 7//4 = 1。y = 1 经 invert_yaxis() 画出来是第 2 行。所以 s8 ↔ (3,1)：第 2 行第 4 列；add_state_values 的 0 基公式 x = s%4、y = s//4 与它只差那一个 1。',
+            en: '(8−1)//4 = 7//4 = 1. With invert_yaxis(), y = 1 draws as the 2nd row. Hence s8 ↔ (3,1): row 2, column 4; the 0-based formula x = s%4, y = s//4 in add_state_values differs by exactly that 1.',
+          },
+        },
+      ],
+    },
+    {
+      // 课件红线：禁区"可进入"（课件）vs"弹回"（作业代码）
+      kind: 'choice',
+      tag: { zh: '课件勘误·边界', en: 'Erratum · boundary' },
+      stem: {
+        zh: '课件里禁区"可以进入，只是进来挨罚"；作业 grid_world.py 里踩禁区是另一种下场。以作业代码为准，智能体尝试进禁区会[[1]]',
+        en: 'The slides let forbidden cells be "entered, at a price"; the assignment’s grid_world.py handles it differently. Per the assignment code, attempting to enter a forbidden cell [[1]]',
+      },
+      blanks: [
+        {
+          choices: {
+            zh: [
+              '被弹回原地：转移分支写 x, y = state（坐标不动），同时罚 r_forbidden = −1',
+              '正常进入并挨罚：转移分支写 x, y = new_state，下一状态就是禁区格',
+              '直接被禁止：朝向禁区的动作从该状态的动作空间里删掉',
+            ],
+            en: [
+              'bounce back: the transition branch keeps x, y = state (coordinates unchanged) and charges r_forbidden = −1',
+              'enter normally and pay: the transition branch takes x, y = new_state, landing in the forbidden cell',
+              'get blocked: actions pointing at the forbidden cell are removed from that state’s action space',
+            ],
+          },
+          answer: 0,
+          why: {
+            zh: '课件第 8 页的分叉：讲课用情形一（禁区可进入、挨罚，更一般也更有挑战），作业用情形二（不可进入）。代码落点是 elif new_state in self.forbidden_states: x, y = state——坐标不动即弹回，reward = reward_forbidden = −1。作业里禁区 s8、s10 就是墙：整条 if/elif 链没有"进禁区继续走"的路径。第三项是 §1.2 明确否掉的思路——本书不给任何状态删动作，全靠负奖励塑造行为。',
+            en: 'The slide-8 fork: lectures use Scenario 1 (forbidden cells accessible but penalised — more general and challenging), assignments use Scenario 2 (inaccessible). The code lands at elif new_state in self.forbidden_states: x, y = state — coordinates unchanged means bounce back, with reward = reward_forbidden = −1. In the assignment, forbidden s8 and s10 are walls: no path in the if/elif chain proceeds through them. The third option is what §1.2 explicitly rejects — no state ever loses actions; behaviour is shaped by negative reward alone.',
+          },
+        },
+      ],
+    },
+  ],
+};
 
 /* ═══════════════════════════════════════════════════════════
    三层导航 · navClusters（讲 → 子主题组 → 小节）

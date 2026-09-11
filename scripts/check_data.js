@@ -1,11 +1,11 @@
-// 数据完整性校验（CI 用）：88 小节 / 44 组件 / 57 个公式块 katex 严格渲染零失败
+// 数据完整性校验（CI 用）：88 小节 / 45 组件 / 57 个公式块 katex 严格渲染零失败
 // 加载方式与 check_templates.js 相同：stub window → eval 核心与各讲 data/components。
 const fs = require('fs');
 const path = require('path');
 const katex = require('katex');
 
 const EXPECT_SECTIONS = 88;
-const EXPECT_COMPONENTS = 44;
+const EXPECT_COMPONENTS = 45;
 const EXPECT_FORMULAS = 57;
 
 let fail = 0;
@@ -82,7 +82,76 @@ for (const id of sectionIds) {
 if (formulas !== EXPECT_FORMULAS) failMsg(`formula blocks = ${formulas} (expect ${EXPECT_FORMULAS})`);
 if (texErrors.length) failMsg(`katex strict render failures: ${texErrors.length}\n` + texErrors.join('\n'));
 
-console.log(`sections: ${sectionIds.length}/${EXPECT_SECTIONS} · components: ${compCount}/${EXPECT_COMPONENTS} · formula blocks: ${formulas}/${EXPECT_FORMULAS} · katex snippets rendered: ${rendered}, failures: ${texErrors.length}`);
+// ── 4. 知识填空题库 fillSets（只校验存在的讲；fillSets / 某讲缺失 → 跳过不报错） ──
+// 契约：kind ∈ choice|number|code；stem.zh/en 的 [[n]] 从 1 连续且数量===blanks.length；
+// code 型必有 code.zh/en；每空 choices 型 answer 下标在界内且长度 3–4 / number 型 answer 为数且
+// tol>0；why.zh/en 非空。
+const FILL_KINDS = ['choice', 'number', 'code'];
+const fillBanks = (typeof D.fillSets === 'object' && D.fillSets) || {};
+let fillChecked = 0;
+for (const src of Object.keys(fillBanks).sort()) {
+  const bank = fillBanks[src];
+  const bad = (m) => failMsg(`fillSets[${src}] ${m}`);
+  fillChecked++;
+  if (!bank || typeof bank !== 'object') { bad('bank 不是对象'); continue; }
+  if (!bank.title || !bank.title.zh || !bank.title.en) bad('title.zh / title.en 非空');
+  const items = Array.isArray(bank.items) ? bank.items : [];
+  if (!items.length) { bad('items 为空'); continue; }
+  items.forEach((it, ii) => {
+    const where = `item#${ii}`;
+    if (!it || typeof it !== 'object') { bad(where + ' 不是对象'); return; }
+    if (!FILL_KINDS.includes(it.kind)) { bad(`${where} kind='${it.kind}' 不在 choice/number/code 三值内`); return; }
+    if (!it.tag || !it.tag.zh || !it.tag.en) bad(where + ' tag.zh / tag.en 非空');
+    const blanks = Array.isArray(it.blanks) ? it.blanks : [];
+    if (!blanks.length) { bad(where + ' blanks 为空'); return; }
+    // stem 双语的 [[n]]：编号从 1 连续且数量 === blanks.length
+    for (const lg of ['zh', 'en']) {
+      const nums = (String((it.stem && it.stem[lg]) || '').match(/\[\[(\d+)\]\]/g) || [])
+        .map((s) => parseInt(s.slice(2, -2), 10));
+      const want = blanks.map((_, k) => k + 1);
+      if (nums.join(',') !== want.join(',')) {
+        bad(`${where} stem.${lg} 空号 [${nums.join(',')}] 应为从 1 连续的 ${blanks.length} 个 [${want.join(',')}]`);
+      }
+    }
+    // code 型必有 code 字段；其引用的空号须在界内（渲染按空号取 blanks[n-1]）
+    if (it.kind === 'code') {
+      if (!it.code || !it.code.zh || !it.code.en) {
+        bad(where + " kind='code' 缺 code.zh / code.en 字段");
+      } else {
+        for (const lg of ['zh', 'en']) {
+          const nums = (String(it.code[lg]).match(/\[\[(\d+)\]\]/g) || [])
+            .map((s) => parseInt(s.slice(2, -2), 10));
+          const out = nums.filter((n) => n < 1 || n > blanks.length);
+          if (out.length) bad(`${where} code.${lg} 引用了界外空号 ${out.join(',')}`);
+        }
+      }
+    }
+    // 逐空：choices 型 / number 型 + why 双语非空
+    blanks.forEach((bl, ki) => {
+      const wb = `${where} 空${ki + 1}`;
+      if (!bl || typeof bl !== 'object') { bad(wb + ' 不是对象'); return; }
+      const isChoices = bl.choices && (Array.isArray(bl.choices) || Array.isArray(bl.choices.zh));
+      if (isChoices) {
+        const lists = Array.isArray(bl.choices) ? [bl.choices]
+          : [bl.choices.zh, bl.choices.en].filter(Array.isArray);
+        lists.forEach((lst) => {
+          if (lst.length < 3 || lst.length > 4) bad(wb + ` choices 长度 ${lst.length} 不在 3–4`);
+          if (typeof bl.answer !== 'number' || bl.answer % 1 !== 0 ||
+              bl.answer < 0 || bl.answer >= lst.length) {
+            bad(wb + ` answer=${bl.answer} 下标越界或非整数`);
+          }
+        });
+      } else if (typeof bl.answer === 'number' && Number.isFinite(bl.answer)) {
+        if (typeof bl.tol !== 'number' || !(bl.tol > 0)) bad(wb + ` number 型 tol 须 > 0（现在 ${bl.tol}）`);
+      } else {
+        bad(wb + ' 既非 choices 型也非 number 型（answer 不是数字）');
+      }
+      if (!bl.why || !bl.why.zh || !bl.why.en) bad(wb + ' why.zh / why.en 非空');
+    });
+  });
+}
+
+console.log(`sections: ${sectionIds.length}/${EXPECT_SECTIONS} · components: ${compCount}/${EXPECT_COMPONENTS} · formula blocks: ${formulas}/${EXPECT_FORMULAS} · katex snippets rendered: ${rendered}, failures: ${texErrors.length} · fill sets: ${fillChecked}`);
 if (fail) {
   console.log(`\n${fail} FAILED`);
   process.exit(1);

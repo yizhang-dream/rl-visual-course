@@ -118,6 +118,7 @@
       { t: 'p', zh: '书上的问答直击"为什么要学这一章"——答案都指向第 7 章。', en: 'The book\'s Q&As hit “why study this chapter” — every answer points to Chapter 7.' },
       { t: 'p', zh: '翻卡前先过三题：① "为什么学一个没有 RL 算法的章节"（因为第 7 章的 TD 在数学上<strong>就是</strong> RM——目标换成 r + γv(s′)）；② "步长到底怎么设"（平稳目标用衰减步长、非平稳用小常数；理论上要满足 Σα = ∞ 且 Σα² &lt; ∞）；③ "SGD 每次只用一个样本会不会走错方向"（无偏——方向平均正确，代价是方差和 1/√t 的收敛率）。', en: 'Before flipping, run through three: ① "why study a chapter with no RL algorithms" (because Chapter 7’s TD mathematically <strong>is</strong> RM — with the target replaced by r + γv(s′)); ② "how should the step size be set" (decaying for stationary targets, small constants for nonstationary ones; theory demands Σα = ∞ with Σα² &lt; ∞); ③ "does one sample per step lead SGD astray" (unbiased — correct on average, at the price of variance and the 1/√t rate).' },
       { t: 'widget', component: 'qa-lab', props: { source: 'l6' } },
+      { t: 'widget', component: 'fill-lab', props: { source: 'l6' } },
     ],
   };
 
@@ -244,6 +245,159 @@ def sgd_mean(samples, alpha=0.1, w0=0.0):
     { tag: 'Q6 · 书上原问', q: { zh: 'MBGD 是什么？比 SGD 和 BGD 好在哪？', en: 'What is MBGD and how does it compare with SGD and BGD?' },
       a: { zh: 'MBGD（小批量）是 SGD 与 BGD（全批量）的中间版本：比 SGD 用更多样本所以更稳（随机性小），比 BGD 不必用全部样本所以更灵活。图 6.5 显示 m 越大路径越平滑、越靠近解。', en: 'MBGD (mini-batch) is the middle ground between SGD and full-batch BGD: more samples than SGD makes it steadier (less randomness), fewer than BGD keeps it flexible. Figure 6.5 shows larger m yields smoother paths ending closer to the solution.' } },
   ];
+
+  /* ═══ L6 知识填充 ═══ */
+  D.fillSets = D.fillSets || {};
+  D.fillSets['l6'] = {
+    title: { zh: '第六讲 · 知识填充', en: 'Lecture 6 · Knowledge Fill-in' },
+    items: [
+      {
+        kind: 'choice',
+        tag: { zh: '定理 6.1 · 步长条件', en: 'Theorem 6.1 · Step-size conditions' },
+        stem: { zh: '定理 6.1 的步长条件写成级数是 [[1]]：Σαₖ = ∞ 挡住"走不到"，Σαₖ² < ∞ 挡住"[[2]]"。', en: 'Written as series, Theorem 6.1’s step-size conditions read [[1]]: Σαₖ = ∞ blocks "never arriving", and Σαₖ² < ∞ blocks "[[2]]".' },
+        blanks: [
+          {
+            choices: [
+              { zh: 'Σαₖ = ∞ 且 Σαₖ² < ∞', en: 'Σαₖ = ∞ and Σαₖ² < ∞' },
+              { zh: 'Σαₖ = ∞ 就够了，平方和无关紧要', en: 'Σαₖ = ∞ alone suffices; the squared sum is irrelevant' },
+              { zh: 'Σαₖ² < ∞ 就够了，总和无关紧要', en: 'Σαₖ² < ∞ alone suffices; the total is irrelevant' },
+              { zh: 'α 取一个足够小的常数即可', en: 'any sufficiently small constant α will do' },
+            ],
+            answer: 0,
+            why: { zh: 'Σαₖ = ∞ 挡"走不到"：总和有限时总位移有硬上限，起点离根够远，再多迭代也够不着。Σαₖ² < ∞ 挡"停不下"：每步噪声贡献 αₖηₖ，独立噪声方差直接相加，累计方差 ∝ σ²Σαₖ²——平方和发散，抖动永不平息。挡"多根"的是单调条件。', en: 'Σαₖ = ∞ blocks "never arriving": a finite total caps the displacement, so a start far from the root never gets there. Σαₖ² < ∞ blocks "never settling": each step’s noise contributes αₖηₖ, independent noises add variances directly, and the accumulated variance ∝ σ²Σαₖ² — a divergent squared sum means the wobble never calms. Blocking "multiple roots" is the monotonicity condition’s job.' },
+          },
+          {
+            choices: [
+              { zh: '停不下——累计方差 ∝ σ²Σαₖ² 不封顶，抖动永不平息', en: 'never settling — the accumulated variance ∝ σ²Σαₖ² is uncapped, so the wobble never calms' },
+              { zh: '到不了——总位移有硬上限，起点远就够不着根', en: 'never arriving — the total displacement is capped, and a far start never reaches the root' },
+              { zh: '不唯一——单调性缺失，方程出现多个根', en: 'not unique — without monotonicity the equation has several roots' },
+            ],
+            answer: 0,
+            why: { zh: '两个级数条件各挡一种死法，互换不了：只满足 Σαₖ = ∞（常数步长）会永久抖动；只满足 Σαₖ² < ∞（如 αₖ = 1/k²）会在远起点处走不完路。1/k 两头全占：Σ1/k = ∞，Σ1/k² = π²/6 < ∞。', en: 'The two series conditions each block one death and cannot replace each other: satisfying only Σαₖ = ∞ (a constant step) jitters forever; satisfying only Σαₖ² < ∞ (say αₖ = 1/k²) cannot cover a long distance. 1/k holds both: Σ1/k = ∞ and Σ1/k² = π²/6 < ∞.' },
+          },
+        ],
+      },
+      {
+        kind: 'choice',
+        tag: { zh: 'make_schedules · 四种命运', en: 'make_schedules · Four fates' },
+        stem: { zh: 'code-lab 的 make_schedules 摆了四个步长家族。αₖ = 1/k 的命运是 [[1]]；常数 α = 0.5 只满足 Σαₖ = ∞（Σαₖ² = ∞），命运是 [[2]]；αₖ = 1/k² 只满足 Σαₖ² < ∞（Σαₖ 有限），命运是 [[3]]。', en: 'make_schedules in the code lab lines up four step-size families. αₖ = 1/k meets [[1]]; the constant α = 0.5 satisfies only Σαₖ = ∞ (Σαₖ² = ∞), so its fate is [[2]]; αₖ = 1/k² satisfies only Σαₖ² < ∞ (Σαₖ finite), so its fate is [[3]].' },
+        blanks: [
+          {
+            choices: [
+              { zh: '两个条件全中，几乎必然收敛到真根', en: 'both conditions hold — almost sure convergence to the true root' },
+              { zh: '在真值附近永久抖动，幅度不衰减', en: 'eternal jitter around the true value, undamped' },
+              { zh: '每步跨过真值，误差越走越大直至发散', en: 'crossing the true value every step, the error snowballing into divergence' },
+            ],
+            answer: 0,
+            why: { zh: '1/k 两头全占：Σ1/k = ∞ 走得够远，Σ1/k² = π²/6 < ∞ 抖得够停。1/k^0.75 同样两条件全中——p ∈ (0.5, 1] 的 1/kᵖ 都满足，p > 0.5 保证平方可和。', en: '1/k holds both: Σ1/k = ∞ travels far enough, Σ1/k² = π²/6 < ∞ settles fast enough. 1/k^0.75 qualifies too — every 1/kᵖ with p ∈ (0.5, 1] does, since p > 0.5 makes the squares summable.' },
+          },
+          {
+            choices: [
+              { zh: 'Σαₖ² = ∞ ⟹ 噪声方差永不消失，在真值附近永久抖动', en: 'Σαₖ² = ∞ means the noise variance never dies — eternal jitter around the true value' },
+              { zh: '两条件全中，安静收敛到真根', en: 'both conditions hold — quiet convergence to the true root' },
+              { zh: '总位移封顶，起点远时够不着真根', en: 'the total displacement is capped — a far start never reaches the root' },
+            ],
+            answer: 0,
+            why: { zh: 'α = 0.5 违反第二条：Σαₖ² = ∞，累计方差 ∝ σ²Σαₖ² 不封顶，抖动幅度 ∝ α²·var[X] 永不衰减。这不是数值不稳，是理论判了刑——常数步长换来的是指数遗忘，代价就是永远不精确。', en: 'α = 0.5 violates the second condition: Σαₖ² = ∞, the accumulated variance ∝ σ²Σαₖ² is uncapped, and the wobble amplitude ∝ α²·var[X] never decays. Not numerical instability — a theoretical sentence: the exponential forgetting a constant step buys is paid for with eternal imprecision.' },
+          },
+          {
+            choices: [
+              { zh: '总位移封顶（Σ1/k² 有限），起点离根够远就永远够不着', en: 'the total displacement is capped (Σ1/k² finite) — start far enough and the root is never reached' },
+              { zh: '噪声方差永不消失，在真值附近永久抖动', en: 'the noise variance never dies — eternal jitter around the true value' },
+              { zh: '每步跨过真值，到对面更远处', en: 'every step crosses the true value and lands farther out the other side' },
+            ],
+            answer: 0,
+            why: { zh: '1/k² 最隐蔽：平方和 π²/6 有限所以抖得停，但调和和 Σ1/k² 本身也有限——总位移被封顶，初始点离根够远时，再多迭代也够不着。这是"Σαₖ = ∞ 挡走不到"的活标本。', en: '1/k² is the subtle one: its squared sum π²/6 is finite so it can settle, but Σ1/k² itself is finite too — the total displacement is capped, and a start far from the root never arrives no matter how long it iterates. A living specimen of "Σαₖ = ∞ blocks never-arriving".' },
+          },
+        ],
+      },
+      {
+        kind: 'number',
+        tag: { zh: '发散的那一档', en: 'The diverging preset' },
+        stem: { zh: '四个家族里唯一发散的是常数 α = [[1]]：每步跨过真值、到对面更远处（另一档常数 α = 0.5 只是抖动，不算发散）。', en: 'The only diverging one among the four is the constant α = [[1]]: every update crosses the true value and lands farther out the other side (the other constant, α = 0.5, merely jitters and does not diverge).' },
+        blanks: [
+          {
+            answer: 2.0, tol: 0.01,
+            hint: { zh: '增量均值试验台三档里最激进的一档', en: 'The most aggressive preset in the incremental-mean lab' },
+            why: { zh: 'α = 2 时误差每步乘 (1 − α) = −1：w 跳到真值另一侧等距处，再叠加噪声越荡越远——是发散，不是抖动。对照：α = 0.5 仍在收缩（(1 − α) = 0.5）但 Σα² = ∞，所以是永久抖动；α = 1/k 才安静收敛。', en: 'With α = 2 the error is multiplied by (1 − α) = −1 each step: w jumps to the mirrored point across the true value and, with noise on top, swings ever wider — divergence, not jitter. Compare: α = 0.5 still contracts ((1 − α) = 0.5) but has Σα² = ∞, hence eternal jitter; only α = 1/k settles.' },
+          },
+        ],
+      },
+      {
+        kind: 'number',
+        tag: { zh: '书上例子的真根', en: 'The true root in the book’s example' },
+        stem: { zh: 'RM 例子解 g(w) = w³ − 5：黑盒，只有带 N(0,1) 噪声的读数 g̃(w) = g(w) + η，步长 aₖ = 1/k，main 里跑 2000 步。真根保留两位小数 ≈ [[1]]。', en: 'The RM example solves g(w) = w³ − 5: a black box offering only noisy readings g̃(w) = g(w) + η with N(0,1) noise, steps aₖ = 1/k, and 2000 iterations in main. The true root, to two decimals, ≈ [[1]].' },
+        blanks: [
+          {
+            answer: 1.71, tol: 0.02,
+            hint: { zh: '5 的立方根——代码里 true_root = 5 ** (1/3)', en: 'The cube root of 5 — the code writes true_root = 5 ** (1/3)' },
+            why: { zh: '5^(1/3) ≈ 1.70998 ≈ 1.71。每步读数都被标准正态噪声污染，wₖ 照样滑向它：单调 + 步长 + 零均值噪声三条全占，几乎必然收敛——噪声改变路径，不改终点。把 n 从 2000 砍到 200，1/k 的估计可能还没走到，因为 Σαₖ = ∞ 要的是"足够远的总路程"。', en: '5^(1/3) ≈ 1.70998 ≈ 1.71. Every reading is polluted by standard-normal noise, yet wₖ still slides toward it: monotonicity, step sizes and zero-mean noise all hold, so convergence is almost sure — noise bends the path, not the destination. Cut n from 2000 to 200 and the 1/k estimate may not have arrived: Σαₖ = ∞ demands enough total distance.' },
+          },
+        ],
+      },
+      {
+        kind: 'choice',
+        tag: { zh: '期望意义下的压缩', en: 'Contraction in expectation' },
+        stem: { zh: 'L3 的 Bellman 右端是确定性压缩：‖f(v₁) − f(v₂)‖ ≤ γ‖v₁ − v₂‖ 每一步严格成立。TD 的目标 r + γv(s′) 等于 Bellman 右端加零均值噪声，所以随机版的正确说法是 [[1]]。', en: 'L3’s Bellman right side is a deterministic contraction: ‖f(v₁) − f(v₂)‖ ≤ γ‖v₁ − v₂‖ holds strictly at every step. TD’s target r + γv(s′) equals the Bellman right side plus zero-mean noise, so the correct stochastic statement is [[1]].' },
+        blanks: [
+          {
+            choices: [
+              { zh: 'E[‖F(v) − F(u)‖] ≤ γ‖v − u‖——期望意义下每步平均收缩 γ 倍，个别步可以被噪声推远', en: 'E[‖F(v) − F(u)‖] ≤ γ‖v − u‖ — on average each step shrinks distances by a factor γ; individual steps may be pushed outward by noise' },
+              { zh: '每一步仍然严格收缩 γ 倍，噪声不起任何作用', en: 'every step still contracts strictly by γ, and noise plays no role at all' },
+              { zh: '随机版不再需要 γ < 1，全靠步长条件兜底', en: 'the stochastic version no longer needs γ < 1 — the step-size conditions do all the work' },
+            ],
+            answer: 0,
+            why: { zh: '对目标取期望，E[r + γv(s′)] 恰好回到 Bellman 右端——映射在期望意义下仍是系数 γ 的压缩，L3 那台"确定性发动机"（γ < 1）照常点火。噪声只贡献方差：零均值保证不偏（方向平均正确），Σαₖ² < ∞ 保证方差最终抖没。两台发动机合奏：γ < 1 管方向，RM 步长条件管噪声。', en: 'Take the expectation of the target and E[r + γv(s′)] lands exactly on the Bellman right side — the map is still a γ-contraction in expectation, and L3’s deterministic engine (γ < 1) fires as usual. Noise only contributes variance: zero mean keeps it unbiased (correct direction on average), Σαₖ² < ∞ eventually shakes the variance off. Two engines in duet: γ < 1 steers, the RM step-size conditions silence the noise.' },
+          },
+        ],
+      },
+      {
+        kind: 'choice',
+        tag: { zh: '两个时间尺度', en: 'Two time scales' },
+        stem: { zh: '把 TD 嵌回"评估 + 改进"的大循环（广义策略迭代），两个循环天然跑在两个时间尺度上。收敛要求的方向是 [[1]]。', en: 'Nest TD back into the big evaluate-and-improve loop (generalised policy iteration) and the two loops naturally run on two time scales. Convergence demands [[1]].' },
+        blanks: [
+          {
+            choices: [
+              { zh: '价值估计在快尺度上先行收敛，策略改进在慢尺度上慢慢跟', en: 'value estimation converges first on the fast scale, while policy improvement follows slowly on the slow scale' },
+              { zh: '策略先定死，价值估计在慢尺度上慢慢追', en: 'the policy settles first, and value estimation chases it slowly on the slow scale' },
+              { zh: '两个循环必须同速更新，快慢并存必然发散', en: 'both loops must update at the same speed; any gap means divergence' },
+            ],
+            answer: 0,
+            why: { zh: '价值估计要先把当前策略的价值学到位，慢尺度上的策略改进才有可靠依据；顺序反了，就是在给一条过时策略做精评估，白费算力。这正是广义策略迭代"评估与改进交替纠错"的随机近似版本——Dvoretzky 定理允许步长依赖历史（Q-learning 里 α 取决于访问次数），伺候的正是这种快慢分工。', en: 'Value estimation must first learn the current policy’s values properly, so that policy improvement on the slow scale has something reliable to stand on; the reversed order means carefully evaluating an obsolete policy — compute wasted. This is the stochastic-approximation dress of generalised policy iteration’s alternating loops — and Dvoretzky’s theorem, which lets the step size depend on history (in Q-learning, α depends on visit counts), serves exactly this fast-slow division of labour.' },
+          },
+        ],
+      },
+      {
+        kind: 'code',
+        tag: { zh: 'RM 一行本体', en: 'The one-line body of RM' },
+        stem: { zh: 'RM 算法本体只有一行，骨架是 w ← w + α(目标 − w)。代码里被挖掉一个符号，补上：[[1]]', en: 'The body of RM is a single line with the skeleton w ← w + α(target − w). One symbol is missing from the code — fill it in: [[1]]' },
+        code: { zh: 'w = w + alpha * ([[1]] - w)', en: 'w = w + alpha * ([[1]] - w)' },
+        blanks: [
+          {
+            choices: [
+              { zh: 'target——本轮的目标（增量均值里是样本 xₖ，TD 里是 r + γv(s′)）', en: 'target — this round’s target (the sample xₖ in the incremental mean; r + γv(s′) in TD)' },
+              { zh: 'w——旧估计自己（差恒为零，迭代原地踏步）', en: 'w — the old estimate itself (the gap is always zero, so the iteration stalls in place)' },
+              { zh: 'eta——本轮噪声（往纯噪声方向挪，只会偏离更远）', en: 'eta — this round’s noise (stepping toward pure noise only drifts farther off)' },
+            ],
+            answer: 0,
+            why: { zh: '括号里必须是"目标 − 当前估计"——这个差是全部动力，每次把旧估计往目标挪 α 的比例。增量均值、SGD、TD 换的只是"目标"的马甲：xₖ、∇f(w,x)、r + γv(s′)；骨架一个字不动。RM 的黑盒版则直接用带噪声的读数：w ← w − aₖg̃(w, η)。', en: 'The brackets must hold "target − current estimate" — that gap is the entire engine, moving the old estimate an α-share toward the target each round. The incremental mean, SGD and TD only change the target’s costume: xₖ, ∇f(w,x), r + γv(s′); the skeleton never moves. RM’s black-box form uses the noisy reading directly: w ← w − aₖg̃(w, η).' },
+          },
+        ],
+      },
+      {
+        kind: 'number',
+        tag: { zh: '抖动的价格', en: 'The price of jitter' },
+        stem: { zh: 'sgd_mean 用常数步长估均值：先快速逼近，再在邻域内永久抖动，稳态抖动幅度 ∝ α²·var[X]。把 α 从 0.2 减到它的默认值 0.1，抖动幅度变为原来的 [[1]] 倍。', en: 'sgd_mean estimates the mean with a constant step: fast approach first, then eternal jitter in a neighbourhood, with steady-state wobble amplitude ∝ α²·var[X]. Lowering α from 0.2 to its default 0.1 makes the wobble [[1]] times as large.' },
+        blanks: [
+          {
+            answer: 0.25, tol: 0.01,
+            hint: { zh: '幅度跟 α 的平方走', en: 'Amplitude tracks the square of α' },
+            why: { zh: '0.1² / 0.2² = 1/4：α 减半，抖动变四分之一——想让抖动砍半，α 得除以 √2。反过来这也标出常数步长的用途边界：目标漂移时你要的正是"忘得掉"，小常数反而是正确选择；目标固定时它只是永远消不掉的方差。', en: '0.1² / 0.2² = 1/4: halve α and the wobble quarters — to halve the wobble you must divide α by √2. This also marks the boundary of constant steps’ usefulness: with a drifting target you want exactly this forgetting, so a small constant is right; with a fixed target it is just variance that never dies.' },
+          },
+        ],
+      },
+    ],
+  };
 
 
   /* 导航组注册已提升至 data.js 的 NAV（按讲懒加载后，冷启动侧栏也要完整） */

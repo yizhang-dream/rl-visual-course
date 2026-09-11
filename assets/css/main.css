@@ -893,6 +893,109 @@ html[data-theme="forest"] .hero-title .grad { color: var(--accent); font-style: 
   .lab-stage { margin: 0 auto; }
 }
 
+/* ─────────────── 知识填空 FillLab ───────────────
+   颜色只用既有 token（--green/--red/--accent 及各自 soft 底等），五套主题通用；
+   动效只做颜色过渡（无位移），prefers-reduced-motion 下整体退化为直出。 */
+.fill-sub { font: 600 12px var(--font); color: var(--ink-3); }
+.fill-item {
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--surface); box-shadow: var(--shadow-1);
+  padding: 13px 16px 12px; margin: 0 0 12px;
+}
+.fill-item-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 6px; }
+.fill-tag {
+  display: inline-flex; align-items: baseline; gap: 7px;
+  font: 700 11px var(--mono); letter-spacing: 1px;
+  color: var(--accent-deep); background: var(--accent-soft);
+  padding: 3px 11px; border-radius: 99px;
+}
+.fill-tag .en { font-size: 10px; opacity: .85; }
+.fill-lines { display: flex; flex-direction: column; gap: 2px; }
+.fill-line { margin: 0; font-size: 14.5px; line-height: 2.15; color: var(--ink); }
+.fill-line .en { color: var(--ink-2); }
+.fill-line.mono {
+  font-family: var(--mono); font-size: 13px; line-height: 2;
+  background: var(--bg-soft); border: 1px solid var(--line); border-radius: 8px;
+  padding: 6px 12px; margin-top: 6px;
+  overflow-x: auto; white-space: nowrap;
+}
+/* 双语行（P 元素上的 .zh/.en，补全局 span 规则覆盖不到处） */
+body[data-lang="zh"] .fill-line.en,
+body[data-lang="en"] .fill-line.zh { display: none; }
+
+/* 空槽（choice/code 的按钮槽） */
+.fill-slot {
+  appearance: none; cursor: pointer;
+  display: inline-block; min-width: 74px; max-width: 260px;
+  margin: 0 3px; padding: 1px 12px; vertical-align: baseline;
+  font: 600 13px var(--font); line-height: 1.7; text-align: center;
+  color: var(--accent-deep); background: var(--accent-soft);
+  border: 1.5px dashed color-mix(in srgb, var(--accent) 55%, transparent);
+  border-radius: 8px;
+  transition: background-color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+.fill-slot:hover { border-color: var(--accent); }
+.fill-slot-txt {
+  display: inline-block; max-width: 232px; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom;
+}
+.fill-slot-ph { color: var(--ink-3); opacity: .75; font-family: var(--mono); font-size: 11.5px; }
+/* number 窄输入框 */
+.fill-num {
+  width: 92px; margin: 0 3px; padding: 1px 9px;
+  font: 600 13px var(--mono); line-height: 1.7; text-align: center;
+  color: var(--ink); background: var(--surface);
+  border: 1.5px dashed var(--line-strong); border-radius: 8px;
+  transition: background-color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+.fill-num:focus { border-style: solid; border-color: var(--accent); }  /* 焦点环继承全局 :focus-visible */
+/* 判分对错：复用 callout.done / callout.danger 同一套主题变量 */
+.fill-slot.right, .fill-num.right { border-style: solid; border-color: var(--green); background: var(--green-soft); color: var(--ink); }
+.fill-slot.wrong, .fill-num.wrong { border-style: solid; border-color: var(--red);   background: var(--red-soft);   color: var(--ink); }
+
+/* 选项组（role=group；单选语义 aria-pressed） */
+.fill-opts {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin: 8px 0 2px; padding: 10px 12px;
+  border: 1px dashed var(--line-strong); border-radius: 9px; background: var(--bg);
+}
+.fill-opt {
+  appearance: none; cursor: pointer; text-align: left;
+  display: inline-flex; flex-direction: column; align-items: flex-start; gap: 1px;
+  font: 600 13px var(--font); color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line-strong);
+  border-radius: 8px; padding: 5px 13px;
+  transition: background-color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+.fill-opt:hover { border-color: var(--accent); }
+.fill-opt.picked { border-color: var(--accent); background: var(--accent-soft); }
+.fill-opt .zh { font-weight: 700; }
+.fill-opt .en { font-size: 11.5px; color: var(--ink-3); }
+
+/* 判分播报 / why 讲解卡 / 底部得分行 */
+.fill-item-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 9px; }
+.fill-verdict { font: 700 12.5px var(--font); min-height: 1em; }
+.fill-verdict.good { color: var(--green); }
+.fill-verdict.bad  { color: var(--red); }
+.fill-why {
+  display: flex; flex-direction: column; gap: 5px;
+  margin-top: 9px; padding: 9px 14px;
+  background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent);
+  border-radius: 9px;
+}
+.fill-why-line { display: flex; gap: 9px; align-items: flex-start; margin: 0; }
+.fill-why-no {
+  flex: none; min-width: 20px; height: 20px; border-radius: 99px;
+  text-align: center; line-height: 20px;
+  font: 700 11.5px var(--mono); color: var(--on-accent); background: var(--accent);
+}
+.fill-why-body { flex: 1; min-width: 0; margin: 0; font-size: 13.5px; }
+.fill-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-top: 4px; }
+.fill-score { font: 700 12.5px var(--mono); color: var(--ink-3); }
+@media (prefers-reduced-motion: reduce) {
+  .fill-slot, .fill-num, .fill-opt { transition: none; }
+}
+
 /* ═══════════════════════════════════════════════════════════════
    主题系统 · html[data-theme]
    classic = :root 默认值；以下四套各自覆盖 tokens + 动效性格

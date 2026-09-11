@@ -120,6 +120,7 @@
       { t: 'p', zh: '本章问答的核心全是"中间值算不算状态值"这个细思恐极的问题，以及收敛保证。', en: 'This chapter\'s Q&As circle the spine-chilling question "are intermediate values state values?", plus convergence guarantees.' },
       { t: 'p', zh: '翻卡前先自查三个最易翻车的点：① 值迭代的中间量 v<sub>k</sub> 是不是状态值（不是——它不满足任何策略的 Bellman 方程）；② 停止时 ‖Δv‖ &lt; ε 对应的真实误差是多少（γε/(1−γ)，γ = 0.9 时是 9ε）；③ 策略迭代凭什么有限步终止（策略总数有限 + 每轮严格改进或已最优）。答不上哪条，就回对应小节再看一遍。', en: 'Before flipping cards, self-check the three most crash-prone points: ① is VI’s intermediate v<sub>k</sub> a state value (no — it satisfies no policy’s Bellman equation); ② what true error does ‖Δv‖ &lt; ε at stopping correspond to (γε/(1−γ), a factor 9 at γ = 0.9); ③ why does policy iteration terminate in finitely many steps (finitely many policies + strict improvement or already optimal). If any answer escapes you, revisit the matching section.' },
       { t: 'widget', component: 'qa-lab', props: { source: 'l4' } },
+      { t: 'widget', component: 'fill-lab', props: { source: 'l4' } },
     ],
   };
 
@@ -234,6 +235,106 @@ def policy_iteration(env, gamma=0.9, theta=1e-6, max_outer=1_000):
     { tag: 'Q6 · 补充', q: { zh: '三种 DP 算法（VI/截断 PI/PI）工程上怎么选？', en: 'How to choose among VI / truncated PI / PI in practice?' },
       a: { zh: '看"每轮评估精度 vs 轮数"的总账：世界小、θ 松 → 策略迭代几轮就完；世界大、单轮要省 → 值迭代或小 j 的截断版。经验法则：j 取 3~10 常常总扫描数最少。广义策略迭代告诉你：只要"评估↔改进"在交替，就是同一家族。', en: 'Balance per-round evaluation cost against number of rounds: small worlds with loose θ finish in a few policy-iteration rounds; large worlds favour value iteration or truncated with small j. Rule of thumb: j around 3–10 often minimises total sweeps. Generalised policy iteration says: as long as evaluation and improvement alternate, it is one family.' } },
   ];
+
+  /* ═══ L4 知识填充 ═══ */
+  D.fillSets = D.fillSets || {};   // 兜底：若 data.js 核心尚未注册 fillSets 容器，此处就地创建；已注册则为空操作
+  D.fillSets['l4'] = {
+    title: { zh: '第四讲 · 知识填充', en: 'Lecture 4 · Knowledge Fill-in' },
+    items: [
+      { kind: 'choice',
+        tag: { zh: 'T1 · 收敛', en: 'T1 · Convergence' },
+        stem: { zh: '值迭代的收敛速度由 [[1]] 一手决定：误差每轮精确地乘上它一次——γ = 0.9 时约 22 轮缩小 10 倍。',
+                en: 'The speed of value iteration is dictated entirely by [[1]]: the error is multiplied by it exactly once per round — a factor of 10 about every 22 rounds at γ = 0.9.' },
+        blanks: [
+          { choices: ['γ（压缩系数）', 'ε（停止阈值）', '‖v₀ − v*‖（初值误差）'], answer: 0,
+            why: { zh: '一轮迭代就是映射 f(v) = max_π(r_π + γP_π v)，∞-范数下是系数恰为 γ 的压缩映射，所以误差每轮 ×γ、几何式收敛。ε 只决定何时停，不决定每轮压多快；初值只定第 0 轮的起点，γ < 1 时速率与它无关。',
+                    en: 'One round is the map f(v) = max_π(r_π + γP_π v), a contraction with factor exactly γ in the ∞-norm, so the error is multiplied by γ per round — geometric convergence. ε only decides when to stop, not how fast each round squeezes; the initial value merely sets the starting point, and for γ < 1 the rate is independent of it.' } },
+        ] },
+      { kind: 'number',
+        tag: { zh: 'T2 · 误差界', en: 'T2 · Error bound' },
+        stem: { zh: '误差界 ‖v* − vₙ‖ ≤ γ^(n+1)/(1−γ) · max|r|：取 γ = 0.9、max|r| = 1、n = 0，右端等于 [[1]]。',
+                en: 'The bound ‖v* − vₙ‖ ≤ γ^(n+1)/(1−γ) · max|r|: with γ = 0.9, max|r| = 1 and n = 0, the right-hand side equals [[1]].' },
+        blanks: [
+          { answer: 9, tol: 0.01,
+            hint: { zh: '0.9 的 1 次方，除以 0.1。', en: '0.9 to the power 1, divided by 0.1.' },
+            why: { zh: '0.9¹/(1−0.9) = 0.9/0.1 = 9。这正是本讲 3×3 数值演算里的真实误差：v₁(s9) = 1 而 v*(s9) = 10，‖v₁ − v*‖ = 9×0.9⁰ = 9——压缩映射的预言与实验逐轮吻合。',
+                   en: '0.9¹/(1−0.9) = 0.9/0.1 = 9. This is exactly the true error in the lecture’s 3×3 numeric run: v₁(s9) = 1 while v*(s9) = 10, so ‖v₁ − v*‖ = 9×0.9⁰ = 9 — the contraction prediction matches the experiment round by round.' } },
+        ] },
+      { kind: 'number',
+        tag: { zh: 'T3 · ε 换算', en: 'T3 · ε conversion' },
+        stem: { zh: '以 ‖v_{k+1} − v_k‖ < ε 为停止条件：γ = 0.9、ε = 0.1 时，真实误差 ‖v_k − v*‖ 至多是 [[1]]。',
+                en: 'Stop when ‖v_{k+1} − v_k‖ < ε: with γ = 0.9 and ε = 0.1, the true error ‖v_k − v*‖ is at most [[1]].' },
+        blanks: [
+          { answer: 0.9, tol: 0.005,
+            hint: { zh: '换算公式：‖v_k − v*‖ ≤ γε/(1−γ) = 9ε。', en: 'The conversion: ‖v_k − v*‖ ≤ γε/(1−γ) = 9ε.' },
+            why: { zh: '由压缩性一步推出 ‖v_k − v*‖ ≤ γε/(1−γ)：γ = 0.9 时即 9ε，ε = 0.1 换算出 0.9。相邻两轮的差不是当前误差——两者在这里差整整 9 倍；写报告要给换算后的界，别把 ε 本身当误差上报。',
+                   en: 'One contraction step gives ‖v_k − v*‖ ≤ γε/(1−γ): at γ = 0.9 that is 9ε, and ε = 0.1 converts to 0.9. The round-to-round gap is not the current error — here the two differ by a factor of 9; quote the converted bound in reports, not ε itself.' } },
+        ] },
+      { kind: 'code',
+        tag: { zh: 'T4 · VI 主循环', en: 'T4 · VI main loop' },
+        stem: { zh: '补全值迭代主循环的收尾一行（dp_algorithms.py）：把 q 表沿动作维取 [[1]]，逐状态得到新价值。',
+                en: 'Complete the closing line of value iteration’s main loop (dp_algorithms.py): take the [[1]] over the action axis of the q-table to obtain the new value per state.' },
+        code: { zh: 'v_new = q_all.[[1]](axis=1)          # value update',
+                en: 'v_new = q_all.[[1]](axis=1)          # value update' },
+        blanks: [
+          { choices: ['max', 'sum', 'mean', 'argmax'], answer: 0,
+            why: { zh: '价值更新是 v_{k+1}(s) = max_a q_k(s,a)——沿动作维取 max，得到的是数值；argmax 是策略更新那一步，返回动作下标。sum/mean 是对随机策略的加权平均：用在这里，就把"取过 max 的 v"错当成了动作价值——本讲高频误区①。',
+                   en: 'The value update is v_{k+1}(s) = max_a q_k(s,a) — a max over the action axis, yielding a number; argmax belongs to the policy update and returns an action index. sum/mean is the π-weighted average used to evaluate a random policy: putting it here mistakes the argmaxed v for action values — misconception ① of this lecture.' } },
+        ] },
+      { kind: 'choice',
+        tag: { zh: 'T5 · 有限终止', en: 'T5 · Finite termination' },
+        stem: { zh: '策略迭代能有限步精确终止，靠两件事：每轮严格改进或已最优；以及确定性策略总数至多 [[1]] 个——有限集合里不可能无限次严格改进。',
+                en: 'Policy iteration terminates exactly in finitely many steps thanks to two facts: each round strictly improves or is already optimal; and the number of deterministic policies is at most [[1]] — a finite set cannot be strictly improved forever.' },
+        blanks: [
+          { choices: ['|A|^|S|', '|S|·|A|', '|S| + |A|'], answer: 0,
+            why: { zh: '|S| 个状态各从 |A| 个动作里挑一个，确定性策略至多 |A|^|S| 个。严格改进意味着同一个策略不会第二次出现，序列又被 v* 封顶——有限集合里的单调爬坡，至多 |A|^|S| 轮必达最优。对照：VI 渐近收敛，理论上永远差一点。',
+                   en: '|S| states each pick one of |A| actions, so there are at most |A|^|S| deterministic policies. Strict improvement means no policy can reappear, and the sequence is capped by v* — monotone hill-climbing in a finite set reaches optimality within |A|^|S| rounds. Contrast: VI converges only asymptotically and is never quite there in theory.' } },
+        ] },
+      { kind: 'code',
+        tag: { zh: 'T6 · PI 改进步', en: 'T6 · PI improvement' },
+        stem: { zh: '补全策略迭代的改进步（dp_algorithms.py）：对 q_{π_k} 沿动作维取 [[1]] 挑出新动作，再 one-hot 展开成新策略。',
+                en: 'Complete policy iteration’s improvement step (dp_algorithms.py): take the [[1]] over the action axis of q_{π_k} to pick the new action, then expand it one-hot into the new policy.' },
+        code: { zh: 'pi_new[np.arange(n), q.[[1]](axis=1)] = 1.0',
+                en: 'pi_new[np.arange(n), q.[[1]](axis=1)] = 1.0' },
+        blanks: [
+          { choices: ['argmax', 'max', 'argsort'], answer: 0,
+            why: { zh: '策略更新 π_{k+1}(s) = argmax_a q_k(s,a) 要的是"哪个动作最好"——下标；T4 那行 max 要的是"最好多少"——数值。一字之差，写错就把策略表填成了价值表。挑出下标后 one-hot 展开，与 L3 的 greedy_policy 完全同款。',
+                   en: 'The policy update π_{k+1}(s) = argmax_a q_k(s,a) wants WHICH action is best — an index; the max line in T4 wants HOW good — a number. One letter apart, and mixed up the policy table gets filled with values. After the index comes the one-hot expansion, identical to L3’s greedy_policy.' } },
+        ] },
+      { kind: 'choice',
+        tag: { zh: 'T7 · VI vs PI', en: 'T7 · VI vs PI' },
+        stem: { zh: '5×5 世界（r_forbidden = −10）赛跑实验台（阈值 Δ < 1e-4）：值迭代跑了 89 轮全扫描才收敛，策略迭代外层 4~5 轮就停——但每轮内层评估自己也要几十次扫描。总账的正确读法是 [[1]]。',
+                en: 'The 5×5 race lab (r_forbidden = −10, threshold Δ < 1e-4): value iteration needs 89 full sweeps to converge, while policy iteration stops after 4–5 outer rounds — though each round’s inner evaluation costs dozens of sweeps itself. The right way to read the bill is [[1]].' },
+        blanks: [
+          { choices: [
+              { zh: 'PI 单轮贵（内层解到底）但外层轮数少，VI 单轮便宜但轮数多——总账看 θ 和世界大小，把评估步截断到 j 步常是折中', en: 'PI rounds are pricey (evaluation solved to the end) but few; VI rounds are cheap but many — the bill depends on θ and world size, and truncating the evaluation to j steps is the usual compromise' },
+              { zh: 'PI 每一方面都严格占优，工程上永远该选 PI', en: 'PI dominates VI in every respect; always choose PI in practice' },
+              { zh: 'VI 单轮贵但外层轮数少，PI 单轮便宜但轮数多', en: 'VI is pricey per round but takes few rounds; PI is cheap per round but takes many' } ],
+            answer: 0,
+            why: { zh: 'PI 一轮 = 内层把 Bellman 方程解到收敛（几十次全扫描）+ 一次贪心，4~5 轮就到最优；VI 一轮 = 一次全扫描，同一阈值下要 89 轮。单轮更贵 × 轮数更少，总账谁省取决于 θ 与世界大小——所以工程上常把评估步截断到 j 步（见 T8/T9）。',
+                   en: 'One PI round = solving the Bellman equation to convergence (dozens of full sweeps) plus one greedy pass, reaching optimality in 4–5 rounds; one VI round = a single sweep, but 89 rounds at the same threshold. Pricier rounds times fewer rounds: which bill wins depends on θ and world size — hence the practical compromise of truncating the evaluation to j steps (see T8/T9).' } },
+        ] },
+      { kind: 'choice',
+        tag: { zh: 'T8 · 截断谱系', en: 'T8 · Truncation spectrum' },
+        stem: { zh: '截断策略迭代把评估步只跑 j 步就停下来改进：j = 1 时退化为 [[1]]，j → ∞ 时就是策略迭代——两个极端被一个旋钮接成连续谱。',
+                en: 'Truncated policy iteration runs the evaluation for only j steps before improving: j = 1 degenerates to [[1]], and j → ∞ is policy iteration — one dial joins the two extremes into a spectrum.' },
+        blanks: [
+          { choices: ['值迭代', '广义策略迭代', '蒙特卡洛估计'], answer: 0,
+            why: { zh: 'j = 1：每轮只走一步 Bellman（PU+VU），正是值迭代；j = ∞：评估解到底，即策略迭代。截断后贪心针对的 v 不再是任何策略的真状态值，引理 4.1 的"每轮严格改进"保证随之失效（实践中适中的 j 极少震荡）。另注意：j 数的是内层评估步数，不是外层轮数。',
+                   en: 'j = 1: one Bellman step per round (PU+VU), exactly value iteration; j = ∞: evaluation solved to the end, i.e. policy iteration. Once truncated, the v you are greedy against is no longer any policy’s true state value, so Lemma 4.1’s strict-improvement guarantee lapses (oscillation is rare in practice for modest j). And note: j counts inner evaluation steps, not outer rounds.' } },
+        ] },
+      { kind: 'number',
+        tag: { zh: 'T9 · j 的总账', en: 'T9 · The bill for j' },
+        stem: { zh: '截断实验台（4×4 作业世界，均匀随机起点）扫 j ∈ {1, 2, 3, 5, 10, 30}：j = 30（近似策略迭代）外层 3 轮收敛，内层评估总扫描 [[1]] 次。',
+                en: 'The truncation lab (4×4 homework world, uniform random start) sweeps j ∈ {1, 2, 3, 5, 10, 30}: at j = 30 (≈ policy iteration) it converges in 3 outer rounds with [[1]] inner evaluation sweeps in total.' },
+        blanks: [
+          { answer: 90, tol: 2,
+            hint: { zh: '每轮 30 次内层扫描，共 3 轮。', en: '30 inner sweeps per round, 3 rounds.' },
+            why: { zh: '30 次/轮 × 3 轮 = 90。对照同一实验台的 j = 1（即值迭代）：5 轮、总扫描仅 5 次——小世界上 VI 的总账更省，"中间 j 总扫描最少"通常要到大世界才显现。评估不彻底并不致命：贪心只看动作名次，只要截断误差小于动作间的价值差距，挑出的动作就不变。',
+                   en: '30 per round × 3 rounds = 90. Compare j = 1 (value iteration) on the same lab: 5 rounds, only 5 sweeps in total — on a small world VI wins the bill; a middle j usually minimises sweeps only on larger worlds. An unfinished evaluation is not fatal: greedy cares only about the ranking of actions, and as long as the truncation error stays below the value gaps, the chosen actions do not change.' } },
+        ] },
+    ],
+  };
 
 
   /* 导航组注册已提升至 data.js 的 NAV（按讲懒加载后，冷启动侧栏也要完整） */
