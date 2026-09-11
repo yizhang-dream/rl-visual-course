@@ -37,7 +37,7 @@
 try { document.documentElement.dataset.theme = localStorage.getItem('rl-viz-theme') || 'chalk'; } catch (e) {}
 // 静态资源版本戳：发版即改。/assets/ 在 nginx 配了长缓存强缓存，靠这个参数让
 // 更新后的文件立刻穿透浏览器缓存（loader.js 动态注入也读它）
-window.RLV_VERSION = '20260910b';
+window.RLV_VERSION = '20260911a';
 </script>
 <link rel="stylesheet" href="assets/css/main.css?v=20260910b">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">

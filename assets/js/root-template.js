@@ -180,6 +180,10 @@ window.ROOT_TEMPLATE = `
           <span>基于 Shiyu Zhao《Mathematical Foundation of Reinforcement Learning》全书十讲与西湖大学 IUSLab 网格世界代码制作 · 仅用于学习</span>
           <span>Built on all ten chapters of "Mathematical Foundation of Reinforcement Learning" and the IUSLab grid-world code, Westlake University · For study only</span>
         </p>
+        <p class="bi-footer" style="margin-top:5px">
+          <span><a class="footer-link" href="graph3d.html">知识星图 · 3D 全书知识网络</a></span>
+          <span><a class="footer-link" href="graph3d.html">Knowledge Constellation</a></span>
+        </p>
       </footer>
     </main>
   </div>

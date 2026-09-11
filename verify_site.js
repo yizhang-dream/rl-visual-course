@@ -335,6 +335,26 @@ fs.mkdirSync(OUT, { recursive: true });
     await page.click('.theme-switch .theme-btn >> nth=0');   // 切回 chalk 默认
   } catch (e) { errors.push('[smoke-dark] ' + e.message); }
 
+  // ── graph3d 知识星图冒烟：stats 口径、搜索选中、深链 href、WebGL 画布/降级 ──
+  try {
+    await page.goto('http://localhost:8642/graph3d.html');
+    await page.waitForSelector('#g3d-stats', { timeout: 15000 });
+    const statsTxt = (await page.textContent('#g3d-stats')) || '';
+    ok(statsTxt.includes('88'), '[graph3d] stats lists 88 sections');
+    ok(statsTxt.includes('10'), '[graph3d] stats lists 10 lectures');
+    await page.fill('#g3d-search', 'Bellman');
+    await page.waitForSelector('.g3d-result', { timeout: 5000 });
+    await page.click('.g3d-result');
+    ok(await page.isVisible('#g3d-info .g3d-title'), '[graph3d] info panel opens on select');
+    const goHref = await page.getAttribute('#g3d-info .g3d-go', 'href');
+    ok(/index\.html#sec-/.test(goHref || ''), '[graph3d] deep-link href = ' + goHref);
+    ok((await page.$('#g3d-canvas canvas')) || (await page.isVisible('#g3d-fallback')), '[graph3d] webgl canvas or fallback');
+    await page.screenshot({ path: path.join(OUT, 'graph3d.png') });
+    console.log('graph3d assert: stats=' + statsTxt.replace(/\s+/g, ' ').trim().slice(0, 60)
+      + ' goHref=' + goHref
+      + ' canvas=' + (!!(await page.$('#g3d-canvas canvas'))));
+  } catch (e) { errors.push('[graph3d] ' + e.message); }
+
   // ── file:// 双击可用冒烟：KaTeX 相对路径 css/字体在 file 协议下可加载、公式可渲染 ──
   try {
     const fileUrl = 'file:///' + encodeURI(__dirname.replace(/\\/g, '/')) + '/index.html#sec-l2-matrix';

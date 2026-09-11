@@ -1543,3 +1543,16 @@ html[data-theme] .reveal.in { transform: none; }
   .lab, .formula-card, .qa-card, .callout, .course-map-card,
   .lesson-section header.sec-head { break-inside: avoid; page-break-inside: avoid; }
 }
+
+/* ── 独立页入口链接（footer / 课程地图图注）：token 化，防 UA 默认蓝紫破主题 ── */
+footer .footer-link,
+.map-caption a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px dotted color-mix(in srgb, var(--accent) 55%, transparent);
+}
+footer .footer-link:hover,
+.map-caption a:hover {
+  color: var(--accent-deep);
+  border-bottom-style: solid;
+}

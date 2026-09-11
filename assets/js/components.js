@@ -637,6 +637,7 @@
         <button class="btn primary" style="padding:11px 22px; font-size:14.5px" @click="$emit('go','grid-world')">🚀 <span v-html="bi('从第一课开始','Start from Lesson 1')"></span></button>
         <button class="btn" style="padding:11px 20px" @click="$emit('go','l2-bellman')">🧮 <span v-html="bi('直达 Bellman 方程','Bellman equation')"></span></button>
         <button class="btn" style="padding:11px 20px" @click="$emit('go','l7-td0')">⚖️ <span v-html="bi('直达 Q-learning','Q-learning')"></span></button>
+        <a class="btn ghost" style="padding:11px 20px; text-decoration:none" href="graph3d.html">🌌 <span v-html="bi('知识星图','Knowledge Map')"></span></a>
       </div>
       <div class="hero-stats">
         <div class="hero-stat"><b>{{ stats.sections }}</b><span v-html="bi('个小节双语精讲','sections, bilingual')"></span></div>
@@ -733,6 +734,7 @@
       <div class="map-caption">
         <span v-for="b in branches" :key="'lg-' + b.key"><i class="kt-swatch" :class="b.cls"></i><span v-html="bi(b.zh, b.en)"></span></span>
         <span v-html="bi('· 点击任意一讲进入其首节','· click any lecture to enter')"></span>
+        <span v-html="bi(' · 或先看 <a href=&quot;graph3d.html&quot;>3D 知识星图</a>',' · or start from the <a href=&quot;graph3d.html&quot;>3D map</a>')"></span>
       </div>
     </div>`,
     setup() { return { bi }; },

@@ -11,6 +11,18 @@
 - **键盘可访问**：Q&A 翻转卡与网格可编辑格子支持 Tab + Enter/Space；全部滑杆带 `aria-label`；全局 `:focus-visible` 焦点环；`<html lang>` 随语言切换
 - **五主题全适配**：图表/棋盘颜色全部走 CSS 变量（`--chart-*` / `--cell-alt`），深色主题下无白底突兀块
 
+## 3D 知识星图 graph3d.html
+
+独立页 `graph3d.html`：全书 **88 小节 + 10 讲枢纽**的 3D 网状知识图（3d-force-graph 本地化，离线可用）。
+
+- 节点 = 小节，10 讲为枢纽节点；跨讲关联边带语义（前置 / 对照 / 延伸 / 应用）
+- **8 条学习线索**：一键高亮成路径，按线索顺序走通全书
+- **知识前沿**：结合已读进度（复用 `localStorage('rl-viz-visited')`）推荐下一步该看的节点
+- 点击任意节点直达小节 `#sec-` 深链（与主站 hash 路由互通）
+- 五主题 / 双语适配，与主站共享主题与语言记忆
+- 数据再生成：改了任一 `data-lX.js` 后跑 `node scripts/build_graph3d.js`（输出 `assets/js/graph3d-data.js`）
+- vendor：`assets/vendor/graph3d/`（npm devDependency `3d-force-graph` 的 dist 拷贝）
+
 ## 打开方式
 
 - 方式一：本地服务器 → `python -m http.server 8642` 后访问 <http://localhost:8642/>
@@ -45,14 +57,22 @@
 ```
 rl-viz/
 ├── index.html              # SPA 外壳（根模板 + 全部脚本标签）
+├── graph3d.html            # 独立页：3D 知识星图（全书网状知识网络）
 ├── assets/
 │   ├── css/main.css        # 设计系统（tokens/双语排版/全部组件样式）
+│   ├── css/graph3d.css     # 知识星图独立页样式（搜索/线索/信息面板）
 │   ├── vendor/             # vue.global.prod.js + gsap.min.js（本地化）
+│   ├── vendor/graph3d/     # 3d-force-graph dist（本地化，仅 graph3d.html 加载）
 │   └── js/
 │       ├── data.js         # 核心注册表 + L1 内容（表格/策略/代码块/推理链）
 │       ├── data-l2..l10.js # 每讲内容：小节（双语块）+ 推理链 + 代码块 + QA
 │       ├── components.js   # GridBoard 网格引擎 + L1 实验台 + 共享助手(window.RLV)
-│       └── components-l2..l10.js  # 每讲交互实验台
+│       ├── components-l2..l10.js  # 每讲交互实验台
+│       ├── graph3d-data.js # 知识图数据（由 scripts/build_graph3d.js 生成）
+│       ├── graph3d.js      # 知识星图应用逻辑（搜索/选择/线索/知识前沿/深链）
+│       └── graph3d-render.js  # 3D 渲染器工厂（window.G3DRender，封装 3d-force-graph）
+├── scripts/
+│   └── build_graph3d.js    # 从 data*.js 再生成 graph3d-data.js（节点/关联边/线索）
 ├── check_templates.js      # 开发工具：Vue 编译器校验全部模板 + 导航/小节交叉检查
 ├── verify_site.js          # 开发工具：无头 Edge 整页截图 + 控制台错误 + 交互冒烟
 └── shots/                  # verify_site.js 生成的验收截图
@@ -89,5 +109,6 @@ rl-viz/
 | 第二轮 | 2026-09-10 | `f4c4190` | 全书深化：三层知识树、内容加厚（422 块 / 7.6 万字）、语言润色、动效系统 v2 |
 | 第三轮 | 2026-09-10 | 见 git log | 链接与包容性：hash 路由深链 + 进度持久化 + 键盘可访问性 + 双语/主题净化 + 教学勘误（L10 真实 δ 轨迹、L7 清理、RingBoot 视口外暂停） |
 | 第四轮 | 2026-09-10 | 见 git log | 结构与性能与公式工程：components 按讲拆分 + 根模板组件化 + sr()/种子化统一；按讲懒加载 + GSAP 移除（首载 1.15MB→0.40MB，-64%）；KaTeX 公式升级（57 块全 TeX 化、矩阵/分式真排版、vendor 本地按需加载）；SEO meta/JSON-LD + 打印样式；eslint + GitHub Actions CI + verify_site 26 条断言化；对比度 WCAG AA 调优（ink-3 与 chart-ink 五主题 ≥4.5:1）；27 节补 ConceptChain 复盘链（88/88 节有交互组件）；实验台口径修正为 62 |
+| 第五轮 | 2026-09-11 | 见 git log | 知识星图：3D 网状知识图独立页（88 节点+10 枢纽+40 精选关联+8 线索+知识前沿），vendor 3d-force-graph 本地化，verify_site 加 graph3d 冒烟 |
 
-**质量门禁**：`npm test`（模板编译 + 数据完整性）与 `npm run lint` 本地必过；`node verify_site.js` 26 条冒烟断言 + 零 console 错误；推送后 GitHub Actions 自动跑 check + smoke 两个 job。
+**质量门禁**：`npm test`（模板编译 + 数据完整性）与 `npm run lint` 本地必过；`node verify_site.js` 29 条冒烟断言 + 零 console 错误；推送后 GitHub Actions 自动跑 check + smoke 两个 job。

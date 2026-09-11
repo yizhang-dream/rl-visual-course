@@ -23,6 +23,9 @@ export default [
         RLVLoader: 'readonly',  // loader.js（window.RLVLoader）
         ROOT_TEMPLATE: 'readonly', // root-template.js（window.ROOT_TEMPLATE）
         DATA: 'readonly',       // 各 data*.js 挂在 window.DATA 上的课程数据
+        GRAPH3D: 'readonly',    // graph3d-data.js 挂在 window.GRAPH3D 的知识图数据
+        G3DRender: 'readonly',  // graph3d-render.js 挂在 window.G3DRender 的渲染器工厂
+        ForceGraph3D: 'readonly', // assets/vendor/graph3d/3d-force-graph.min.js（仅 graph3d.html 载入）
       },
     },
     rules: {

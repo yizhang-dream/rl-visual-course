@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>知识星图 · Knowledge Constellation — RL 可视化课堂</title>
+<meta name="description" content="《强化学习的数学原理》全书 88 小节 + 10 讲枢纽构成的 3D 知识星图：跨讲关联、前置关系与已读进度共同铺开的知识空间，找到下一步能学什么。">
+<script>
+// 主题防闪烁：在样式表生效前定好 data-theme（与 index.html 同款机制）
+try { document.documentElement.dataset.theme = localStorage.getItem('rl-viz-theme') || 'chalk'; } catch (e) {}
+// 静态资源版本戳：与站点一致，靠它穿透浏览器长缓存
+window.RLV_VERSION = '20260911a';
+</script>
+<link rel="stylesheet" href="assets/css/main.css?v=20260911a">
+<link rel="stylesheet" href="assets/css/graph3d.css?v=20260911a">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+</head>
+<body data-lang="both">
+
+<header class="g3d-topbar">
+  <a class="g3d-back" href="index.html"><span class="zh">← 返回课堂</span><span class="en">← Back</span></a>
+  <h1 class="g3d-heading"><span class="zh">知识星图</span><span class="en">Knowledge Constellation</span></h1>
+  <div class="g3d-tools">
+    <div class="g3d-lang" role="group" aria-label="Language / 语言">
+      <button type="button" class="g3d-lang-btn" data-lang="both">双语</button>
+      <button type="button" class="g3d-lang-btn" data-lang="zh">中</button>
+      <button type="button" class="g3d-lang-btn" data-lang="en">EN</button>
+    </div>
+    <div class="g3d-themes" role="group" aria-label="Theme / 主题">
+      <button type="button" class="g3d-theme-btn" data-theme="chalk" title="墨板 Chalkboard" aria-label="chalk"><span class="g3d-theme-dot dot-theme-chalk"></span></button>
+      <button type="button" class="g3d-theme-btn" data-theme="swiss" title="讲义 Swiss Notes" aria-label="swiss"><span class="g3d-theme-dot dot-theme-swiss"></span></button>
+      <button type="button" class="g3d-theme-btn" data-theme="quant" title="深空 Quant Dark" aria-label="quant"><span class="g3d-theme-dot dot-theme-quant"></span></button>
+      <button type="button" class="g3d-theme-btn" data-theme="forest" title="教科书 Forest" aria-label="forest"><span class="g3d-theme-dot dot-theme-forest"></span></button>
+      <button type="button" class="g3d-theme-btn" data-theme="classic" title="经典 Classic" aria-label="classic"><span class="g3d-theme-dot dot-theme-classic"></span></button>
+    </div>
+  </div>
+</header>
+
+<main class="g3d-main">
+  <!-- 3D 渲染器挂载点（graph3d-render.js 的 create(canvasEl, labelsEl) 消费这两个容器） -->
+  <div id="g3d-canvas"></div>
+  <div id="g3d-labels" aria-hidden="true"></div>
+
+  <!-- 左侧控制面板（可折叠；移动端为顶部抽屉） -->
+  <aside id="g3d-controls">
+    <button type="button" id="g3d-controls-toggle" aria-expanded="true" aria-controls="g3d-controls-body">
+      <span class="g3d-toggle-mark" aria-hidden="true"></span>
+      <span class="zh">图层与筛选</span><span class="en">Layers &amp; filters</span>
+    </button>
+    <div id="g3d-controls-body" class="g3d-controls-body">
+      <section class="g3d-panel-sec">
+        <h2 class="g3d-sec-title"><span class="zh">讲筛选</span><span class="en">Lectures</span></h2>
+        <div class="g3d-chips" id="g3d-lecture-chips"></div>
+        <div class="g3d-legend">
+          <div class="g3d-legend-item"><i class="g3d-dot lg-a"></i><span class="zh">L1 · 建模根基</span><span class="en">L1 · Modeling foundations</span></div>
+          <div class="g3d-legend-item"><i class="g3d-dot lg-v"></i><span class="zh">L2–L3 · 值与方程</span><span class="en">L2–3 · Values &amp; equations</span></div>
+          <div class="g3d-legend-item"><i class="g3d-dot lg-g"></i><span class="zh">L4 · 有模型</span><span class="en">L4 · Model-based</span></div>
+          <div class="g3d-legend-item"><i class="g3d-dot lg-gr"></i><span class="zh">L5–L8 · 无模型 · 值方法</span><span class="en">L5–8 · Model-free · value</span></div>
+          <div class="g3d-legend-item"><i class="g3d-dot lg-c"></i><span class="zh">L9–L10 · 策略方法</span><span class="en">L9–10 · Policy methods</span></div>
+        </div>
+      </section>
+      <section class="g3d-panel-sec">
+        <h2 class="g3d-sec-title"><span class="zh">边显示</span><span class="en">Edges</span></h2>
+        <label class="g3d-switch"><input type="checkbox" id="g3d-edge-link" checked><span class="g3d-switch-ui"></span><span class="g3d-switch-label"><span class="zh">关联边</span><span class="en">Link edges</span></span></label>
+        <label class="g3d-switch"><input type="checkbox" id="g3d-edge-struct"><span class="g3d-switch-ui"></span><span class="g3d-switch-label"><span class="zh">结构边</span><span class="en">Struct edges</span></span></label>
+        <label class="g3d-switch"><input type="checkbox" id="g3d-edge-spine" checked><span class="g3d-switch-ui"></span><span class="g3d-switch-label"><span class="zh">书脊</span><span class="en">Spine</span></span></label>
+      </section>
+      <section class="g3d-panel-sec">
+        <h2 class="g3d-sec-title"><span class="zh">线索</span><span class="en">Threads</span></h2>
+        <ul class="g3d-thread-list" id="g3d-thread-list"></ul>
+      </section>
+      <section class="g3d-panel-sec">
+        <h2 class="g3d-sec-title"><span class="zh">知识前沿</span><span class="en">Frontier</span></h2>
+        <label class="g3d-switch"><input type="checkbox" id="g3d-frontier-toggle"><span class="g3d-switch-ui"></span><span class="g3d-switch-label"><span class="zh">只看前沿</span><span class="en">Frontier only</span></span></label>
+        <p class="g3d-frontier-note"><span class="zh">前置已满足、尚未读的小节</span><span class="en">sections whose prerequisites you have read</span></p>
+      </section>
+    </div>
+  </aside>
+
+  <!-- 搜索（即时过滤，≤8 条，Enter 选第一条） -->
+  <div id="g3d-searchbox">
+    <input id="g3d-search" type="search" autocomplete="off" spellcheck="false"
+           placeholder="搜索小节 / 概念 · Search sections"
+           aria-label="Search sections / 搜索小节">
+    <div id="g3d-results"></div>
+  </div>
+
+  <!-- 选中节点的信息面板（右侧；JS 填充） -->
+  <aside id="g3d-info" hidden>
+    <button type="button" class="g3d-info-close" aria-label="Close / 关闭">✕</button>
+    <div class="g3d-kicker"></div>
+    <h2 class="g3d-title"></h2>
+    <p class="g3d-sum"></p>
+    <div class="g3d-concepts" hidden></div>
+    <div class="g3d-rels"></div>
+    <div class="g3d-threads-box" hidden>
+      <h3 class="g3d-rel-title"><span class="zh">线索</span><span class="en">Threads</span></h3>
+      <div class="g3d-thread-badges"></div>
+    </div>
+    <div id="g3d-path-box" hidden>
+      <h3 class="g3d-rel-title"><span class="zh">前置路径</span><span class="en">Prerequisite path</span></h3>
+      <div class="g3d-rel-list" id="g3d-path-list"></div>
+    </div>
+    <div class="g3d-info-actions">
+      <a class="g3d-go" href="index.html"><span class="zh">去学习 →</span><span class="en">Open →</span></a>
+      <button type="button" class="g3d-path"><span class="zh">前置路径</span><span class="en">Prereq path</span></button>
+    </div>
+  </aside>
+
+  <!-- 底部状态条（数字由 JS 更新；模板保证含字面 88 / 10） -->
+  <div id="g3d-stats">
+    <span class="zh">88 个小节 · 10 讲 · 已读 0 · 前沿可学 0</span>
+    <span class="en">88 sections · 10 lectures · visited 0 · ready to learn 0</span>
+  </div>
+
+  <div id="g3d-hint"><span class="zh">拖动旋转 · 滚轮缩放 · 点击节点查看</span><span class="en">drag · scroll · click</span></div>
+
+  <!-- WebGL 不可用 / 渲染器缺失时的降级：全书大纲清单 -->
+  <div id="g3d-fallback" hidden>
+    <p class="g3d-fallback-note">
+      <span class="zh">3D 星图不可用（缺 WebGL 或渲染器未就绪），已切换为大纲模式：点击任意小节查看详情，顶部搜索与左侧筛选照常可用。</span>
+      <span class="en">3D view unavailable (missing WebGL or renderer). Outline mode instead: click any section for details — search and filters keep working.</span>
+    </p>
+    <div id="g3d-outline"></div>
+  </div>
+
+  <div id="g3d-loading"><span class="zh">正在铺开星空…</span><span class="en">Unfolding the constellation…</span></div>
+</main>
+
+<script>
+// 脚本缺件容忍：只记账，不抛错；graph3d.js 里全部用 typeof 守卫消费
+window.__G3D_MISS = {};
+</script>
+<script src="assets/js/graph3d-data.js?v=20260911a" onerror="window.__G3D_MISS.data=true"></script>
+<script src="assets/vendor/graph3d/3d-force-graph.min.js?v=20260911a" onerror="window.__G3D_MISS.lib=true"></script>
+<script src="assets/js/graph3d-render.js?v=20260911a" onerror="window.__G3D_MISS.render=true"></script>
+<script src="assets/js/graph3d.js?v=20260911a"></script>
+</body>
+</html>

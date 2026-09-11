@@ -1,0 +1,751 @@
+/* ═══════════════════════════════════════════════════════════════
+   知识星图 · Knowledge Constellation — 页面样式
+   颜色全部走 main.css 的 token（五大主题下自动成立）；
+   圆角/阴影/过渡用 --radius/--shadow-*/--t-*/--ease；
+   本文件仅被 graph3d.html 加载，body 级布局不影响其他页。
+   ═══════════════════════════════════════════════════════════════ */
+
+:root { --g3d-top-h: 56px; }
+
+/* hidden 属性优先：面板的 display 规则不得压过它 */
+[hidden] { display: none !important; }
+
+/* ─────────────── 页面骨架 ─────────────── */
+body {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;   /* 星图页是全视口应用，滚动都在面板内部 */
+}
+
+.g3d-topbar {
+  flex: none;
+  position: relative;
+  z-index: 40;
+  height: var(--g3d-top-h);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 16px;
+  background: var(--topbar-bg);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+}
+.g3d-back {
+  flex: none;
+  color: var(--ink-2);
+  text-decoration: none;
+  font: 600 13px var(--font);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  white-space: nowrap;
+  transition: all var(--t-fast) var(--ease);
+}
+.g3d-back:hover { color: var(--ink); background: var(--bg-soft); border-color: var(--line); }
+.g3d-heading {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  font: 700 16px var(--display);
+  color: var(--ink);
+  overflow: hidden;
+  white-space: nowrap;
+}
+.g3d-heading .en { font: 500 12.5px var(--font); color: var(--ink-3); letter-spacing: .4px; }
+.g3d-tools { flex: none; display: flex; align-items: center; gap: 10px; }
+
+/* 语言三段切换（与首页 .lang-switch 同款手法，token 化重写） */
+.g3d-lang {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-radius: 99px;
+}
+.g3d-lang-btn {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: 600 12px var(--font);
+  color: var(--ink-2);
+  padding: 4px 11px;
+  border-radius: 99px;
+  transition: all var(--t-fast) var(--ease);
+}
+.g3d-lang-btn:hover { color: var(--ink); }
+.g3d-lang-btn.is-active {
+  background: var(--surface);
+  color: var(--accent-deep);
+  box-shadow: var(--shadow-1);
+}
+
+/* 五主题圆点切换器：每枚圆点取该主题的象征 token（不写死色值） */
+.g3d-themes {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 6px;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-radius: 99px;
+}
+.g3d-theme-btn {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 99px;
+  background: transparent;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: transform var(--t-fast) var(--ease);
+}
+.g3d-theme-btn:hover { transform: scale(1.14); }
+.g3d-theme-btn.is-active { box-shadow: 0 0 0 2px var(--bg-soft), 0 0 0 4px var(--ink-3); }
+.g3d-theme-dot {
+  display: block;
+  width: 13px;
+  height: 13px;
+  border-radius: 99px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 16%, transparent);
+}
+.dot-theme-chalk { background: var(--gold); }
+.dot-theme-swiss { background: var(--accent); }
+.dot-theme-quant { background: var(--cyan); }
+.dot-theme-forest { background: var(--green); }
+.dot-theme-classic { background: var(--violet); }
+
+/* ─────────────── 主区与画布 ─────────────── */
+.g3d-main {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+  /* 页面背景保持 var(--bg)（main.css），只叠两层 token 径向渐层增加纵深 */
+  background:
+    radial-gradient(900px 520px at 76% 10%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 65%),
+    radial-gradient(720px 460px at 16% 86%, color-mix(in srgb, var(--violet) 6%, transparent), transparent 62%);
+}
+#g3d-canvas {
+  position: absolute;
+  inset: 0;
+  background: transparent;   /* 渲染器挂载点：透出页面背景 */
+}
+#g3d-canvas canvas { display: block; }
+#g3d-canvas.is-hover { cursor: pointer; }
+#g3d-labels {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;   /* 渲染器管理的节点标签层 */
+}
+
+/* ─────────────── 节点标签（渲染器按 left/top + transform 定位写入） ─────────────── */
+.g3d-lb {
+  position: absolute;
+  left: 0;
+  top: 0;
+  max-width: 230px;
+  padding: 1px 8px;
+  font: 600 11px/1.6 var(--font);
+  color: var(--ink-2);
+  background: color-mix(in srgb, var(--surface) 74%, transparent);
+  border: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
+  border-radius: 999px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+.g3d-lb .zh, .g3d-lb .en { display: inline; }
+body[data-lang="both"] .g3d-lb .en::before { content: ' · '; opacity: 0.55; }
+.g3d-lb.hub {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  border-color: var(--line-strong);
+}
+
+
+/* ─────────────── 毛玻璃面板公共底 ─────────────── */
+#g3d-controls, #g3d-searchbox, #g3d-info, #g3d-stats, #g3d-hint {
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+/* ─────────────── 左侧控制面板 ─────────────── */
+#g3d-controls {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 20;
+  width: 274px;
+  max-height: calc(100% - 92px);
+  display: flex;
+  flex-direction: column;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-2);
+  overflow: hidden;
+}
+#g3d-controls-toggle {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 11px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  cursor: pointer;
+  font: 600 13px var(--font);
+  color: var(--ink);
+  transition: background var(--t-fast) var(--ease);
+}
+#g3d-controls-toggle:hover { background: var(--bg-soft); }
+#g3d-toggle-mark { position: relative; flex: none; width: 14px; height: 10px; }
+#g3d-toggle-mark::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1.6px;
+  border-radius: 2px;
+  background: currentColor;
+  box-shadow: 0 4px 0 currentColor, 0 8px 0 currentColor;
+}
+.g3d-controls-body { overflow-y: auto; padding: 2px 14px 14px; }
+#g3d-controls.is-collapsed { width: auto; max-width: 274px; }
+#g3d-controls.is-collapsed .g3d-controls-body { display: none; }
+#g3d-controls.is-collapsed #g3d-controls-toggle { border-bottom: 0; }
+
+.g3d-panel-sec { padding: 12px 0 6px; border-bottom: 1px solid var(--line); }
+.g3d-panel-sec:last-child { border-bottom: 0; padding-bottom: 0; }
+.g3d-sec-title {
+  margin: 0 0 8px;
+  display: flex;
+  gap: 8px;
+  font: 700 11px var(--font);
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.g3d-sec-title .en { font-weight: 600; }
+
+/* 讲筛选 chips（单选 toggle）+ 分支色点 */
+.g3d-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.g3d-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background: var(--surface);
+  color: var(--ink-2);
+  font: 600 12px var(--font);
+  cursor: pointer;
+  transition: all var(--t-fast) var(--ease);
+}
+.g3d-chip:hover { border-color: var(--line-strong); color: var(--ink); }
+.g3d-chip.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+.g3d-dot {
+  flex: none;
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 99px;
+}
+/* 五大分支 → 讲 → token 色（与首页知识树一致） */
+.dot-l1 { background: var(--accent); }
+.dot-l2, .dot-l3 { background: var(--violet); }
+.dot-l4 { background: var(--gold); }
+.dot-l5, .dot-l6, .dot-l7, .dot-l8 { background: var(--green); }
+.dot-l9, .dot-l10 { background: var(--cyan); }
+.g3d-chip.is-active .g3d-dot {
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--on-accent) 55%, transparent);
+}
+
+/* 分支图例 */
+.g3d-legend { margin-top: 10px; display: grid; gap: 4px; }
+.g3d-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+.g3d-legend-item .g3d-dot { width: 7px; height: 7px; }
+.lg-a { background: var(--accent); }
+.lg-v { background: var(--violet); }
+.lg-g { background: var(--gold); }
+.lg-gr { background: var(--green); }
+.lg-c { background: var(--cyan); }
+
+/* 边显示 / 知识前沿 开关 */
+.g3d-switch {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 0;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--ink-2);
+  position: relative;
+}
+.g3d-switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.g3d-switch-ui {
+  flex: none;
+  position: relative;
+  width: 30px;
+  height: 17px;
+  border-radius: 99px;
+  border: 1px solid var(--line-strong);
+  background: var(--bg-soft);
+  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+.g3d-switch-ui::after {
+  content: "";
+  position: absolute;
+  top: 1.5px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 99px;
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+  transition: transform var(--t-fast) var(--ease);
+}
+.g3d-switch input:checked + .g3d-switch-ui {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.g3d-switch input:checked + .g3d-switch-ui::after {
+  transform: translateX(13px);
+  background: var(--on-accent);
+}
+.g3d-switch input:focus-visible + .g3d-switch-ui {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.g3d-switch-label .en { color: var(--ink-3); font-size: 12px; }
+.g3d-frontier-note { margin: 6px 0 0; font-size: 11.5px; color: var(--ink-3); }
+.g3d-frontier-note .en { display: block; }
+
+/* 线索列表 */
+.g3d-thread-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 5px;
+}
+.g3d-thread-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink-2);
+  font: 500 12.5px var(--font);
+  cursor: pointer;
+  transition: all var(--t-fast) var(--ease);
+}
+.g3d-thread-item:hover { border-color: var(--line-strong); color: var(--ink); }
+.g3d-thread-item.is-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+.g3d-thread-item .zh { display: block; }
+.g3d-thread-item .en { display: block; font-size: 11px; color: var(--ink-3); }
+.g3d-thread-empty { font-size: 12px; color: var(--ink-3); }
+
+/* ─────────────── 搜索框 ─────────────── */
+#g3d-searchbox {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  width: min(430px, 52vw);
+}
+#g3d-search {
+  width: 100%;
+  padding: 10px 16px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  color: var(--ink);
+  font: 500 13.5px var(--font);
+  box-shadow: var(--shadow-2);
+  transition: border-color var(--t-fast) var(--ease);
+}
+#g3d-search::placeholder { color: var(--ink-3); }
+#g3d-search:focus { outline: none; border-color: var(--accent); }
+#g3d-results {
+  margin-top: 6px;
+  max-height: 330px;
+  overflow-y: auto;
+  display: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  box-shadow: var(--shadow-2);
+}
+#g3d-results.has-items { display: block; }
+.g3d-result {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  cursor: pointer;
+  font: 500 13px var(--font);
+  color: var(--ink-2);
+  transition: background var(--t-fast) var(--ease);
+}
+.g3d-result:last-child { border-bottom: 0; }
+.g3d-result:hover { background: var(--bg-soft); }
+.g3d-result .zh { display: block; color: var(--ink); }
+.g3d-result .en { display: block; font-size: 11.5px; color: var(--ink-3); }
+
+/* ─────────────── 信息面板（右侧） ─────────────── */
+#g3d-info {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  bottom: 92px;
+  z-index: 25;
+  width: min(342px, calc(100vw - 28px));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  overflow-y: auto;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-pop);
+  animation: g3d-rise var(--t-mid) var(--ease);
+}
+.g3d-info-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all var(--t-fast) var(--ease);
+}
+.g3d-info-close:hover { color: var(--ink); border-color: var(--line-strong); }
+.g3d-kicker {
+  padding-right: 26px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  font: 700 11px var(--mono);
+  letter-spacing: .8px;
+  text-transform: uppercase;
+  color: var(--accent-deep);
+}
+.g3d-kicker .en { color: var(--ink-3); }
+.g3d-title { margin: 0; font: 700 19px/1.4 var(--font); color: var(--ink); }
+.g3d-title .en { display: block; margin-top: 2px; font: 600 14px var(--font); color: var(--ink-2); }
+.g3d-sum { margin: 0; font-size: 13px; color: var(--ink-2); }
+.g3d-sum .en { display: block; font-size: 12.5px; color: var(--ink-3); }
+.g3d-concepts { display: flex; flex-wrap: wrap; gap: 6px; }
+.g3d-concept {
+  padding: 3px 9px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background: var(--bg-soft);
+  font: 600 11px var(--mono);
+  color: var(--ink-2);
+}
+.g3d-rel-group { border-top: 1px solid var(--line); padding-top: 10px; }
+.g3d-rel-title {
+  margin: 0 0 7px;
+  display: flex;
+  gap: 8px;
+  font: 700 11px var(--font);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.g3d-rel-list { display: grid; gap: 5px; }
+.g3d-rel-item {
+  position: relative;
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 26px 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink-2);
+  font: 500 12.5px var(--font);
+  cursor: pointer;
+  transition: all var(--t-fast) var(--ease);
+}
+.g3d-rel-item:hover { border-color: var(--accent); color: var(--ink); }
+.g3d-rel-item .zh { display: block; font-weight: 600; color: var(--ink); }
+.g3d-rel-item .en { display: block; font-size: 11px; color: var(--ink-3); }
+.g3d-rel-item.is-done::after {
+  content: "✓";
+  position: absolute;
+  right: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-weight: 700;
+  color: var(--green);
+}
+.g3d-thread-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.g3d-thread-badge {
+  padding: 3px 9px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background: var(--bg-soft);
+  color: var(--ink-2);
+  font: 600 11px var(--font);
+  cursor: pointer;
+  transition: all var(--t-fast) var(--ease);
+}
+.g3d-thread-badge:hover { border-color: var(--accent); color: var(--ink); }
+.g3d-thread-badge.is-active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-deep);
+}
+#g3d-path-box { border-top: 1px solid var(--line); padding-top: 10px; }
+.g3d-path-item { font-family: var(--mono); font-size: 11.5px; }
+.g3d-info-actions {
+  margin-top: auto;
+  display: flex;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.g3d-go {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--on-accent);
+  font: 600 13px var(--font);
+  text-decoration: none;
+  transition: filter var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
+}
+.g3d-go:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.g3d-path {
+  padding: 9px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink-2);
+  font: 600 12.5px var(--font);
+  cursor: pointer;
+  transition: all var(--t-fast) var(--ease);
+}
+.g3d-path:hover { color: var(--ink); border-color: var(--accent); }
+
+/* ─────────────── 底部状态条 / 操作提示 ─────────────── */
+#g3d-stats {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 15;
+  max-width: min(92vw, 560px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 7px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  box-shadow: var(--shadow-1);
+  font: 500 12px var(--mono);
+  color: var(--ink-2);
+  text-align: center;
+}
+#g3d-stats .en { color: var(--ink-3); font-size: 11px; }
+#g3d-hint {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 15;
+  max-width: 240px;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  font-size: 11.5px;
+  color: var(--ink-3);
+  text-align: right;
+}
+#g3d-hint .zh { display: block; }
+#g3d-hint .en { display: block; }
+
+/* ─────────────── 降级大纲（WebGL 不可用 / 缺件） ─────────────── */
+#g3d-fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 10;   /* 盖住画布，但让控制/搜索/信息面板（z≥20）照常可点 */
+  overflow-y: auto;
+  padding: 24px 18px 40px;
+  background: color-mix(in srgb, var(--bg) 86%, transparent);
+}
+.g3d-fallback-note {
+  max-width: 880px;
+  margin: 0 auto 18px;
+  padding: 13px 18px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--gold);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 13.5px;
+  box-shadow: var(--shadow-1);
+}
+.g3d-fallback-note .en { display: block; margin-top: 2px; font-size: 12.5px; color: var(--ink-3); }
+#g3d-outline {
+  max-width: 980px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(252px, 1fr));
+  gap: 7px;
+}
+.g3d-outline-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  text-align: left;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink-2);
+  font: 500 12px var(--font);
+  cursor: pointer;
+  transition: all var(--t-fast) var(--ease);
+}
+.g3d-outline-item:hover {
+  border-color: var(--accent);
+  color: var(--ink);
+  transform: translateY(-1px);
+}
+.g3d-outline-item .g3d-dot { margin-top: 5px; }
+.g3d-outline-item .zh { display: block; color: var(--ink); }
+.g3d-outline-item .en { display: block; font-size: 10.5px; color: var(--ink-3); }
+
+/* ─────────────── 加载层 ─────────────── */
+#g3d-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  font-size: 13px;
+  letter-spacing: .5px;
+  color: var(--ink-2);
+  background: color-mix(in srgb, var(--bg) 60%, transparent);
+}
+#g3d-loading::before {
+  content: "";
+  width: 34px;
+  height: 34px;
+  border-radius: 99px;
+  border: 3px solid var(--line);
+  border-top-color: var(--accent);
+  animation: g3d-spin 900ms linear infinite;
+}
+
+@keyframes g3d-spin { to { transform: rotate(360deg); } }
+@keyframes g3d-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ─────────────── 移动端（≤900px）：抽屉 + 底部信息面板 ─────────────── */
+@media (max-width: 900px) {
+  :root { --g3d-top-h: 50px; }
+  .g3d-topbar { flex-wrap: wrap; height: auto; min-height: var(--g3d-top-h); padding: 8px 10px; gap: 8px; }
+  .g3d-heading { order: 3; flex-basis: 100%; font-size: 14px; }
+  .g3d-tools { margin-left: auto; }
+  #g3d-searchbox { top: 10px; left: 10px; right: 10px; width: auto; transform: none; }
+  #g3d-controls {
+    top: 58px;
+    left: 10px;
+    right: 10px;
+    z-index: 30;   /* 抽屉打开时盖过搜索结果 */
+    width: auto;
+    max-width: none;
+    max-height: 62vh;
+  }
+  #g3d-controls.is-collapsed { max-width: none; width: auto; }
+  #g3d-info {
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 35;
+    width: auto;
+    max-height: 62vh;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+    border-radius: var(--radius) var(--radius) 0 0;   /* 底部滑出的全宽面板 */
+    animation: g3d-slide-up var(--t-mid) var(--ease);
+  }
+  #g3d-stats { bottom: 10px; max-width: 94vw; }
+  #g3d-hint { display: none; }
+  #g3d-fallback { padding: 16px 12px 32px; }
+  #g3d-outline { grid-template-columns: 1fr; }
+}
+@keyframes g3d-slide-up {
+  from { opacity: 0; transform: translateY(40%); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ─────────────── 动效偏好：减弱时禁用本页动画/过渡 ─────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .g3d-topbar *, .g3d-main *, .g3d-main *::before, .g3d-main *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
