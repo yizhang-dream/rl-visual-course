@@ -181,8 +181,8 @@ window.ROOT_TEMPLATE = `
           <span>Built on all ten chapters of "Mathematical Foundation of Reinforcement Learning" and the IUSLab grid-world code, Westlake University · For study only</span>
         </p>
         <p class="bi-footer" style="margin-top:5px">
-          <span><a class="footer-link" href="graph3d.html">知识星图 · 3D 全书知识网络</a></span>
-          <span><a class="footer-link" href="graph3d.html">Knowledge Constellation</a></span>
+          <span><a class="footer-link" href="graph3d.html">知识星图 · 3D 全书知识网络</a> · <a class="footer-link" href="lite.html">笔记本实验室 · 浏览器里跑 Jupyter</a></span>
+          <span><a class="footer-link" href="graph3d.html">Knowledge Constellation</a> · <a class="footer-link" href="lite.html">Notebook Lab</a></span>
         </p>
       </footer>
     </main>

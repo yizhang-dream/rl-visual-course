@@ -1,12 +1,13 @@
 // ESLint flat config · 纯静态站（无构建步骤）
 // 目标：assets/js/**/*.js（浏览器经典脚本）+ 根目录 *.js 与 scripts/*.js（Node CommonJS）
-// ignore：assets/vendor/**（第三方压缩产物）、node_modules/**、shots/**（截图产物）
+// ignore：assets/vendor/**（第三方压缩产物）、node_modules/**、shots/**（截图产物）、
+//        lite/**（jupyterlite 构建产物）、lite-build/**（uv 构建环境含 .venv）
 import js from '@eslint/js';
 import globals from 'globals';
 
 export default [
   {
-    ignores: ['assets/vendor/**', 'node_modules/**', 'shots/**'],
+    ignores: ['assets/vendor/**', 'node_modules/**', 'shots/**', 'lite/**', 'lite-build/**', '_output/**'],
   },
   {
     // 浏览器经典脚本：index.html 里 <script> 直载，无模块系统

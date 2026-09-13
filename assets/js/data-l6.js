@@ -20,7 +20,7 @@
       { t: 'formula', lbl: '常数步长 = 指数加权平均 · A constant step means exponential weights',
         tex: String.raw`w_{k+1} = w_k + \alpha(x_k - w_k) \;\Longrightarrow\; w_k = (1-\alpha)^{k-1}x_1 + \sum_{j\le k} \htmlClass{fx-accent}{\alpha(1-\alpha)^{k-j}}\,x_j`,
         note: '（旧样本的权重几何递减——指数遗忘）' },
-      { t: 'p', zh: '<strong>两种步长 = 两种记忆。</strong>把更新式展开成"样本的加权和"立刻看清：α = 1/t 给每个样本<strong>等权重</strong>——真正的平均，适合平稳世界；常数 α 给旧样本<strong>指数遗忘</strong>的权重——新样本占 α、全部历史挤在 1−α 里。遗忘是好是坏取决于世界：目标在漂移（机器人磨损、用户口味变化、对手在适应），你<strong>需要</strong>遗忘旧数据，小常数步长反而是正确选择；目标固定不动，遗忘只会让估计永远在真值附近抖（幅度 ∝ α）。<strong>收敛与跟踪是一对此生不可兼得的目标</strong>——第 7 章 TD 实践中用小常数学习率，正是押注"世界可能非平稳"。', en: '<strong>Two step sizes = two kinds of memory.</strong> Unrolling the update into a weighted sum of samples makes it obvious: α = 1/t grants every sample <strong>equal weight</strong> — a true average, fit for a stationary world; a constant α weights old samples with <strong>exponential forgetting</strong> — the new sample takes α, all of history squeezes into 1−α. Whether forgetting is a bug depends on the world: if the target drifts (a robot wearing out, user tastes shifting, an opponent adapting), you <strong>need</strong> to forget, and a small constant step is the right choice; if the target is fixed, forgetting only keeps the estimate jittering around the truth forever (amplitude ∝ α). <strong>Convergence and tracking are a pair you cannot have at once</strong> — Chapter 7’s TD uses a small constant learning rate in practice, precisely betting that "the world may be nonstationary".' },
+      { t: 'p', zh: '<strong>两种步长 = 两种记忆。</strong>把更新式展开成"样本的加权和"立刻看清：α = 1/t 给每个样本<strong>等权重</strong>——真正的平均，适合平稳世界；常数 α 给旧样本<strong>指数遗忘</strong>的权重——新样本占 α、全部历史挤在 1−α 里。遗忘是好是坏取决于世界：目标在漂移（机器人磨损、用户口味变化、对手在适应），你<strong>需要</strong>遗忘旧数据，小常数步长反而是正确选择；目标固定不动，遗忘只会让估计永远在真值附近抖（幅度 ∝ √α）。<strong>收敛与跟踪是一对此生不可兼得的目标</strong>——第 7 章 TD 实践中用小常数学习率，正是押注"世界可能非平稳"。', en: '<strong>Two step sizes = two kinds of memory.</strong> Unrolling the update into a weighted sum of samples makes it obvious: α = 1/t grants every sample <strong>equal weight</strong> — a true average, fit for a stationary world; a constant α weights old samples with <strong>exponential forgetting</strong> — the new sample takes α, all of history squeezes into 1−α. Whether forgetting is a bug depends on the world: if the target drifts (a robot wearing out, user tastes shifting, an opponent adapting), you <strong>need</strong> to forget, and a small constant step is the right choice; if the target is fixed, forgetting only keeps the estimate jittering around the truth forever (amplitude ∝ √α). <strong>Convergence and tracking are a pair you cannot have at once</strong> — Chapter 7’s TD uses a small constant learning rate in practice, precisely betting that "the world may be nonstationary".' },
       { t: 'callout', variant: 'warn', zh: '<strong>两个误区。</strong>① <strong>步长设成常数还指望收敛</strong>：常数 α 违反 Σα² &lt; ∞（α²·∞ = ∞），噪声的方差贡献永远不消失，估计在真值附近永久抖动——这不是数值不稳，是理论判了刑。② <strong>把 α = 1/k 与小常数 α 的效果混为一谈</strong>：前者渐近收敛到真值，但前期步子大、后期几乎不再更新，对新信息反应迟钝；后者永远跟得上新信息，但永不精确。选哪个不是精度问题，是"你认为世界平不平稳"的立场问题。', en: '<strong>Two misconceptions.</strong> ① <strong>Setting a constant step and still expecting convergence</strong>: a constant α violates Σα² &lt; ∞ (α²·∞ = ∞), the noise variance contribution never dies, and the estimate jitters around the truth forever — not numerical instability but a theoretical sentence. ② <strong>Confusing the effects of α = 1/k and a small constant α</strong>: the former converges asymptotically to the truth but takes huge early steps and barely updates late — sluggish to new information; the latter always tracks new information but is never exact. The choice is not about accuracy — it is a stance on whether you believe the world is stationary.' },
     ],
   };
@@ -107,6 +107,7 @@
     blocks: [
       { t: 'p', zh: '这节课的代码短到不像话，但每一行都对应定理的一个条件。特别注意步长 schedules 的写法——Σa<sub>k</sub> = ∞ 而 Σa<sub>k</sub>² < ∞ 的族谱（1/k、1/kᵖ (p∈(0.5,1])）与常数步长的本质区别全在这里。', en: 'This lecture\'s code is absurdly short, yet every line maps to a theorem condition. Watch how the step-size schedules are written — the family satisfying Σa<sub>k</sub> = ∞ while Σa<sub>k</sub>² < ∞ (1/k, 1/kᵖ with p ∈ (0.5,1]) versus constant steps is the whole story.' },
       { t: 'widget', component: 'code-lab', props: { source: 'l6' } },
+      { t: 'widget', component: 'notebook-bridge', props: { nb: 'nb3' } },
     ],
   };
 
@@ -119,6 +120,7 @@
       { t: 'p', zh: '翻卡前先过三题：① "为什么学一个没有 RL 算法的章节"（因为第 7 章的 TD 在数学上<strong>就是</strong> RM——目标换成 r + γv(s′)）；② "步长到底怎么设"（平稳目标用衰减步长、非平稳用小常数；理论上要满足 Σα = ∞ 且 Σα² &lt; ∞）；③ "SGD 每次只用一个样本会不会走错方向"（无偏——方向平均正确，代价是方差和 1/√t 的收敛率）。', en: 'Before flipping, run through three: ① "why study a chapter with no RL algorithms" (because Chapter 7’s TD mathematically <strong>is</strong> RM — with the target replaced by r + γv(s′)); ② "how should the step size be set" (decaying for stationary targets, small constants for nonstationary ones; theory demands Σα = ∞ with Σα² &lt; ∞); ③ "does one sample per step lead SGD astray" (unbiased — correct on average, at the price of variance and the 1/√t rate).' },
       { t: 'widget', component: 'qa-lab', props: { source: 'l6' } },
       { t: 'widget', component: 'fill-lab', props: { source: 'l6' } },
+      { t: 'widget', component: 'derivation-lab', props: { source: 'l6' } },
     ],
   };
 
@@ -225,7 +227,7 @@ def sgd_mean(samples, alpha=0.1, w0=0.0):
       notes: [
         { lines: [7, 7], tag: 'incremental ★', zh: '<code class="inline">w -= (1/k)*(w - x)</code> 与 <code class="inline">w += (x - w)/k</code> 数学相同，写法不同：后者读作"往新样本挪动 1/k 的距离"——强化学习代码里更常见的是这种写法（TD 误差 × 学习率）。', en: '<code class="inline">w -= (1/k)*(w - x)</code> equals <code class="inline">w += (x - w)/k</code> mathematically but reads differently: “move toward the new sample by a 1/k fraction” — the form RL code prefers (TD error × learning rate).' },
         { lines: [4, 5], tag: 'O(1) memory', zh: '增量式的隐藏福利：<strong>内存 O(1)</strong>。批量法要存全部样本，增量法处理完即扔——流式场景（机器人持续运行）的唯一选择。这是"非增量 → 增量"除了速度外的第二个动机。', en: 'The hidden bonus of the incremental form: <strong>O(1) memory</strong>. Batch methods store every sample; incremental methods discard as they go — the only option for streaming settings (a robot running for days). A second motive beyond speed for “non-incremental → incremental”.' },
-        { lines: [17, 19], tag: 'constant α', zh: '常数 α 的结局由 RM 理论精确预言：Σα² = ∞ ⟹ 方差项不消失 ⟹ 永久抖动。抖动幅度 ∝ α²·var[X]——把 α 减半，抖动变四分之一。这正是学习率衰减 schedules（step decay、cosine…）的理论根源。', en: 'A constant α\'s fate is precisely predicted by RM theory: Σα² = ∞ means the variance term never vanishes — perpetual jitter, amplitude ∝ α²·var[X]. Halve α and the wobble quarters. This is the theoretical root of learning-rate decay schedules (step decay, cosine, …).' },
+        { lines: [17, 19], tag: 'constant α', zh: '常数 α 的结局由 RM 理论精确预言：Σα² = ∞ ⟹ 方差项不消失 ⟹ 永久抖动。平稳抖动方差 ~ ασ²/(2−α)（一阶于 α）——把 α 减半，方差约减半、幅度 ×1/√2。这正是学习率衰减 schedules（step decay、cosine…）的理论根源。', en: 'A constant α\'s fate is precisely predicted by RM theory: Σα² = ∞ means the variance term never vanishes — perpetual jitter, with stationary variance ~ ασ²/(2−α) (first-order in α): halve α and the variance roughly halves (amplitude ×1/√2). This is the theoretical root of learning-rate decay schedules (step decay, cosine, …).' },
       ],
     },
   ];
@@ -298,7 +300,7 @@ def sgd_mean(samples, alpha=0.1, w0=0.0):
               { zh: '总位移封顶，起点远时够不着真根', en: 'the total displacement is capped — a far start never reaches the root' },
             ],
             answer: 0,
-            why: { zh: 'α = 0.5 违反第二条：Σαₖ² = ∞，累计方差 ∝ σ²Σαₖ² 不封顶，抖动幅度 ∝ α²·var[X] 永不衰减。这不是数值不稳，是理论判了刑——常数步长换来的是指数遗忘，代价就是永远不精确。', en: 'α = 0.5 violates the second condition: Σαₖ² = ∞, the accumulated variance ∝ σ²Σαₖ² is uncapped, and the wobble amplitude ∝ α²·var[X] never decays. Not numerical instability — a theoretical sentence: the exponential forgetting a constant step buys is paid for with eternal imprecision.' },
+            why: { zh: 'α = 0.5 违反第二条：Σαₖ² = ∞，累计方差 ∝ σ²Σαₖ² 不封顶，平稳抖动方差 ~ ασ²/(2−α)——随 α 一阶缩小，但永不归零。这不是数值不稳，是理论判了刑——常数步长换来的是指数遗忘，代价就是永远不精确。', en: 'α = 0.5 violates the second condition: Σαₖ² = ∞, the accumulated variance ∝ σ²Σαₖ² is uncapped, and the stationary jitter variance ~ ασ²/(2−α) — first-order in α yet never zero. Not numerical instability — a theoretical sentence: the exponential forgetting a constant step buys is paid for with eternal imprecision.' },
           },
           {
             choices: [
@@ -387,13 +389,86 @@ def sgd_mean(samples, alpha=0.1, w0=0.0):
       {
         kind: 'number',
         tag: { zh: '抖动的价格', en: 'The price of jitter' },
-        stem: { zh: 'sgd_mean 用常数步长估均值：先快速逼近，再在邻域内永久抖动，稳态抖动幅度 ∝ α²·var[X]。把 α 从 0.2 减到它的默认值 0.1，抖动幅度变为原来的 [[1]] 倍。', en: 'sgd_mean estimates the mean with a constant step: fast approach first, then eternal jitter in a neighbourhood, with steady-state wobble amplitude ∝ α²·var[X]. Lowering α from 0.2 to its default 0.1 makes the wobble [[1]] times as large.' },
+        stem: { zh: 'sgd_mean 用常数步长估均值：先快速逼近，再在邻域内永久抖动。更新式 w ← w + α(x − w) 的误差是 AR(1)，平稳抖动方差 ~ ασ²/(2−α)（一阶于 α）。把 α 从 0.2 减半到它的默认值 0.1，平稳抖动方差大约变为原来的 [[1]] 倍。', en: 'sgd_mean estimates the mean with a constant step: fast approach first, then eternal jitter in a neighbourhood. The error of the update w ← w + α(x − w) is an AR(1), with stationary jitter variance ~ ασ²/(2−α) (first-order in α). Halving α from 0.2 to its default 0.1 makes the stationary jitter variance about [[1]] times the original.' },
         blanks: [
           {
-            answer: 0.25, tol: 0.01,
-            hint: { zh: '幅度跟 α 的平方走', en: 'Amplitude tracks the square of α' },
-            why: { zh: '0.1² / 0.2² = 1/4：α 减半，抖动变四分之一——想让抖动砍半，α 得除以 √2。反过来这也标出常数步长的用途边界：目标漂移时你要的正是"忘得掉"，小常数反而是正确选择；目标固定时它只是永远消不掉的方差。', en: '0.1² / 0.2² = 1/4: halve α and the wobble quarters — to halve the wobble you must divide α by √2. This also marks the boundary of constant steps’ usefulness: with a drifting target you want exactly this forgetting, so a small constant is right; with a fixed target it is just variance that never dies.' },
+            answer: 0.5, tol: 0.05,
+            hint: { zh: '平稳方差 ~ ασ²/(2−α)，一阶于 α——直接比两个 α', en: 'Stationary variance ~ ασ²/(2−α), first-order in α — just compare the two α values' },
+            why: { zh: '一阶看：方差 ∝ α ⟹ 比值 ≈ 0.1/0.2 = 1/2；精确比 (0.1/1.9)/(0.2/1.8) ≈ 0.47，仍在 0.5 附近。推导一句：误差递推 eₖ₊₁ = (1−α)eₖ + αηₖ 是 AR(1)，稳态方差满足 V = (1−α)²V + α²σ²，解得 V = ασ²/(2−α)。常见误区：把单步注入的 α²σ² 当成稳态方差——它每步注入、又被 (1−α)² 逐步折减，几何累积后才停在 ~ασ²/2（方差 ∝ α、幅度 ∝ √α：想让幅度砍半，α 得除以 4）。反过来这也标出常数步长的用途边界：目标漂移时你要的正是"忘得掉"，小常数反而是正确选择；目标固定时它只是永远消不掉的方差。', en: 'First-order view: variance ∝ α ⟹ ratio ≈ 0.1/0.2 = 1/2; the exact ratio (0.1/1.9)/(0.2/1.8) ≈ 0.47, still near 0.5. One-line derivation: the error recursion eₖ₊₁ = (1−α)eₖ + αηₖ is an AR(1), whose stationary variance satisfies V = (1−α)²V + α²σ², giving V = ασ²/(2−α). Common misconception: taking the per-step injection α²σ² as the steady-state variance — it is injected each step yet damped by (1−α)² each step, and only the geometric accumulation settles at ~ασ²/2 (variance ∝ α, amplitude ∝ √α: to halve the amplitude you must divide α by 4). This also marks the boundary of constant steps’ usefulness: with a drifting target you want exactly this forgetting, so a small constant is right; with a fixed target it is just variance that never dies.' },
           },
+        ],
+      },
+    ],
+  };
+
+  /* ═══ L6 定理推导（契约见 scripts/check_data.js checkDerivations） ═══ */
+  D.derivationSets = D.derivationSets || {};
+  D.derivationSets['l6'] = {
+    title: { zh: '第六讲 · 定理推导', en: 'Lecture 6 · Theorem Derivations' },
+    items: [
+      {
+        id: 'robbins-monro-conditions',
+        name: { zh: 'Robbins-Monro：从均值估计到求根', en: 'Robbins-Monro: From Mean Estimation to Root-Finding' },
+        intro: { zh: 'RM 为什么非得 Σα = ∞ 且 Σα² &lt; ∞？从最熟悉的均值估计出发，先把它翻译成一个求根问题，再让两个级数条件各自认领一种死法——14 步走完，§6.1 的增量均值、定理 6.1、定理 6.2 就串在同一条链上。带 ★ 的两步要亲手作答才放行。', en: 'Why must RM insist on Σα = ∞ and Σα² &lt; ∞? Start from the familiar mean estimation, translate it into a root-finding problem, and let each series condition claim its own failure mode — in 14 steps, §6.1’s incremental mean, Theorem 6.1 and Theorem 6.2 sit on one chain. The two ★ steps must be answered by hand to proceed.' },
+        steps: [
+          { tex: String.raw`g(\theta)=0 \;\xrightarrow{\ \text{黑盒：只有带噪读数}\ }\; \tilde g(\theta,\eta) = g(\theta)+\eta, \qquad \mathbb{E}[\eta]=0,\ \ \operatorname{var}[\eta]\le\sigma^{2}`,
+            why: { zh: '问题设定（定理 6.1 的噪声侧条件）：g 是黑盒——表达式未知、导数未知，只能输入 θ 读回一个带噪数。对噪声的全部要求：零均值、方差有界；不要求高斯、不要求独立于 θ 之外的分布形状。', en: 'The setup (Theorem 6.1’s noise side): g is a black box — expression unknown, derivative unknown; feed in θ, read back a noisy number. All we ask of the noise: zero mean, bounded variance; Gaussian is not required.' } },
+          { tex: String.raw`g(\theta) \;=\; \theta - \mathbb{E}[X] \;=\; 0 \qquad\Longleftrightarrow\qquad \htmlClass{fx-gold}{\theta^{*} \;=\; \mathbb{E}[X] \;=\; \mu}`,
+            why: { zh: '先立桥梁：均值估计被翻译成求根。取 g(θ) = θ − E[X]，它的根恰好就是 μ——"估均值"与"解方程 g(θ)=0"是同一件事的两种说法，RM 的一切结论都可即刻兑换给均值估计。', en: 'The bridge first: mean estimation translated into root-finding. Take g(θ) = θ − E[X]; its root is exactly μ — "estimating the mean" and "solving g(θ)=0" are two readings of one task, and every RM conclusion cashes in for the mean at once.' } },
+          { tex: String.raw`\tilde g_k \;=\; \theta_k - x_k \;=\; \underbrace{(\theta_k-\mu)}_{=\,g(\theta_k)} \;+\; \underbrace{(\mu-x_k)}_{=\,\eta_k}, \qquad \mathbb{E}[\eta_k]=0`,
+            why: { zh: '样本就是对这条 g 的带噪读数：E[x_k] = μ，所以偏差 η_k = μ − x_k 恰是零均值噪声。两个框架逐变量对齐完毕——每来一个样本，就等于对 g 做了一次带噪观测。', en: 'A sample is precisely a noisy reading of this g: E[x_k] = μ, so the deviation η_k = μ − x_k is exactly zero-mean noise. The two frameworks are now aligned variable by variable — each new sample is one noisy observation of g.' } },
+          { tex: String.raw`\theta_{k+1} \;=\; \theta_k - \alpha_k\,\tilde g_k \;=\; \theta_k + \alpha_k\,(x_k-\theta_k)`,
+            why: { zh: '把读数代入 RM 更新式 θ ← θ − α·g̃：得到的就是 §6.1 增量均值的骨架"新估计 = 旧估计 + 步长×(目标 − 旧估计)"。书的减号形式与骨架的加号形式是同一条式子——均值估计从此正式入住 RM 框架。', en: 'Substituting the reading into the RM update θ ← θ − α·g̃ yields exactly §6.1’s incremental-mean skeleton, "new = old + step × (target − old)". The book’s minus form and the skeleton’s plus form are the same line — the incremental mean formally moves into the RM frame.' } },
+          { tex: String.raw`\theta_{k+1}-\mu \;=\; \htmlClass{fx-green}{(1-\alpha_k)\,(\theta_k-\mu)} \;+\; \htmlClass{fx-red}{\alpha_k\,\eta_k}`,
+            why: { zh: '两边同减根 μ 整理：误差 = 信号项 + 噪声项。信号项 (1−α_k) 缩水由步长调度决定"能不能衰减到零"；噪声项 α_kη_k 每步重新注入，决定"会不会越抖越多"。收敛要同时管住这两件事——接下来的两个级数条件一一对应。', en: 'Subtract the root μ from both sides: error = signal term + noise term. The signal factor (1−α_k) decides whether the error "can decay to zero"; the noise term α_kη_k is freshly injected each step and decides whether "the wobble piles up". Convergence must govern both — and the two series conditions map onto them one to one.' } },
+          { tex: String.raw`\operatorname{var}[\alpha_k\,\eta_k] \;=\; \alpha_k^{2}\,\operatorname{var}[\eta_k] \;\le\; \alpha_k^{2}\,\sigma^{2} \qquad\Rightarrow\qquad \text{累计噪声方差} \;\propto\; \sum_{k}\alpha_k^{2}`,
+            why: { zh: '步长把噪声乘了 α_k，方差就被乘了 α_k²；各步噪声独立、方差直接相加——所以"噪声会不会被平均掉"完全由 Σα_k² 一个和说了算。这一步是纯方差运算，不含任何近似。', en: 'The step multiplies the noise by α_k, hence the variance by α_k²; steps are independent so variances add directly — whether the noise gets averaged away is decided by the single sum Σα_k². Pure variance bookkeeping, no approximation.' } },
+          { tex: String.raw`\text{步长条件·噪声侧：} \qquad \sum_{k=1}^{\infty}\alpha_k^{2} \;<\; \infty`,
+            why: { zh: '这就是定理 6.1 条件②的后半：Σα_k² &lt; ∞ 给累计噪声方差封顶并让它趋于零——"抖得够停"。反过来，常数步长的 Σα² = ∞ 正是死在这一条上：方差预算无上限，抖动永不平息。', en: 'This is the second half of Theorem 6.1’s condition (b): Σα_k² &lt; ∞ caps the accumulated noise variance and drives it to zero — "settles down enough". Conversely, a constant step’s Σα² = ∞ dies exactly here: an uncapped variance budget means the wobble never calms.' },
+            blank: {
+              q: { zh: '级数条件 Σαₖ² &lt; ∞ 在收敛里负责哪件事？', en: 'Which job does the series condition Σαₖ² &lt; ∞ do for convergence?' },
+              choices: [
+                { zh: '总修正量不枯竭——保证任何初始距离都走得完', en: 'The total correction never runs dry — any initial distance can be covered' },
+                { zh: '噪声被平均掉——每步注入方差 αₖ²σ²，独立方差相加，和有限才不爆炸', en: 'The noise gets averaged away — each step injects variance αₖ²σ², independent variances add, only a finite sum avoids explosion' },
+                { zh: '根存在且唯一——这由单调性条件负责，与步长无关', en: 'The root exists and is unique — that is the monotonicity condition’s job, unrelated to step sizes' },
+              ],
+              answer: 1,
+              whyWrong: [
+                { zh: '那是 Σαₖ = ∞ 的职责：总和有限时总位移被封顶，远起点走不完——与噪声无关。', en: 'That is Σαₖ = ∞’s job: a finite total caps the displacement and strands a far start — nothing to do with noise.' },
+                { zh: '正确：独立噪声方差直接相加，累计方差 ∝ σ²Σαₖ²——平方和有限，抖动才平息。', en: 'Correct: independent noises add variances, accumulated variance ∝ σ²Σαₖ² — only a finite squared sum lets the wobble settle.' },
+                { zh: '根的唯一性由单调条件 0 &lt; c₁ ≤ ∇g ≤ c₂ 负责（挡"多根"）；两个级数条件管的是"走得到、停得下"。', en: 'Uniqueness is the monotonicity condition’s job, 0 &lt; c₁ ≤ ∇g ≤ c₂ (blocking extra roots); the two series conditions govern "arriving" and "settling".' },
+              ],
+              hint: { zh: '第 6 步刚算过：var[αₖηₖ] = αₖ²σ²，累计看的是哪一个和？', en: 'Step 6 just computed var[αₖηₖ] = αₖ²σ² — which sum does the accumulation point to?' },
+            } },
+          { tex: String.raw`\text{步长条件·路程侧：} \qquad \sum_{k=1}^{\infty}\alpha_k \;=\; \infty \qquad \Bigl(\textstyle\sum_k\alpha_k<\infty \;\Rightarrow\; \text{总位移有硬上限}\Bigr)`,
+            why: { zh: '条件①挡的是"停在半路"：若步长总和有限（如 α_k = 1/k²），即使每步都朝根走、读数全对，总位移也被封顶——初始点离根够远时，再多的迭代也走不完那段路。步子要先"加得起来无穷"，"任何距离都到得了"才有保证。', en: 'Condition (a) blocks "stalling halfway": with a finite step total (say α_k = 1/k²), even if every step heads root-ward with perfect readings, the total displacement is capped — start far enough from the root and no number of iterations covers the distance. Only a total that "sums to infinity" guarantees "any distance is reachable".' } },
+          { tex: String.raw`\underbrace{\sum_k \alpha_k = \infty}_{\text{走得够远——任何初始距离都到得了}} \qquad \text{且} \qquad \underbrace{\sum_k \alpha_k^{2} < \infty}_{\text{抖得够小——任何噪声都抹得平}}`,
+            why: { zh: '两条件合起来的直觉只有一句话：步长要大到能走遍任何距离，又要小到能抹平任何噪声——走钢丝般的平衡，缺一头就死一种（只满足前者永久抖动，只满足后者停在半路）。', en: 'The joint intuition is one sentence: steps must be large enough to cover any distance, yet small enough to erase any noise — a tightrope balance; drop either side and one death follows (only the first means eternal jitter, only the second means stalling halfway).' } },
+          { tex: String.raw`\text{定理 6.1（RM）}:\ \ 0<c_1\le\nabla g(\theta)\le c_2, \ \ \sum_k\alpha_k=\infty, \ \ \sum_k\alpha_k^{2}<\infty, \ \ \mathbb{E}[\eta_k\mid\mathcal{H}_k]=0 \ \Longrightarrow\ \theta_k \xrightarrow{\ \text{a.s.}\ } \theta^{*}`,
+            why: { zh: '收拢成书上的完整定理：补上单调条件（0 &lt; c₁ ≤ ∇g ≤ c₂——挡"多根"，保证根存在唯一）与噪声条件（零均值、方差有界），三条全占 ⟹ θ_k 几乎必然收敛到真根。本链只展开两个步长条件各自的分工；单调与噪声条件按定理直接引用。', en: 'Gathered into the book’s full theorem: add monotonicity (0 &lt; c₁ ≤ ∇g ≤ c₂ — blocking extra roots, so the root exists and is unique) and the noise conditions (zero mean, bounded variance); all three ⟹ θ_k converges to the true root almost surely. This chain only unfolds the division of labour between the two step-size conditions; monotonicity and noise are cited as stated.' } },
+          { tex: String.raw`\alpha_k=\frac{1}{k}: \qquad \sum_k \frac{1}{k} \;=\; ? \qquad\qquad \sum_k \frac{1}{k^{2}} \;=\; ?`,
+            why: { zh: '两个级数结论直接引用（不证）：调和级数 Σ1/k = ∞（发散——走得够远）；巴塞尔问题的结论 Σ1/k² = π²/6 &lt; ∞（收敛——抖得够小）。1/k 同时过两关，一箭双雕——§6.1 说它"精确卡在两条级数条件的中线上"就是这个意思。', en: 'Both series results are cited, not proved: the harmonic series Σ1/k = ∞ (diverges — travels far enough); Basel’s result Σ1/k² = π²/6 &lt; ∞ (converges — settles small enough). 1/k passes both gates at once — exactly what §6.1 means by "sitting precisely on the midline of the two series conditions".' },
+            blank: {
+              q: { zh: '两个级数各是哪个结论？选出正确的核对（结论直接引用，不证）。', en: 'Which conclusion does each series have? Pick the correct check (results cited, not proved).' },
+              choices: [
+                { zh: 'Σ1/k 收敛 · Σ1/k² 收敛——只满足"停得下"，远起点会停在半路', en: 'Σ1/k converges and Σ1/k² converges — only "settling" holds; a far start stalls halfway' },
+                { zh: 'Σ1/k 发散 · Σ1/k² 也发散——只满足"到得了"，噪声永远抖不平', en: 'Σ1/k diverges and Σ1/k² also diverges — only "arriving" holds; the noise never settles' },
+                { zh: 'Σ1/k = ∞ 发散（走得够远）· Σ1/k² = π²/6 < ∞ 收敛（抖得够小）——两条件全中', en: 'Σ1/k = ∞ diverges (travels far enough) and Σ1/k² = π²/6 < ∞ converges (settles small enough) — both conditions met' },
+              ],
+              answer: 2,
+              whyWrong: [
+                { zh: '前半错：调和级数 Σ1/k 是发散的——这正是 1/k 不同于 1/k²（走不完远路）的关键。', en: 'First half wrong: the harmonic series Σ1/k diverges — precisely what separates 1/k from 1/k² (which cannot cover long distances).' },
+                { zh: '后半错：巴塞尔问题的结论 Σ1/k² = π²/6 有限——平方和收敛，抖动才会平息。', en: 'Second half wrong: Basel’s result Σ1/k² = π²/6 is finite — the squared sum converges, letting the wobble settle.' },
+                { zh: '正确：调和级数发散 + 巴塞尔和收敛，1/k 一箭双雕——增量均值用它当步长正是因此收敛。', en: 'Correct: harmonic divergence plus Basel convergence — 1/k hits both, which is why the incremental mean converges with it as the step.' },
+              ],
+              hint: { zh: '两条著名级数：调和级数 vs 巴塞尔问题。', en: 'Two famous series: the harmonic series vs. the Basel problem.' },
+            } },
+          { tex: String.raw`\alpha_k \equiv \alpha>0: \qquad \htmlClass{fx-green}{\sum_k \alpha=\infty\ \checkmark} \qquad \htmlClass{fx-red}{\sum_k \alpha^{2}=\infty\ \times}`,
+            why: { zh: '常数步长过第一关、挂第二关：累计噪声方差不封顶——单步注入方差 α²var[X]，累积使估计在真值附近永不停息地抖动（平稳抖动方差 ~ ασ²/(2−α)，一阶于 α），理论判了刑、不是数值不稳。但它在 L5/§6.1 换来了指数遗忘——非平稳世界里"跟得上漂移的目标"恰恰需要它。收敛与跟踪是一对此生不可兼得的目标，怎么选是"你认为世界平不平稳"的立场问题。', en: 'A constant step passes the first gate and fails the second: the noise variance budget is uncapped — each step injects variance α²var[X], and their accumulation keeps the estimate jittering around the truth without end (stationary jitter variance ~ ασ²/(2−α), first-order in α) — a theoretical sentence, not numerical instability. But it buys exponential forgetting (L5/§6.1) — exactly what tracking a drifting target in a nonstationary world needs. Convergence and tracking cannot be had at once; the choice is a stance on whether the world is stationary.' } },
+          { tex: String.raw`\text{增量均值会收敛} \;=\; \text{RM 定理在 } \ g(\theta)=\theta-\mathbb{E}[X],\ \ \alpha_k=\tfrac{1}{k} \ \text{ 下的特例}`,
+            why: { zh: '闭环：x̄ 的增量更新就是在 g(θ) = θ − E[X] 上跑 RM、步长取 1/k——单调、步长、噪声三条件逐一成立，收敛是白拿的。§6.1 那句"增量均值会收敛，正是 RM 条件在 1/t 情形下的特例"至此走完了论证。', en: 'The loop closes: the incremental update of x̄ is RM run on g(θ) = θ − E[X] with steps 1/k — monotonicity, step sizes and noise all check out, so convergence comes free. §6.1’s claim that "the incremental mean converges exactly as the RM conditions specialise to 1/t" is now argued in full.' } },
+          { tex: String.raw`\text{定理 6.2（Dvoretzky）}:\ \ \sum_k\alpha_k=\infty,\ \ \sum_k\alpha_k^{2}<\infty,\ \ \sum_k\beta_k^{2}<\infty \ \Longrightarrow\ \theta_k\to\theta^{*} \qquad \bigl(\text{步长与偏置 }\beta_k\text{ 可依赖历史}\bigr)`,
+            why: { zh: 'Dvoretzky 定理是这套条件的一般化：允许步长 α_k 和噪声偏置 β_k 是依赖历史 H_k 的随机量——Q-learning 里 α 随 (s,a) 访问次数变化，正需要这个放宽；第 7 章最优值收敛证明引用的正是它。完整推导链（TD(0)/Q-learning 是其特例）在 L7 等你。', en: 'Dvoretzky’s theorem generalises the whole scheme: the steps α_k and noise offsets β_k may be random quantities depending on the history H_k — exactly the relaxation Q-learning needs, where α depends on the visit count of (s,a); it is the tool Chapter 7’s optimal-value convergence proofs cite. The full chain (TD(0)/Q-learning as special cases) awaits in L7.' } },
         ],
       },
     ],

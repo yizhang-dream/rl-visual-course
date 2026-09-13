@@ -114,6 +114,7 @@
       { t: 'p', zh: 'A2C 的每一步 = 一行评论家更新（TD 误差修 v）+ 一行演员更新（优势推策略）。40 行以内，两个网络（或两张表）的全部爱恨情仇。', en: 'One step of A2C = one line of critic update (TD error fixes v) + one line of actor update (advantage pushes the policy). Within 40 lines, the entire love-hate story of two networks (or two tables).' },
       { t: 'p', zh: '读代码前先定位三个位置：两个学习率（α<sub>θ</sub> 管演员、α<sub>w</sub> 管评论家——上一节的"失衡"误区就藏在这两个数里）、δ 的计算行（一个数喂两张表，全文件的枢纽）、以及演员更新里 ∇lnπ 的写法（与 L9 的 REINFORCE 逐字相同——把 G 换成 δ 就是全部改动）。带着这三个锚点去读，40 行代码会自己讲解。', en: 'Before reading, pin down three locations: the two learning rates (α<sub>θ</sub> for the actor, α<sub>w</sub> for the critic — the “imbalance” misconception of the previous section hides inside these two numbers), the line computing δ (one number feeding two tables, the pivot of the whole file), and the ∇lnπ line in the actor update (verbatim identical to L9’s REINFORCE — swapping G for δ is the entire change). With these three anchors, the 40 lines will explain themselves.' },
       { t: 'widget', component: 'code-lab', props: { source: 'l10' } },
+      { t: 'widget', component: 'notebook-bridge', props: { nb: 'nb6' } },
     ],
   };
 
@@ -126,6 +127,7 @@
       { t: 'p', zh: '翻卡前先过三题：① "评论家和演员的学习率能共用一个吗"（不能——两个更新的尺度、噪声、收敛速度都不同，失衡即翻车）；② "δ 是优势本身吗"（不是——它是优势的单步采样代理，期望等于优势仅当 v 收敛，平时有偏但方差小）；③ "actor-critic 收敛到全局最优吗"（不保证——J(θ) 非凸、评分还在动，实践中以"稳定改进"为目标，理论缺口靠工程纪律补）。', en: 'Before flipping, run through three: ① “Can the critic and actor share one learning rate” (no — the two updates differ in scale, noise, and convergence speed; imbalance means a crash); ② “Is δ itself the advantage” (no — it is a one-step sample proxy whose expectation equals the advantage only once v has converged; biased in general, but low-variance); ③ “Does actor-critic converge to the global optimum” (not guaranteed — J(θ) is nonconvex and the scores keep moving; practice aims for “steady improvement”, and engineering discipline fills the theoretical gap).' },
       { t: 'widget', component: 'qa-lab', props: { source: 'l10' } },
       { t: 'widget', component: 'fill-lab', props: { source: 'l10' } },
+      { t: 'widget', component: 'derivation-lab', props: { source: 'l10' } },
     ],
   };
 
@@ -355,6 +357,146 @@ def a2c(env, episodes=4000, gamma=0.9, alpha_theta=0.02, alpha_w=0.1,
     ],
   };
 
+
+  /* ═══ L10 定理推导 ═══ */
+  D.derivationSets = D.derivationSets || {};
+  D.derivationSets['l10'] = {
+    title: { zh: '第十讲 · 定理推导', en: 'Lecture 10 · Theorem Derivations' },
+    items: [
+      /* ---- ① baseline 无偏性与方差缩减 ---- */
+      {
+        id: 'baseline-unbiased',
+        name: { zh: '基线不变性：减了白减，方差还降', en: 'Baseline Invariance: Free to Subtract, Variance Falls' },
+        intro: { zh: '给 REINFORCE 的评分 G 减去一个基线 b(s)，期望为什么一动不动？答案藏在一串五连等号里——概率和恒为 1，导数和恒为 0。本条完整走完式 10.3 的证明，并说清那个最容易踩的限制：b 只能依赖 s，不能依赖 a。', en: 'Subtracting a baseline b(s) from REINFORCE’s score G — why is the expectation untouched? The answer hides in a chain of five equalities: probabilities sum to one, so their gradients sum to zero. This derivation completes the proof of Eq. 10.3 and nails the subtle restriction: b may depend on s, never on a.' },
+        steps: [
+          { tex: String.raw`\nabla_\theta J(\theta) = \mathbb{E}\big[\,\htmlClass{fx-accent}{G}\cdot\nabla_\theta\ln\pi(A\mid S,\theta)\,\big]`,
+            why: { zh: '<strong>起点（L9）</strong>：策略梯度定理给出 ∇<sub>θ</sub>J = E[∇<sub>θ</sub>ln π · q<sub>π</sub>]，REINFORCE 用单条轨迹的真实回报 G 当 q<sub>π</sub> 的无偏样本。G 没错——但整条轨迹的运气都乘在这一个评分上。', en: '<strong>Starting point (L9)</strong>: the policy gradient theorem gives ∇<sub>θ</sub>J = E[∇<sub>θ</sub>ln π · q<sub>π</sub>], and REINFORCE uses the single-trajectory return G as an unbiased sample of q<sub>π</sub>. Nothing wrong with G — except an entire trajectory’s luck multiplies into this one score.' } },
+          { tex: String.raw`\nabla_\theta J(\theta) \;\stackrel{?}{=}\; \mathbb{E}\big[\big(G-\htmlClass{fx-gold}{b(s)}\big)\cdot\nabla_\theta\ln\pi(A\mid S,\theta)\big]`,
+            why: { zh: '<strong>想法</strong>：把评分减去一个"参照值" b(s)，让 G 围绕它波动。波动小了，梯度估计还指向原方向吗？整条证明归结为一件事：多出来的第二项 E[b(s)·∇ln π] 是不是零。', en: '<strong>The idea</strong>: subtract a reference value b(s) so G oscillates around it. With less oscillation, does the gradient estimate still point the original way? The whole proof reduces to one question: is the extra term E[b(s)·∇ln π] zero?' } },
+          { tex: String.raw`\mathbb{E}\big[(G-b)\,\nabla_\theta\ln\pi\big] \;=\; \underbrace{\mathbb{E}\big[G\,\nabla_\theta\ln\pi\big]}_{=\ \nabla_\theta J(\theta)} \;-\; \htmlClass{fx-gold}{\mathbb{E}\big[b(s)\,\nabla_\theta\ln\pi(A\mid s,\theta)\big]}`,
+            why: { zh: '<strong>期望线性</strong>：拆成两项。第一项原封不动就是策略梯度；问题全部集中到染色的第二项——它是否恒等于 0。', en: '<strong>Linearity of expectation</strong>: split into two terms. The first is exactly the policy gradient; everything now hinges on the highlighted second term — whether it is identically 0.' } },
+          { tex: String.raw`\mathbb{E}\big[b(s)\,\nabla_\theta\ln\pi\big] = \sum_s \eta_\pi(s)\,b(s)\sum_a \pi(a\mid s,\theta)\,\nabla_\theta\ln\pi(a\mid s,\theta)`,
+            why: { zh: '<strong>全期望公式按状态展开</strong>：状态 s 服从策略的访问分布 η<sub>π</sub>，动作 a 服从 π(·|s)。b(s) 与动作无关，被原样乘在内层——记住这个"与动作无关"，它是后面一切特权的来源。', en: '<strong>Expand over states by total expectation</strong>: s follows the policy’s visiting distribution η<sub>π</sub>, a follows π(·|s). b(s) is action-independent and rides inside the inner sum — remember this independence, it is the source of every privilege to come.' } },
+          { tex: String.raw`\sum_a \pi(a\mid s,\theta)\,\nabla_\theta\ln\pi(a\mid s,\theta) \;=\; ?`,
+            why: { zh: '<strong>五连等号的枢纽</strong>：内层求和 Σ<sub>a</sub> π·∇ln π 等于什么？选出正确的第一步变换——选对它，剩下的链条自己走完。', en: '<strong>The hinge of the five-equality chain</strong>: what does the inner sum Σ<sub>a</sub> π·∇ln π equal? Pick the correct first transformation — get it right and the rest of the chain walks itself.' },
+            blank: {
+              q: { zh: '关键一步：内层求和等于——', en: 'The key move: the inner sum equals —' },
+              choices: [
+                { tex: String.raw`\sum_a \pi\,\nabla_\theta\ln\pi = \sum_a \nabla_\theta\pi(a\mid s,\theta)` },
+                { tex: String.raw`\sum_a \pi\,\nabla_\theta\ln\pi = \nabla_\theta\ln\sum_a \pi(a\mid s,\theta)` },
+                { tex: String.raw`\sum_a \pi\,\nabla_\theta\ln\pi = \Big(\sum_a \pi(a\mid s,\theta)\Big)\nabla_\theta\ln\pi(a\mid s,\theta)` },
+              ],
+              answer: 0,
+              whyWrong: [
+                { zh: '正确：链式法则 ∇ln x = ∇x / x，系数 π 恰好被约掉——逐项乘开，内层变成"对 ∇π 求和"。', en: 'Correct: the chain rule ∇ln x = ∇x / x cancels the π coefficient term by term — the inner sum becomes a sum of ∇π.' },
+                { zh: 'ln 不能跨过求和号：Σ_a ln π ≠ ln Σ_a π，"先加再取对数再求导"不是链式法则——这一步没有任何恒等式撑腰。', en: 'The log cannot jump across the sum: Σ_a ln π ≠ ln Σ_a π; “add, then log, then differentiate” is not the chain rule — no identity backs this step.' },
+                { zh: '∇ln π(a|s) 依赖动作 a，不是公因子，不能提到求和号外——能自由出入求和号的只有与 a 无关的量（比如 b(s)）。', en: '∇ln π(a|s) depends on the action a — it is no common factor and cannot be pulled out of the sum; only a-independent quantities (like b(s)) enjoy that freedom.' },
+              ],
+              hint: { zh: '对每一项用 ∇ln x = ∇x / x，看看系数去哪了。', en: 'Apply ∇ln x = ∇x / x to each term and watch where the coefficient goes.' },
+            } },
+          { tex: String.raw`\sum_a \pi\,\nabla_\theta\ln\pi \;=\; \sum_a \nabla_\theta\pi \;=\; \nabla_\theta\!\underbrace{\sum_a \pi(a\mid s,\theta)}_{=\,1} \;=\; \nabla_\theta 1 \;=\; \htmlClass{fx-green}{0}`,
+            why: { zh: '<strong>五连等号</strong>：①E<sub>a~π</sub>[∇ln π] = Σ<sub>a</sub>π∇ln π（期望展开）；②链式法则约掉 π；③有限动作空间里求和与梯度交换；④概率归一化 Σ<sub>a</sub>π(a|s,θ) ≡ 1；⑤常数的梯度 = 0。每一环都只用初等事实——没有一处用到 b 或 G。', en: '<strong>The five equalities</strong>: ① E<sub>a~π</sub>[∇ln π] = Σ<sub>a</sub>π∇ln π (expand the expectation); ② the chain rule cancels π; ③ sum and gradient commute over finitely many actions; ④ normalization Σ<sub>a</sub>π(a|s,θ) ≡ 1; ⑤ the gradient of a constant is 0. Every link uses only elementary facts — none involves b or G.' } },
+          { tex: String.raw`\mathbb{E}\big[b(s)\,\nabla_\theta\ln\pi\big] = \sum_s \eta_\pi(s)\,b(s)\cdot \htmlClass{fx-green}{0} = 0`,
+            why: { zh: '<strong>第二项恒为零</strong>：内层是 0，外层乘什么都为 0——与 b 的取值无关、与状态分布 η<sub>π</sub> 无关。b(s) 可以任意选：常数、v̂(s)、任何只看状态的东西。', en: '<strong>The second term is identically zero</strong>: the inner sum is 0, so anything multiplying it is 0 — regardless of b’s values and of the state distribution η<sub>π</sub>. b(s) can be anything that looks only at the state: a constant, v̂(s), you name it.' } },
+          { tex: String.raw`\nabla_\theta J(\theta) = \mathbb{E}\big[\big(G-b(s)\big)\cdot\nabla_\theta\ln\pi(A\mid S,\theta)\big] \qquad \forall\, b(s)`,
+            why: { zh: '<strong>无偏性成立（式 10.3）</strong>：减去任何只依赖状态的基线，期望一动不动——"减了白减，不减白不减"。这就是 REINFORCE with baseline 的合法性证明。', en: '<strong>Unbiasedness holds (Eq. 10.3)</strong>: subtract any state-only baseline and the expectation does not move — “free to subtract, wasteful not to”. This is precisely the licence of REINFORCE with baseline.' } },
+          { tex: String.raw`b = b(s,a)\ (\text{依赖 } a) \;\Rightarrow\; \sum_a b(s,a)\,\pi\,\nabla_\theta\ln\pi = \nabla_\theta\underbrace{\sum_a b(s,a)\,\pi(a\mid s,\theta)}_{\neq\,\text{常数}} \;\neq\; 0`,
+            why: { zh: '<strong>关键限制</strong>：b 一旦依赖 a，就必须留在动作求和号内——Σ<sub>a</sub>b(s,a)π(a|s) 不再是"常数 × Σ<sub>a</sub>π"，而是随 θ 变动的 E[b|s]，其梯度一般非零。第二项不再消失，期望被系统性带偏。<strong>b 与动作无关，才享有滑出梯度的特权。</strong>', en: '<strong>The key restriction</strong>: once b depends on a it must stay inside the action sum — Σ<sub>a</sub>b(s,a)π(a|s) is no longer “a constant times Σ<sub>a</sub>π” but the θ-dependent E[b|s], whose gradient is generally nonzero. The second term no longer vanishes and the expectation is systematically tilted. <strong>Only an action-independent b enjoys the privilege of slipping out of the gradient.</strong>' },
+            blank: {
+              q: { zh: '五连等号哪一环被 b(s,a) 破坏？', en: 'Which link of the five-equality chain does b(s,a) break?' },
+              choices: [
+                { zh: '「∇Σ_a π = ∇1 = 0」那一环：b(s,a) 困在求和号里，Σ_a b(s,a)π ≠ 常数 × 1，梯度不再为零', en: 'The link ∇Σ_a π = ∇1 = 0: b(s,a) is trapped inside the sum, Σ_a b(s,a)π ≠ constant × 1, and the gradient no longer vanishes' },
+                { zh: '「π∇ln π = ∇π」那一环：log-derivative 恒等式对含 b 的乘积失效', en: 'The link π∇ln π = ∇π: the log-derivative identity fails on products involving b' },
+                { zh: '哪一环都不破坏——b(s,a) 同样让第二项为零', en: 'None breaks — b(s,a) also zeroes the second term' },
+              ],
+              answer: 0,
+              whyWrong: [
+                { zh: '正确：恒等式逐项成立的部分都还在，断掉的是"代入 Σ_a π = 1"这步——b(s,a) 挡住了归一化的路。', en: 'Correct: the term-by-term identities survive; what snaps is the substitution Σ_a π = 1 — b(s,a) blocks the road to normalization.' },
+                { zh: 'π∇ln π = ∇π 是逐动作成立的链式法则，与 b 毫无关系——b 只是乘在每个 ∇π 前面的系数，恒等式照常成立。', en: 'π∇ln π = ∇π is the chain rule applied per action, utterly independent of b — b merely scales each ∇π, and the identity holds as usual.' },
+                { zh: '若 b 依赖 a，第二项 = Σ_s η(s)·∇_θ E[b(S,·)|s]，一般不为零——评分被系统性扭曲，方向就偏了。', en: 'With b depending on a, the second term becomes Σ_s η(s)·∇_θ E[b(S,·)|s], generally nonzero — the score is systematically distorted and the direction tilts.' },
+              ],
+              hint: { zh: '想想 Σ_a b(s,a)π(a|s) 还能化简成 b(s) 吗？', en: 'Ask yourself: can Σ_a b(s,a)π(a|s) still collapse to b(s)?' },
+            } },
+          { tex: String.raw`\mathrm{Var}\big[(G-b(s))\,\nabla_\theta\ln\pi\big] \;\ll\; \mathrm{Var}\big[G\,\nabla_\theta\ln\pi\big] \quad \text{当 } b(s)\approx \mathbb{E}[G\mid s]`,
+            why: { zh: '<strong>方差为什么降</strong>：G 的波动 = "该状态本身的水平" + "相对这个水平的意外"。前者与动作无关、对区分动作毫无信息量，却原样乘进梯度；b(s) 恰好把这层吸收掉，剩下的 (G−b) 只含意外成分。方向（期望）没变，噪声小了。', en: '<strong>Why the variance falls</strong>: G’s fluctuation = “the level of this state” + “the surprise relative to that level”. The former is action-independent, carries zero information for discriminating actions, yet multiplies straight into the gradient; b(s) absorbs exactly that layer, leaving (G−b) with only the surprise. The direction (expectation) is unchanged — the noise is not.' } },
+          { tex: String.raw`b(s) = v_\pi(s) \;\Longrightarrow\; \mathbb{E}[\,G-b(s)\mid s,a\,] = q_\pi(s,a)-v_\pi(s) = \htmlClass{fx-gold}{A_\pi(s,a)}`,
+            why: { zh: '<strong>书推荐的简洁基线</strong>：取 b = v<sub>π</sub>(s)——减去"这个状态的平均水平"，评分的期望恰好变成优势 A。直觉版最优：减均值；加权形式的最优解不在此展开。这正是下一条推导里 A2C 的入口。', en: '<strong>The book’s recommended concise baseline</strong>: take b = v<sub>π</sub>(s) — subtract “the average level of this state”, and the score’s expectation becomes exactly the advantage A. Intuition-grade optimum: subtract the mean; the weighted-form optimum is not expanded here. This is the doorway into A2C in the next derivation.' } },
+          { tex: String.raw`\underbrace{\mathbb{E}\big[(G-b)\,\nabla_\theta\ln\pi\big]}_{\text{方向不变（无偏）}} = \nabla_\theta J(\theta), \qquad \underbrace{\mathrm{Var}\big[(G-b)\,\nabla_\theta\ln\pi\big]}_{\text{噪声变小（训练稳）}} \;\downarrow`,
+            why: { zh: '<strong>收尾</strong>：无偏性保住"平均而言走对方向"，方差降让"每一步都少绕弯"——两者合起来，同样的样本量换来可靠得多的梯度，学习率才敢放开脚步。', en: '<strong>Closing</strong>: unbiasedness guarantees “right direction on average”; the variance drop means “fewer detours each step” — together, the same sample budget buys a far more reliable gradient, and the learning rate can finally loosen up.' } },
+          { tex: String.raw`\text{REINFORCE} \;\xrightarrow{\;-\,b(s)\;}\; \text{REINFORCE with baseline} \;\xrightarrow{\;G-b\ \Rightarrow\ \delta\;}\; \text{A2C}`,
+            why: { zh: '<strong>闭合卡</strong>：本条证完"减基线免费"。下一条把 G−b 进一步换成 TD 误差 δ——不用等回合、单步可得，Actor-Critic 正式登场。NB6 将用 numpy 复现这次消融：均值不动，方差塌下去。', en: '<strong>Closing card</strong>: “baselines are free” is now proved. The next derivation swaps G−b further for the TD error δ — no waiting for episode ends, available every step — and Actor-Critic takes the stage. NB6 reproduces this ablation in numpy: the mean stays put, the variance collapses.' } },
+        ],
+      },
+      /* ---- ② 从 REINFORCE 到 Actor-Critic ---- */
+      {
+        id: 'reinforce-to-ac',
+        name: { zh: '从 REINFORCE 到 Actor-Critic：δ 替真实回报', en: 'From REINFORCE to Actor-Critic: δ Replaces the Real Return' },
+        intro: { zh: 'REINFORCE 的评分员 G_t 无偏但贵：要等整条轨迹、方差巨大。本条走完两次替换（G→q_π，再减 v_π 得优势）与一次自举（TD 误差 δ 估计优势），同一个 δ 喂演员和评论家两张表——Actor-Critic 的全部来历。', en: 'REINFORCE’s grader G_t is unbiased but dear: episode-bound and enormous variance. This derivation walks the two substitutions (G→q_π, then −v_π for the advantage) and one act of bootstrapping (the TD error δ estimating the advantage) — one δ feeding both the actor’s and the critic’s tables: the entire origin story of Actor-Critic.' },
+        steps: [
+          { tex: String.raw`\theta \leftarrow \theta + \alpha\,\htmlClass{fx-accent}{G_t}\cdot\nabla_\theta\ln\pi(a_t\mid s_t,\theta)`,
+            why: { zh: '<strong>起点（L9 REINFORCE）</strong>：评分用真实回报 G<sub>t</sub>——E[G<sub>t</sub>|s<sub>t</sub>,a<sub>t</sub>] = q<sub>π</sub>，无偏。代价在下一步数。', en: '<strong>Starting point (L9 REINFORCE)</strong>: the score is the real return G<sub>t</sub> — E[G<sub>t</sub>|s<sub>t</sub>,a<sub>t</sub>] = q<sub>π</sub>, unbiased. The price is counted in the next step.' } },
+          { tex: String.raw`G_t = R_{t+1} + \gamma R_{t+2} + \gamma^2 R_{t+3} + \cdots \qquad (\text{回合结束才可算})`,
+            why: { zh: '<strong>两个痛点</strong>：①G<sub>t</sub> 要等轨迹末端才能倒推——长回合与持续任务里回合内零更新；②从 t 到末端每一步的运气（奖励噪声、动作采样、状态转移）全部叠乘进一个评分——方差巨大，学习率被迫保守。', en: '<strong>Two pains</strong>: ① G<sub>t</sub> can only be traced back once the trajectory ends — zero updates mid-episode for long or continuing tasks; ② every stroke of luck from t to the end (reward noise, action sampling, state transitions) multiplies into one score — enormous variance forces conservative learning rates.' } },
+          { tex: String.raw`\mathbb{E}\big[G_t \mid s_t=s,\ a_t=a\big] = \htmlClass{fx-accent}{q_\pi(s,a)}`,
+            why: { zh: '<strong>替换 1 的资格</strong>：回报的条件期望就是动作价值——把"含噪样本 G<sub>t</sub>"换成"它自己的条件均值"，信息一点不丢。这一步凭什么合法？下一步的塔性质作答。', en: '<strong>The credentials of substitution one</strong>: the conditional expectation of the return is exactly the action value — swapping the “noisy sample G<sub>t</sub>” for “its own conditional mean” loses no information. What licenses this? The tower property answers next.' } },
+          { tex: String.raw`\mathbb{E}[G_t] = \mathbb{E}\big[\,\htmlClass{fx-accent}{\text{?}}\,\big]`,
+            why: { zh: '<strong>塔性质（全期望公式）</strong>：先对 (s,a) 取条件期望、再对 (s,a) 的分布取期望，等于直接取期望。于是 E[G<sub>t</sub>·∇ln π] = E[q<sub>π</sub>(s<sub>t</sub>,a<sub>t</sub>)·∇ln π]——评分被平滑，期望纹丝不动；再由条件方差公式，方差只会降。', en: '<strong>The tower property (law of total expectation)</strong>: take the conditional expectation over (s,a) first, then the expectation over the distribution of (s,a) — the result equals the plain expectation. Hence E[G<sub>t</sub>·∇ln π] = E[q<sub>π</sub>(s<sub>t</sub>,a<sub>t</sub>)·∇ln π]: the score is smoothed, the expectation untouched; by the conditional variance formula, the variance only falls.' },
+            blank: {
+              q: { zh: '把 G_t 换成 q_π(s_t,a_t)，总体期望为什么不动？', en: 'Why does swapping G_t for q_π(s_t,a_t) leave the overall expectation unchanged?' },
+              choices: [
+                { tex: String.raw`\mathbb{E}[G_t] = \mathbb{E}\big[\,\mathbb{E}[G_t \mid s_t,\ a_t]\,\big]` },
+                { zh: '大数定律：样本足够多时 G_t 的均值收敛到 q_π', en: 'Law of large numbers: with enough samples the mean of G_t converges to q_π' },
+                { zh: '独立性：G_t 与 (s_t,a_t) 独立，替换不改分布', en: 'Independence: G_t is independent of (s_t,a_t), so the swap changes nothing' },
+              ],
+              answer: 0,
+              whyWrong: [
+                { zh: '正确：这是对分布逐点成立的恒等式，与样本量无关——条件期望再求期望，恰好绕回原期望。', en: 'Correct: this is a distribution-level identity holding pointwise, independent of sample size — an expectation of a conditional expectation lands exactly back on the original.' },
+                { zh: '大数定律说的是"样本均值收敛到期望"，是采样层面的渐近性质；这里的替换要的是恒等式——单次替换也成立，不需要"样本多"。答它等于把无偏和一致混为一谈。', en: 'The law of large numbers says “sample means converge to the expectation” — an asymptotic, sampling-level fact; the swap here needs an identity, valid even for a single replacement, no “many samples” required. Choosing it confuses unbiasedness with consistency.' },
+                { zh: '恰恰相反：G_t 强依赖 (s_t,a_t)——在这个状态做这个动作，回报的分布随之而变。若真独立，q_π(s,a) 就与 s,a 无关，策略梯度也无须分动作了。', en: 'Quite the opposite: G_t depends strongly on (s_t,a_t) — do this action in this state and the return’s distribution shifts. If they were independent, q_π(s,a) would not depend on s or a, and the policy gradient would need no actions at all.' },
+              ],
+              hint: { zh: '条件期望的"套娃"怎么拆？E[E[X|Y]] 等于什么？', en: 'How does the nested expectation collapse? What is E[E[X|Y]]?' },
+            } },
+          { tex: String.raw`\nabla_\theta J(\theta) = \mathbb{E}\big[\,\htmlClass{fx-accent}{q_\pi(s_t,a_t)}\cdot\nabla_\theta\ln\pi(a_t\mid s_t,\theta)\,\big]`,
+            why: { zh: '<strong>替换 1 落地</strong>：策略梯度定理的标准形式。QAC 就是用 TD 学出的 q̂(s,a,w) 顶替 q<sub>π</sub>——评论家第一次上岗。但 q<sub>π</sub> 本身未知，这个坑第 8 步回来填。', en: '<strong>Substitution one lands</strong>: the standard form of the policy gradient theorem. QAC stands the TD-learned q̂(s,a,w) in for q<sub>π</sub> — the critic’s first day on the job. But q<sub>π</sub> itself is unknown; that pit is revisited at step 8.' } },
+          { tex: String.raw`\nabla_\theta J(\theta) = \mathbb{E}\big[\big(\htmlClass{fx-accent}{q_\pi(s,a)}-\htmlClass{fx-gold}{v_\pi(s)}\big)\cdot\nabla_\theta\ln\pi\big]`,
+            why: { zh: '<strong>替换 2：减基线</strong>。上一条已证 E[b(s)·∇ln π] = 0（Σ<sub>a</sub>π∇ln π = ∇Σ<sub>a</sub>π = 0）——任何只依赖 s 的 b 都免费。取最优候选 b = v<sub>π</sub>(s)。', en: '<strong>Substitution two: the baseline</strong>. The previous derivation proved E[b(s)·∇ln π] = 0 (Σ<sub>a</sub>π∇ln π = ∇Σ<sub>a</sub>π = 0) — any state-only b is free. Take the optimal candidate b = v<sub>π</sub>(s).' } },
+          { tex: String.raw`A_\pi(s,a) \;\triangleq\; q_\pi(s,a)-v_\pi(s) \;=\; \mathbb{E}[G_t\mid s,a]-\mathbb{E}[G_t\mid s]`,
+            why: { zh: '<strong>优势函数登场</strong>：减完剩下的 = 这个动作比"该状态平均水平"好多少。中心化把与动作无关的评分分量全部吸收——方差再降一档，方向依旧无偏。', en: '<strong>Enter the advantage</strong>: what remains = how much better this action is than “this state’s average”. Centring absorbs every action-independent component of the score — one more notch of variance down, the direction still unbiased.' } },
+          { tex: String.raw`q_\pi(s,a) = \,?\,, \qquad v_\pi(s) = \,?\, \qquad (\text{model-free：两个期望都算不出})`,
+            why: { zh: '<strong>现实一击</strong>：优势的两侧都是真值期望——无模型设定下没有 p(s′|s,a)、p(r|s,a) 可供枚举。需要一个<strong>单步采样就能得到</strong>的替代品。', en: '<strong>Reality strikes</strong>: both sides of the advantage are true expectations — in the model-free setting there is no p(s′|s,a) or p(r|s,a) to enumerate. We need a surrogate <strong>computable from a single step</strong>.' } },
+          { tex: String.raw`\delta_t \;\triangleq\; R_{t+1}+\gamma\,v(s_{t+1})-v(s_t)`,
+            why: { zh: '<strong>TD 误差登场（L7 老朋友）</strong>：只用一步转移 (r, s′) 和当前价值表 v——不用模型、不用等回合。接下来三步论证它的条件期望恰好是优势。', en: '<strong>Enter the TD error (L7’s old friend)</strong>: it needs only the one-step transition (r, s′) and the current value table v — no model, no waiting. The next three steps argue its conditional expectation is exactly the advantage.' } },
+          { tex: String.raw`\mathbb{E}[\delta_t\mid s_t=s,\ a_t=a] = \mathbb{E}[R_{t+1}\mid s,a] + \gamma\,\mathbb{E}[\,v(s_{t+1})\mid s,a\,] - v(s)`,
+            why: { zh: '<strong>核心论证 · 拆项</strong>：条件期望线性，三项分开处理；−v(s) 在条件下是常数，原样保留。剩下两个条件期望是标准的"一步模型读数"。', en: '<strong>The core argument · split</strong>: conditional expectation is linear — handle the three terms separately; −v(s) is constant under the conditioning and stays as is. The two remaining conditional expectations are the standard “one-step model readings”.' } },
+          { tex: String.raw`\mathbb{E}[R_{t+1}\mid s,a] = \,?\, \qquad \mathbb{E}[\,v(s_{t+1})\mid s,a\,] = \,?`,
+            why: { zh: '<strong>核心论证 · 一步读数</strong>：奖励的条件均值就是一步奖励 r(s,a)；下一状态按 p(s′|s,a) 撒开，v(s′) 的期望是对所有 s′ 的转移加权平均——这两块正是 q<sub>π</sub> 的 Bellman 方程零件。', en: '<strong>The core argument · one-step readings</strong>: the conditional mean of the reward is the one-step reward r(s,a); the next state spreads over p(s′|s,a), so the expectation of v(s′) is the transition-weighted average over all s′ — exactly the parts of q<sub>π</sub>’s Bellman equation.' },
+            blank: {
+              q: { zh: '两个条件期望的标准读数分别是？', en: 'What are the standard readings of the two conditional expectations?' },
+              choices: [
+                { tex: String.raw`\mathbb{E}[R_{t+1}\mid s,a] = r(s,a), \quad \mathbb{E}[v(s_{t+1})\mid s,a] = \sum_{s'} p(s'\mid s,a)\,v(s')` },
+                { tex: String.raw`\mathbb{E}[R_{t+1}\mid s,a] = r(s,a), \quad \mathbb{E}[v(s_{t+1})\mid s,a] = v(s)` },
+                { tex: String.raw`\mathbb{E}[R_{t+1}\mid s,a] = G_t, \quad \mathbb{E}[v(s_{t+1})\mid s,a] = q_\pi(s,a)` },
+              ],
+              answer: 0,
+              whyWrong: [
+                { zh: '正确：一步奖励的均值是 r(s,a)；下一状态按转移核 p(s′|s,a) 分布，对 v(s′) 做加权平均——这就是 q 的 Bellman 展开式。', en: 'Correct: the one-step reward’s mean is r(s,a); the next state follows the transition kernel p(s′|s,a), so v(s′) is averaged against it — exactly q’s Bellman expansion.' },
+                { zh: 'E[v(s′)|s,a] 不是 v(s)：给定 (s,a) 后下一状态一般会变，必须对所有 s′ 加权平均——填 v(s) 等于假设"状态原地不动"。', en: 'E[v(s′)|s,a] is not v(s): given (s,a) the next state generally moves, and v(s′) must be averaged over all s′ — filling in v(s) assumes “the state never moves”.' },
+                { zh: 'E[R_{t+1}|s,a] 是单步奖励的均值，不是整条回报 G_t；E[v(s′)|s,a] 是状态价值的平均，不是动作价值 q——这一组把不同时间尺度的量混在了一起。', en: 'E[R_{t+1}|s,a] is the mean of the one-step reward, not the whole return G_t; E[v(s′)|s,a] averages state values, not the action value q — this pair mixes quantities from different time scales.' },
+              ],
+              hint: { zh: '一个只看"这一步的奖励"，一个要对"下一步去哪"加权。', en: 'One reads only “this step’s reward”; the other weights “where the next step lands”.' },
+            } },
+          { tex: String.raw`\mathbb{E}[\delta_t\mid s,a] = \underbrace{r(s,a)+\gamma\!\sum_{s'} p(s'\mid s,a)\,v_\pi(s')}_{=\ q_\pi(s,a)\ \text{（Bellman）}} -\, v_\pi(s) \;=\; \htmlClass{fx-accent}{A_\pi(s,a)}`,
+            why: { zh: '<strong>核心论证 · 合并</strong>：前两项拼成 q<sub>π</sub> 的 Bellman 方程（L5：q<sub>π</sub> = r + γΣp·v<sub>π</sub>），再减 v<sub>π</sub>(s) 恰得优势。当 v 尚未收敛，E[δ|s,a] ≈ A——δ 是优势的<strong>有偏、单步可得</strong>的样本。', en: '<strong>The core argument · merge</strong>: the first two terms assemble q<sub>π</sub>’s Bellman equation (L5: q<sub>π</sub> = r + γΣp·v<sub>π</sub>); subtracting v<sub>π</sub>(s) yields exactly the advantage. Before v converges, E[δ|s,a] ≈ A — δ is a <strong>biased, per-step-available</strong> sample of the advantage.' } },
+          { tex: String.raw`\begin{gathered} \text{actor}: \theta \leftarrow \theta + \alpha_\theta\,\htmlClass{fx-accent}{\delta_t}\cdot\nabla_\theta\ln\pi(a_t\mid s_t,\theta)\\[2pt] \text{critic}: w \leftarrow w + \alpha_w\,\htmlClass{fx-accent}{\delta_t}\cdot\nabla_w v(s_t,w) \end{gathered}`,
+            why: { zh: '<strong>Actor-Critic 更新对：一箭双雕</strong>。同一个 δ 喂两张表——演员把它当优势的样本（推策略），评论家把它当自己的 TD 误差（修价值表）。这就是 A2C 的两行更新，与 a2c.py 逐行对应。', en: '<strong>The Actor-Critic update pair: one arrow, two targets</strong>. The same δ feeds two tables — the actor reads it as a sample of the advantage (pushing the policy), the critic as its own TD error (fixing the value table). These are A2C’s two lines, matching a2c.py line for line.' } },
+          { tex: String.raw`\text{actor} = \pi(a\mid s,\theta)\ \text{（表演）}, \qquad \text{critic} = \hat v(s,w)\ \text{（打分）}`,
+            why: { zh: '<strong>名字的由来</strong>：演员上台表演——行动、被优势推着改进；评论家台下打分——评分、被 TD 误差纠错。每个时间步都是"评估半步 + 改进半步"，广义策略迭代被压到单步粒度。', en: '<strong>Where the names come from</strong>: the actor performs on stage — acting, pushed to improve by the advantage; the critic scores from the seats — grading, corrected by its own TD error. Every time step is “half a step of evaluation + half a step of improvement”: generalised policy iteration compressed to single-step grain.' } },
+          { tex: String.raw`\text{REINFORCE}\ \big(G_t:\ \text{无偏 · 高方差 · 等回合}\big) \;\longrightarrow\; \text{A2C}\ \big(\delta:\ \text{有偏 · 低方差 · 单步}\big)`,
+            why: { zh: '<strong>收尾</strong>：两次替换（G→q̂、−v 基线）加一次自举（δ 估计优势），换来单步更新与方差骤降；代价是 v 不准时有偏。NB6 将用 numpy 实现 REINFORCE 与 baseline 消融——亲手看到"均值不动、方差塌下去"。', en: '<strong>Closing</strong>: two substitutions (G→q̂, −v baseline) plus one act of bootstrapping (δ estimating the advantage) buy per-step updates and a collapsed variance; the price is bias while v is imperfect. NB6 implements the REINFORCE baseline ablation in numpy — watch the mean stay put while the variance collapses.' } },
+        ],
+      },
+    ],
+  };
 
   /* 导航组注册已提升至 data.js 的 NAV（按讲懒加载后，冷启动侧栏也要完整） */
   const l10 = D.otherLectures.find(l => l.no === 10);

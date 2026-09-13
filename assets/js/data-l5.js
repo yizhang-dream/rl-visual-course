@@ -121,6 +121,7 @@
     blocks: [
       { t: 'p', zh: '无模型代码的第一件工具不是算法，是<strong>采样器</strong>：<code class="inline">generate_episode</code>。有了它，MC Basic 就是"采样 → 平均 → 贪心"三行主循环。注意这次我们<strong>不再需要 build_model</strong>——这是与 L2–L4 代码的划时代差别。', en: 'The first tool of model-free code is not an algorithm but a <strong>sampler</strong>: <code class="inline">generate_episode</code>. With it, MC Basic is a three-line main loop: sample → average → improve greedily. Note what is missing: <strong>no build_model</strong> — that is the epochal difference from the L2–L4 code.' },
       { t: 'widget', component: 'code-lab', props: { source: 'l5' } },
+      { t: 'widget', component: 'notebook-bridge', props: { nb: 'nb3' } },
     ],
   };
 
@@ -133,6 +134,7 @@
       { t: 'p', zh: '翻卡前先在心里过三题：① MC 到底需不需要模型（不需要——env.step 就是全部接口）；② first-visit 与 every-visit 差在哪、为什么渐近一致（相关性不同，都收敛到 E[G|s,a]）；③ ε-greedy 策略"是不是最优"为什么是二义回答（在 ε-greedy 家族内最优，但不等于全局最优）。', en: 'Before flipping, settle three questions in your mind: ① does MC need a model (no — env.step is the entire interface); ② how do first-visit and every-visit differ, and why are they asymptotically consistent (different correlation, both converging to E[G|s,a]); ③ why is "is an ε-greedy policy optimal" a two-sided answer (optimal within the ε-greedy family, but not the global optimum).' },
       { t: 'widget', component: 'qa-lab', props: { source: 'l5' } },
       { t: 'widget', component: 'fill-lab', props: { source: 'l5' } },
+      { t: 'widget', component: 'derivation-lab', props: { source: 'l5' } },
     ],
   };
 
@@ -378,6 +380,85 @@ def mc_basic(env, n_episodes=50, gamma=0.9, max_outer=20, max_steps=200):
     ],
   };
 
+
+  /* ═══ L5 定理推导 ═══ */
+  D.derivationSets = D.derivationSets || {};  /* derivation-lab 容器：data.js 未预置时在此兜底，避免冷启动报错 */
+  D.derivationSets['l5'] = {
+    title: { zh: '第五讲 · 定理推导', en: 'Lecture 5 · Theorem Derivations' },
+    items: [
+      { id: 'mc-unbiased-variance',
+        name: { zh: 'MC 均值估计的统计性质', en: 'Statistical Properties of the MC Mean' },
+        intro: { zh: '一条链把第五讲的地基推一遍：从 x̄ 的定义出发，先证无偏性（只要同分布，不需要独立），再证方差塌缩 σ²/n（要加购不相关），看这两条性质如何精确区分 first-visit 与 every-visit 的统计品质，最后亲手展开增量均值恒等式——1/k 不是选出来的，是通分通出来的。', en: 'One chain rebuilds Lecture 5\'s foundation: start from the definition of x̄, prove unbiasedness first (identical distribution suffices, independence not needed), then the variance collapse σ²/n (uncorrelatedness must be added), watch the two properties sharply separate the statistical quality of first-visit versus every-visit, and finally expand the incremental-mean identity by hand — 1/k is not chosen, it is forced out by the common denominator.' },
+        steps: [
+          /* 1 · 起点：样本均值定义 */
+          { tex: String.raw`\bar{x}_n \;\triangleq\; \frac{1}{n}\sum_{i=1}^{n} x_i, \qquad \mathbb{E}[x_i] = \mu, \quad \operatorname{var}[x_i] = \sigma^2 \htmlClass{fx-dim}{\ \text{（同分布样本）}}`,
+            why: { zh: '先把对象摆上桌：n 个同分布样本的等权平均。第五讲的每个评估步都是这个 x̄ 换了衣服——q̂(s,a) 就是"从 (s,a) 出发的回报平均"（式 5.2），书上的掷硬币示范里 μ = 0。要回答两个问题：它平均起来准不准（无偏性），它抖得多厉害（方差）。', en: 'Put the object on the table first: the equal-weight average of n identically distributed samples. Every evaluation step of Lecture 5 is this x̄ in disguise — q̂(s,a) is exactly "the average of returns started from (s,a)" (Eq. 5.2); in the book\'s coin demo μ = 0. Two questions await: is it right on average (unbiasedness), and how much does it jitter (variance).' } },
+          /* 2 · 无偏性：期望的线性 */
+          { tex: String.raw`\mathbb{E}[\bar{x}_n] \;=\; \mathbb{E}\!\left[\frac{1}{n}\sum_{i=1}^{n} x_i\right] \;\overset{\htmlClass{fx-gold}{\text{线性}}}{=}\; \frac{1}{n}\sum_{i=1}^{n} \mathbb{E}[x_i]`,
+            why: { zh: '期望算子是线性的：常数 1/n 提到外面，和的期望拆成期望的和。注意这一步没有用到"独立"——线性是期望的公理级性质，相关性根本没出场。', en: 'The expectation operator is linear: the constant 1/n comes out, and the expectation of a sum splits into a sum of expectations. Note that independence plays no role here — linearity is an axiom-level property of expectation; correlation has not even entered the room.' } },
+          /* 3 · 无偏性完成：同分布即可 */
+          { tex: String.raw`\frac{1}{n}\sum_{i=1}^{n} \mathbb{E}[x_i] \;=\; \frac{1}{n} \cdot n\mu \;=\; \mu \qquad\Rightarrow\qquad \mathbb{E}[\bar{x}_n] = \mu \htmlClass{fx-dim}{\ \text{（无偏）}}`,
+            why: { zh: '无偏性到账，而且账单便宜得出奇：只需要"同分布"（每个 E[xᵢ] = μ），连不相关都不用。这条宽裕度后面有用——即便样本彼此相关，"平均了不跑偏"依然成立；相关性真正的要价记在方差那栏。', en: 'Unbiasedness arrives, and the bill is astonishingly cheap: only "identically distributed" (each E[xᵢ] = μ) is needed — not even uncorrelatedness. This slack pays off later: even when samples correlate, "the average does not drift" still holds; correlation charges its real fee on the variance line.' } },
+          /* 4 · 方差展开：交叉项显形 */
+          { tex: String.raw`\operatorname{var}\!\left[\sum_{i=1}^{n} x_i\right] \;=\; \sum_{i=1}^{n} \operatorname{var}[x_i] \;+\; 2\sum_{i<j} \operatorname{cov}(x_i,\, x_j)`,
+            why: { zh: '方差的麻烦来了：它不是线性的。(Σxᵢ − nμ)² 展开后除了平方项还有交叉项 2Σcov——期望在第 2 步白拿的"和的拆分"，方差要为交叉项付钱。这一步是与第 2 步的关键不对称，也是整条链的第一个分水岭。', en: 'Here is where variance bites: it is not linear. Expanding (Σxᵢ − nμ)² yields cross terms 2Σcov besides the squares — the free "split of sums" expectation enjoyed in step 2 must now pay for its cross terms. This asymmetry with step 2 is the first watershed of the chain.' } },
+          /* 5 · ★ 关键步：不相关条件消交叉项 */
+          { tex: String.raw`\sum_{i=1}^{n} \operatorname{var}[x_i] + 2\sum_{i<j} \operatorname{cov}(x_i, x_j) \;=\; n\sigma^2 + 2\sum_{i<j} \operatorname{cov}(x_i, x_j) \;\overset{\htmlClass{fx-gold}{\text{？}}}{=}\; n\sigma^2`,
+            why: { zh: '想让交叉项整队消失，必须动用"样本互不相关"（cov(xᵢ, xⱼ) = 0, i ≠ j）——它比独立弱、比同分布强。无偏性只买"同分布"，方差塌缩还要加购"不相关"：Box 5.1 的两条结论，价钱不一样。', en: 'To make the cross terms vanish in formation you must invoke "samples uncorrelated" (cov(xᵢ, xⱼ) = 0 for i ≠ j) — weaker than independence, stronger than identical distribution. Unbiasedness buys only "identical"; variance collapse must add "uncorrelated": the two conclusions of Box 5.1 carry different price tags.' },
+            blank: { q: { zh: '中间那个等号上方该填什么条件，才能从 nσ² + 2Σcov 走到 nσ²？', en: 'What condition belongs above that middle equals sign to take nσ² + 2Σcov down to nσ²?' },
+              choices: [
+                { tex: String.raw`\operatorname{cov}(x_i, x_j) = 0 \ \ (i \neq j)` },
+                { tex: String.raw`\mathbb{E}[x_i] = \mu` },
+                { tex: String.raw`\operatorname{var}[x_i] = \sigma^2 < \infty` },
+              ], answer: 0,
+              whyWrong: [
+                { zh: '对：交叉项 2Σcov 整体归零，剩下的恰好是 n 份 σ²。', en: 'Right: the whole cross sum 2Σcov vanishes, leaving exactly n copies of σ².' },
+                { zh: 'E[xᵢ] = μ（同分布）只够把中心拉正——第 3 步已经花过这张卡；它管不住交叉项，均值全对齐时 cov 仍可以不是零。', en: 'E[xᵢ] = μ (identical distribution) only aligns the centre — step 3 already spent that card; it cannot discipline the cross terms, and cov can stay nonzero while every mean aligns.' },
+                { zh: '方差有界只保证每一项存在、不发散；σ² 再小，2Σcov 也原样站在那里——有界不等于为零。', en: 'A bounded variance only makes each term exist; however small σ² is, 2Σcov still stands there untouched — bounded is not zero.' },
+              ],
+              hint: { zh: '同分布管"中心在哪"，不相关管"交叉项在不在"。这步要消掉的是交叉项。', en: 'Identical distribution governs "where the centre is"; uncorrelatedness governs "whether cross terms exist". What must disappear here is the cross sum.' } } },
+          /* 6 · 除以 n²：塌缩到手 */
+          { tex: String.raw`\operatorname{var}[\bar{x}_n] \;=\; \frac{1}{n^2} \operatorname{var}\!\left[\sum_{i=1}^{n} x_i\right] \;=\; \frac{1}{n^2} \cdot n\sigma^2 \;=\; \frac{\sigma^2}{n}`,
+            why: { zh: '常数方差公式 var[cX] = c²var[X]：1/n 提出去时被平方成 1/n²——正是这个平方制造了塌缩：分母攒到 n²，分子只攒出 n 份 σ²，净效果 1/n。Box 5.1 右半边到手。', en: 'The constant rule var[cX] = c²var[X]: the 1/n squares into 1/n² on its way out — and that squaring creates the collapse: the denominator climbs to n² while the numerator collects only n copies of σ², netting 1/n. The right half of Box 5.1 is in hand.' } },
+          /* 7 · 塌缩速度与大数定律 */
+          { tex: String.raw`\operatorname{std}[\bar{x}_n] = \frac{\sigma}{\sqrt{n}} \;\to\; 0 \qquad\Rightarrow\qquad \bar{x}_n \;\overset{p}{\to}\; \mu \htmlClass{fx-dim}{\ \text{（大数定律）}}`,
+            why: { zh: '无偏 + 方差塌到零 = 依概率收敛到 μ——大数定律的两块砖正是第 3、6 步。塌缩速度值得记住：标准差按 1/√n 缩，样本翻一百倍精度才多一位小数。"要准就得采很多"从此有了定量账本，NB3 会用多 seed 实验把这行曲线画出来。', en: 'Unbiased plus variance collapsing to zero equals convergence in probability to μ — the two bricks of the law of large numbers are exactly steps 3 and 6. The collapse rate is worth memorising: the standard deviation shrinks as 1/√n, so a hundredfold sample buys one more decimal digit. "Accuracy demands many samples" now has a quantitative ledger — NB3 will draw this curve with multi-seed experiments.' } },
+          /* 8 · 装回 MC：first-visit 条件干净 */
+          { tex: String.raw`\hat{q}_{\text{FV}}(s,a) = \frac{1}{n}\sum_{e=1}^{n} g_e, \qquad \operatorname{cov}(g_e, g_{e'}) = 0\ (e \neq e') \;\Rightarrow\; \operatorname{var}\!\left[\hat{q}_{\text{FV}}\right] = \frac{\operatorname{var}[G \mid s, a]}{n}`,
+            why: { zh: '把性质装回 MC：first-visit 每个回合至多贡献一份回报，不同回合由独立的随机源（初始状态、转移、策略采样）生成、互不相关——第 5 步花大价钱买的条件在这里被字面满足，方差公式直接适用，统计条件最干净。', en: 'Fit the property back onto MC: first-visit lets each episode contribute at most one return, and distinct episodes are generated by independent randomness (start state, transitions, policy sampling) — the expensive condition purchased in step 5 is met verbatim here, the variance formula applies directly. The cleanest possible bookkeeping.' } },
+          /* 9 · every-visit：相关性进样本 */
+          { tex: String.raw`g_t \;=\; r_{t+1} + \gamma r_{t+2} + \cdots + \gamma^{t'-t-1} r_{t'} \;+\; \htmlClass{fx-gold}{\gamma^{t'-t}\, g_{t'}} \qquad (t < t')`,
+            why: { zh: 'every-visit 的账本里，同一条轨迹对同一 (s,a) 的两次访问各记一份回报——而 g_t 的展开式里物理地含着 γ^(t′−t)·g_{t′}：两份样本共享同一段后缀，cov(g_t, g_{t′}) ≠ 0，第 4 步的交叉项被请了回来。书上结论：两种估计都一致（访问次数 → ∞ 同收敛 E[G|s,a]），但 every-visit 的方差分析必须带上全部协方差项，有限样本的账更难算——§5.3 讲过取舍，这一步补的是取舍背后的原因。', en: 'In the every-visit ledger, two visits to the same (s,a) within one trajectory each book a return — and the expansion of g_t physically contains γ^(t′−t)·g_{t′}: the two samples share one suffix, cov(g_t, g_{t′}) ≠ 0, and the cross terms of step 4 are invited back. The book\'s conclusion: both estimators are consistent (both → E[G|s,a] as visits → ∞), but every-visit\'s variance analysis must carry every covariance term — a harder finite-sample account. §5.3 discussed the trade-off; this step supplies the reason behind it.' } },
+          /* 10 · 增量均值：目标声明 */
+          { tex: String.raw`\text{目标：}\quad \bar{x}_k \;\overset{?}{=}\; \bar{x}_{k-1} + \frac{1}{k}\big(x_k - \bar{x}_{k-1}\big)`,
+            why: { zh: '换个视角收尾：批量记账（存下全部回报再除）能否换成流式更新——新样本来了只动一步？本讲代码里 q ← q + (1/N)(g − q) 天天在跑，下面两步证明它不是近似：通分之后恰好就是 k 个样本的算术平均。', en: 'A final change of viewpoint: can batch bookkeeping (store every return, then divide) become a streaming update — one move per new sample? The lecture\'s code runs q ← q + (1/N)(g − q) every day; the next two steps prove it is no approximation: put over a common denominator and it is exactly the arithmetic mean of the k samples.' } },
+          /* 11 · ★ 关键步：通分合并系数 */
+          { tex: String.raw`\bar{x}_{k-1} + \frac{1}{k}\big(x_k - \bar{x}_{k-1}\big) \;=\; \htmlClass{fx-gold}{?\,\bar{x}_{k-1} \;+\; ?\,x_k}`,
+            why: { zh: '合并同类项：x̄_{k−1} 出现两次，系数 1 − 1/k = (k−1)/k；新样本 x_k 单独拿 1/k。注意两个权重之和为 1——这保证了合并后的量仍是"平均"，而不是别的组合。', en: 'Collect like terms: x̄_{k−1} appears twice with combined coefficient 1 − 1/k = (k−1)/k; the new sample x_k takes 1/k alone. Note the two weights sum to 1 — exactly what keeps the merged quantity an "average" rather than something else.' },
+            blank: { q: { zh: '拆开括号、按变量归并系数：x̄_{k−1} 与 x_k 头上的两个问号各是多少？', en: 'Expand the bracket and collect coefficients: what are the two question marks over x̄_{k−1} and x_k?' },
+              choices: [
+                { tex: String.raw`\frac{k-1}{k}\,\bar{x}_{k-1} \;+\; \frac{1}{k}\,x_k` },
+                { tex: String.raw`\frac{1}{k}\,\bar{x}_{k-1} \;+\; \frac{k-1}{k}\,x_k` },
+                { tex: String.raw`\frac{1}{k-1}\,\bar{x}_{k-1} \;+\; \frac{1}{k}\,x_k` },
+              ], answer: 0,
+              whyWrong: [
+                { zh: '对：1 − 1/k = (k−1)/k——旧均值带着 k−1 个样本的信息拿大头，新样本拿 1/k，权重和恰为 1。', en: 'Right: 1 − 1/k = (k−1)/k — the old mean carries k−1 samples and takes the lion\'s share, the new sample takes 1/k, and the weights sum to exactly 1.' },
+                { zh: '权重写反了：x_k 只是一个新样本，不该拿 (k−1)/k 的大头——那等于一脚踢翻前面 k−1 个样本攒下的平均。', en: 'Weights reversed: x_k is a single new sample and should not take the (k−1)/k lion\'s share — that would kick over the average of the previous k−1 samples.' },
+                { zh: '两个系数加起来超过 1（1/(k−1) + 1/k > 1），合并结果不再是平均量——而且 k = 1 时直接除零。', en: 'The two coefficients add up to more than 1 (1/(k−1) + 1/k > 1), so the merged result is no longer an average — and at k = 1 it divides by zero outright.' },
+              ],
+              hint: { zh: '拆括号后 x̄_{k−1} 的系数是 1 − 1/k；两个权重加起来应该恰好等于 1。', en: 'After expanding, the coefficient of x̄_{k−1} is 1 − 1/k; the two weights should sum to exactly 1.' } } },
+          /* 12 · 代回定义：恒等式闭合 */
+          { tex: String.raw`\frac{k-1}{k}\,\bar{x}_{k-1} + \frac{1}{k}\,x_k \;=\; \frac{k-1}{k} \cdot \frac{1}{k-1} \sum_{i=1}^{k-1} x_i + \frac{1}{k}\,x_k \;=\; \frac{1}{k} \sum_{i=1}^{k} x_i \;=\; \bar{x}_k`,
+            why: { zh: '代回定义收网：(k−1)/k × 1/(k−1) = 1/k——旧样本的权重从 1/(k−1) 摊薄到 1/k，与新样本恰好等权。等号一路通到头：增量式与批量平均是同一个数，一步不差——1/k 不是设计出来的巧合，是通分通出来的必然。', en: 'Substitute the definition and close the net: (k−1)/k × 1/(k−1) = 1/k — each old sample\'s weight dilutes from 1/(k−1) to 1/k, exactly level with the new one. The equalities run all the way through: the incremental form and the batch average are the same number to the last digit — 1/k is not a designed coincidence but a necessity forced out by the common denominator.' } },
+          /* 13 · 步长视角：精确平均 vs 带遗忘 */
+          { tex: String.raw`\alpha_k = \frac{1}{k}\ \htmlClass{fx-dim}{\text{（精确平均）}} \qquad \Longrightarrow \qquad \alpha_k = \alpha\ \text{（常数）}: \quad w_i = \alpha\,(1-\alpha)^{k-i}`,
+            why: { zh: '把 1/k 看成步长 α_k：上面的恒等式说明 α_k = 1/k 给出精确平均。换成常数 α、迭代几步更新式就得到各样本的权重 w_i = α(1−α)^{k−i}——几何衰减，旧样本按公比 (1−α) 被遗忘，有效记忆约 1/α 个样本：估计从"精确平均"变成"带遗忘的加权平均"。本讲填空题让你记住"1/k 才是精确平均"；这条链补上另一半——为什么偏偏是 1/k：通分逼出来的。哪种步长在什么条件下收敛（Σα = ∞、Σα² < ∞），L6 整章接手。', en: 'Read 1/k as a step size α_k: the identity above says α_k = 1/k yields the exact average. Swap in a constant α and a few iterations of the update give each sample weight w_i = α(1−α)^{k−i} — geometric decay, old samples forgotten at ratio (1−α), effective memory about 1/α samples: the estimator turns from "exact averaging" into "a weighted average with forgetting". The lecture\'s fill-in asked you to remember that 1/k is the exact one; this chain supplies the other half — why exactly 1/k: forced by the common denominator. Which step sizes converge under which conditions (Σα = ∞, Σα² < ∞) is L6\'s whole business.' } },
+          /* 14 · 收尾：采样替代模型的凭据 */
+          { tex: String.raw`\mathbb{E}\big[\hat{q}(s,a)\big] = q_\pi(s,a), \qquad \operatorname{var}\big[\hat{q}(s,a)\big] = \frac{\operatorname{var}[G \mid s, a]}{n} \to 0 \quad\Longrightarrow\quad \hat{q}(s,a) \xrightarrow{\ n \to \infty\ } q_\pi(s,a)`,
+            why: { zh: '合上整讲的地基：无偏（第 3 步）+ 方差塌缩（第 6 步）= 大数定律（第 7 步）——样本平均顶替期望查询，q̂ 随 n → ∞ 逼近真值。DP 查两张概率表算的也是这同一个期望：模型从来不是价值的必要原料，期望才是，而期望可以用经验平均来算。MC 能用采样替代模型的全部凭据，都在这 14 步里。', en: 'The foundation of the whole lecture closes: unbiased (step 3) + variance collapse (step 6) = the law of large numbers (step 7) — the sample average replaces the expectation lookup, and q̂ approaches the truth as n → ∞. DP consults two probability tables to compute this very same expectation: the model was never the necessary ingredient of value — the expectation is, and expectations can be computed from empirical averages. MC\'s entire licence to replace the model with samples rests on these 14 steps.' } },
+        ] },
+    ],
+  };
 
   /* 导航组注册已提升至 data.js 的 NAV（按讲懒加载后，冷启动侧栏也要完整） */
   const l5 = D.otherLectures.find(l => l.no === 5);

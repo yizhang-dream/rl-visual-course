@@ -81,7 +81,7 @@
     title: { zh: 'REINFORCE：采样出来的梯度上升', en: 'REINFORCE: Gradient Ascent from Samples' },
     blocks: [
       { t: 'p', zh: '把期望换成单条轨迹的采样，就得到 <strong>REINFORCE</strong>（蒙特卡洛策略梯度）。每采一条轨迹 (s₀,a₀,g₁,…)：对其中每一步，用 <strong>γ<sup>t</sup>G<sub>t</sub></strong>（从该步出发的折扣回报）代替 q<sub>π</sub>，执行更新：', en: 'Replacing the expectation by samples from a single trajectory yields <strong>REINFORCE</strong> (Monte Carlo policy gradient). For each trajectory (s₀,a₀,g₁,…): at every step, substitute <strong>γ<sup>t</sup>G<sub>t</sub></strong> (the discounted return from that step) for q<sub>π</sub> and apply the update:' },
-      { t: 'formula', lbl: 'REINFORCE — Eq. (9.32)',
+      { t: 'formula', lbl: 'REINFORCE — 式 (9.32) 的 γ^t 显式版 · REINFORCE — Eq. (9.32), γ^t-explicit',
         tex: String.raw`\theta_{t+1} = \theta_t + \alpha\,\gamma^{t}\, G_t\, \nabla_\theta\ln \pi(a_t\mid s_t, \theta_t)` },
       { t: 'p', zh: '书上的简洁读法（式 9.33）值得背下来：更新后 <strong>ln π(a<sub>t</sub>|s<sub>t</sub>) 变大当且仅当 G<sub>t</sub> > 0</strong>（折扣情形）——这次经历好，就提高这套动作的概率。注意两点：① 它是 <strong>on-policy</strong> 的（梯度定义在当前策略的分布上）；② 收敛到<strong>局部</strong>最优（θ 的非凸优化），全局最优要碰运气或加技巧。', en: 'The book’s compact reading (Eq. 9.33) is worth memorising: after the update, <strong>ln π(a<sub>t</sub>|s<sub>t</sub>) grows if and only if G<sub>t</sub> > 0</strong> (discounted case) — a good experience raises the probability of exactly those actions. Two caveats: ① it is <strong>on-policy</strong> (the gradient is defined on the current policy’s distribution); ② it converges to a <strong>local</strong> optimum (θ optimisation is nonconvex) — global optimality needs luck or extra machinery.' },
       { t: 'p', zh: '<strong>式里那个 γ<sup>t</sup> 是什么角色？</strong>折扣情形下 J 的定义把 t 步之后的回报按 γ<sup>t</sup> 折价——一个动作离回合起点越远，它对度量的"责任"越轻（它的好回报隔了 t 步折扣才传导回起点价值）。更新式里的 γ<sup>t</sup> 就是这份责任的账面折价。工程小窍门（见代码精讲）：把 γ<sup>t</sup> 折进 G<sub>t</sub> 的倒推递推里，更新行里就不必显式再写——G 本身已带上折扣的"利息"。', en: '<strong>What role does the γ<sup>t</sup> in the formula play?</strong> In the discounted case, J’s definition discounts rewards t steps ahead by γ<sup>t</sup> — the farther an action sits from the episode start, the lighter its “responsibility” toward the metric (its rewards pass through t steps of discounting before reaching the start-state value). The γ<sup>t</sup> in the update is exactly this book-keeping discount of responsibility. An engineering trick (see the code walkthrough): fold γ<sup>t</sup> into the backward recursion of G<sub>t</sub>, and the update line need not write it explicitly — G already carries the discount’s “interest”.' },
@@ -135,6 +135,7 @@
     blocks: [
       { t: 'p', zh: '策略梯度代码的主角不是循环而是<strong>梯度公式</strong>：∇lnπ = onehot(a) − π（softmax 的魔法导数）。这一行加上回报折扣，就是 REINFORCE 的全部数学。', en: 'The protagonist of policy-gradient code is not the loop but the <strong>gradient formula</strong>: ∇lnπ = onehot(a) − π (the magic softmax derivative). That line plus return discounting is the whole mathematics of REINFORCE.' },
       { t: 'widget', component: 'code-lab', props: { source: 'l9' } },
+      { t: 'widget', component: 'notebook-bridge', props: { nb: 'nb6' } },
     ],
   };
 
@@ -147,6 +148,7 @@
       { t: 'p', zh: '翻卡前先过三题：① "softmax 策略相比 ε-greedy 好在哪"（可导——梯度能流过策略；概率连续变化——探索强度由 θ 自己学着调，不是外挂的 ε）；② "策略梯度定理里为什么可以不知道 q<sub>π</sub> 的导数"（∇θ 的依赖全被 log 恒等式吸进 ∇lnπ，定理只需要 q 的值——所以任何能估 q 的东西都能当评分员）；③ "REINFORCE 为什么慢"（G<sub>t</sub> 方差大 + on-policy 数据现采现用——两个病根都通向第 10 章的评论家）。', en: 'Before flipping, run through three: ① “What does the softmax policy have over ε-greedy” (differentiability — gradients flow through the policy; smoothly shifting probabilities — exploration strength is learned by θ itself rather than bolted on as ε); ② “Why may the policy gradient theorem remain ignorant of q<sub>π</sub>’s derivative” (the θ-dependence is absorbed into ∇lnπ by the log identity; the theorem needs only q’s value — so anything that estimates q can serve as the grader); ③ “Why is REINFORCE slow” (G<sub>t</sub>’s variance plus strictly fresh on-policy data — both roots lead straight to Chapter 10’s critic).' },
       { t: 'widget', component: 'qa-lab', props: { source: 'l9' } },
       { t: 'widget', component: 'fill-lab', props: { source: 'l9' } },
+      { t: 'widget', component: 'derivation-lab', props: { source: 'l9' } },
     ],
   };
 
@@ -345,6 +347,149 @@ def reinforce(env, episodes=3000, gamma=0.9, alpha=0.02, max_steps=200):
             hint: { zh: 'e^0.4/(e^0.4 + 4e^(−0.1)) ≈ ?', en: 'e^0.4/(e^0.4 + 4e^(−0.1)) ≈ ?' },
             why: { zh: '新分数 (0.4, −0.1, −0.1, −0.1, −0.1) 过 softmax：e^0.4/(e^0.4 + 4·e^−0.1) = 1.492/5.111 ≈ 0.29，其余各 ≈ 0.177。好经历抬概率、坏经历压概率，抬与压的量连续可调——"强化"的算术实现。', en: 'The new scores (0.4, −0.1, −0.1, −0.1, −0.1) go through softmax: e^0.4/(e^0.4 + 4·e^−0.1) = 1.492/5.111 ≈ 0.29, each of the others ≈ 0.177. Good experiences raise probability, bad ones lower it, with continuously adjustable force — the arithmetic of “reinforcement”.' } },
         ] },
+    ],
+  };
+
+
+  /* ═══ L9 定理推导（策略梯度定理 · Theorem 9.1 完整版）═══ */
+  D.derivationSets = D.derivationSets || {};
+  D.derivationSets['l9'] = {
+    title: { zh: '第九讲 · 定理推导', en: 'Lecture 9 · Theorem Derivations' },
+    items: [
+      {
+        id: 'policy-gradient-theorem',
+        name: { zh: '策略梯度定理', en: 'The Policy Gradient Theorem' },
+        intro: {
+          zh: '全书科研含金量最高的一条链：从目标 J(θ)=E[R(τ)] 出发，用一记 log-derivative 把梯度从积分里解放成期望，看着环境模型在求导中整个消失，再经因果裁剪与条件期望收拢成定理 9.1 的最终形态。20 步走完，四个带 ★ 的关键步必须亲手答对。',
+          en: 'The most research-grade chain in the whole book: start from J(θ)=E[R(τ)], use one log-derivative stroke to free the gradient from the integral into an expectation, watch the environment model vanish under differentiation, then fold through causal clipping and conditional expectation into the final form of Theorem 9.1. Twenty steps, with four ★ key moves you must get right yourself.',
+        },
+        steps: [
+          /* 1 · 目标定义 */
+          { tex: String.raw`J(\theta) \;=\; \mathbb{E}_{\tau\sim\pi_\theta}\big[R(\tau)\big] \;=\; \sum_{\tau} P(\tau;\theta)\, R(\tau)`,
+            why: { zh: '回合制设定：初始分布 ρ₀ 固定，智能体按参数化策略 π(a|s,θ) 走出轨迹 τ=(s₀,a₀,r₁,s₁,a₁,…)，环境按 p 转移。把"策略好坏"定成一个标量，梯度上升才有抓手——这里取起点价值口径 J=v̄⁰<sub>π</sub>（书 Ch.9 的度量之一；另两个度量最后殊途同归，见第 18 步）。', en: 'Episodic setting: fixed start distribution ρ₀; the agent follows the parameterised policy π(a|s,θ) along trajectory τ=(s₀,a₀,r₁,s₁,a₁,…) while the environment transitions by p. Pinning "how good the policy is" to one scalar gives gradient ascent something to grip — here the start-state value J=v̄⁰<sub>π</sub> (one of Ch.9’s metrics; the other two converge to the same family, see step 18).' } },
+          /* 2 · 回报口径 */
+          { tex: String.raw`R(\tau) \;=\; \sum_{k=0}^{T-1} \gamma^{k}\, r_{k+1}, \qquad 0<\gamma<1`,
+            why: { zh: '折扣回合回报——式 (9.32) 背后的口径。γ<1 让有限与无限视野都收敛（L1 的等比级数）。书同时推了无折扣持续型（平均奖励 r̄<sub>π</sub>）版本，骨架完全同构：本链每一步在 γ=1 时照搬成立，差别只在访问分布的定义。符号约定：r<sub>k+1</sub> 是 a<sub>k</sub> 之后到来的奖励。', en: 'The discounted episodic return — the caliber behind Eq. (9.32). γ<1 keeps both finite and infinite horizons convergent (L1’s geometric series). The book also derives the undiscounted continuing (average-reward r̄<sub>π</sub>) version with an isomorphic skeleton: every step here survives verbatim at γ=1, only the visitation distribution’s definition differs. Notation: r<sub>k+1</sub> is the reward that follows a<sub>k</sub>.' } },
+          /* 3 · 梯度移进求和 */
+          { tex: String.raw`\nabla_\theta J(\theta) \;=\; \nabla_\theta \sum_{\tau} P(\tau;\theta)\, R(\tau) \;=\; \sum_{\tau} \htmlClass{fx-gold}{\nabla_\theta P(\tau;\theta)}\; R(\tau)`,
+            why: { zh: '求导穿过求和号/积分号：R(τ) 不含 θ，唯一的 θ 依赖在 P(τ;θ) 里，梯度只落在 P 上。正则条件一句带过——有限回合时是有限项求和的线性性；无限视野时 γ<1 保证被收敛级数控制（dominated convergence 的教科书场景），书里默认成立。', en: 'The derivative passes through the sum/integral: R(τ) contains no θ, the sole θ-dependence sits in P(τ;θ), so the gradient lands only on P. Regularity in one sentence — with finite episodes it is linearity of a finite sum; with infinite horizon γ<1 keeps everything dominated by a convergent series (a textbook dominated-convergence situation), assumed silently by the book.' } },
+          /* 4 · 困境 */
+          { tex: String.raw`\sum_{\tau} \nabla_\theta P(\tau;\theta)\, R(\tau) \qquad \text{——不是期望：前面没有 } P(\tau;\theta) \text{ 做权重}`,
+            why: { zh: '困境点明：P(τ;θ) 是"整条轨迹的概率"——ρ₀、一串转移 p、一串策略 π 的乘积，而 ρ₀ 与 p 是未知的环境模型；我们能从环境采样 τ，却写不出、更求不出 ∇P。同时这个和式不是任何分布下的期望（缺概率权重），蒙特卡洛无从下手。死结就在这里。', en: 'The predicament, spelled out: P(τ;θ) is “the probability of an entire trajectory” — a product of ρ₀, a chain of transitions p, and a chain of policy outputs π, where ρ₀ and p form the unknown environment model; we can sample τ from the environment yet can neither write down nor differentiate ∇P. And the sum is no distribution’s expectation (no probability weight in front) — Monte Carlo has no entry point. Here is the knot.' } },
+          /* 5 · ★ log-derivative */
+          { tex: String.raw`\nabla_\theta P(\tau;\theta) \;=\; \nabla_\theta P(\tau;\theta)\cdot\underbrace{\frac{P(\tau;\theta)}{P(\tau;\theta)}}_{=\,1} \;=\; ?`,
+            why: { zh: '凭什么是它：初中代数的一步（乘除恒等式），没动用任何高深工具，却同时完成两件事——θ 依赖被完整吸进对数那侧，P 因子恰好是采样分布本身。下一行你会看到这两件事合起来把死结剪开。', en: 'Why this move: one step of school algebra (a multiply-divide identity), no advanced tools, yet it does two jobs at once — the θ-dependence is absorbed wholly toward the logarithm side, while the P factor is exactly the sampling distribution itself. The next line shows these two jobs jointly cutting the knot.' },
+            blank: {
+              q: { zh: 'log-derivative 恒等式：乘完 P/P 整理后，∇<sub>θ</sub>P 等于——', en: 'The log-derivative identity: after multiplying by P/P and tidying up, ∇<sub>θ</sub>P equals —' },
+              choices: [
+                { tex: String.raw`P(\tau;\theta)\,\nabla_\theta\ln P(\tau;\theta)` },
+                { tex: String.raw`\dfrac{\nabla_\theta\ln P(\tau;\theta)}{P(\tau;\theta)}` },
+                { tex: String.raw`\nabla_\theta\ln P(\tau;\theta)` },
+              ],
+              answer: 0,
+              whyWrong: [
+                { zh: '正确——∇lnP 的定义就是 ∇P/P，两边乘回 P 即得；θ 依赖被吸进 log，P 因子留在外面当权重。', en: 'Correct — ∇lnP is by definition ∇P/P; multiply both sides back by P. The θ-dependence is absorbed into the log, leaving P outside as the weight.' },
+                { zh: '比值装反了：从 ∇lnP=∇P/P 解出的应是 ∇P=P·∇lnP；再除一次 P 得到 ∇P/P²，代回积分凑不出期望。', en: 'The ratio is inverted: ∇lnP=∇P/P solves to ∇P=P·∇lnP; dividing by P once more yields ∇P/P², which no longer reassembles into an expectation.' },
+                { zh: '丢掉了概率因子 P——没有 P 乘在前面，求和就收不回"在 πθ 下取期望"的形态，采样仍无从谈起。', en: 'The probability factor P is lost — without P in front, the sum cannot close back into “an expectation under πθ”, and sampling stays out of reach.' },
+              ],
+              hint: { zh: '链式法则给出 ∇lnP = ∇P/P。把它当代数方程，解出 ∇P。', en: 'The chain rule gives ∇lnP = ∇P/P. Treat it as an algebraic equation and solve for ∇P.' },
+            } },
+          /* 6 · 代回成期望 */
+          { tex: String.raw`\nabla_\theta J(\theta) \;=\; \sum_{\tau} P(\tau;\theta)\,\nabla_\theta\ln P(\tau;\theta)\, R(\tau) \;=\; \mathbb{E}_{\tau\sim\pi_\theta}\big[\nabla_\theta\ln P(\tau;\theta)\cdot R(\tau)\big]`,
+            why: { zh: '把恒等式代回第 3 步：P 回到被积函数前面，和式重新变成"在 πθ 的轨迹分布下取期望"——一个我们采样得来的分布。梯度第一次成了可估的期望（大数定律的入场券）。别急着高兴：∇lnP(τ;θ) 里还锁着未知的环境模型，下一阶段拆它。', en: 'Substituting the identity back into step 3: P returns to the front of the integrand and the sum turns back into “an expectation under πθ’s trajectory distribution” — a distribution we can sample from. For the first time the gradient is an estimable expectation (the law of large numbers’ ticket). Don’t celebrate yet: ∇lnP(τ;θ) still locks in the unknown environment model; the next phase dismantles it.' } },
+          /* 7 · 轨迹概率展开 */
+          { tex: String.raw`P(\tau;\theta) \;=\; \rho_0(s_0)\prod_{t=0}^{T-1} \pi(a_t\mid s_t,\theta)\; p(s_{t+1}\mid s_t,a_t)`,
+            why: { zh: '概率链式法则沿马尔可夫轨迹逐因子展开：每一步 = 策略给动作的概率 π × 环境给下一状态的概率 p，再乘起点分布 ρ₀。三个部件里只有 π 含 θ。若奖励也是随机的，还要乘 p(r<sub>t+1</sub>|s<sub>t</sub>,a<sub>t</sub>) 因子——同样不含 θ，后面每一步都不受影响（式子里干脆省略）。', en: 'The chain rule of probability unfolds along the Markov trajectory factor by factor: each step = the policy’s probability of the action π × the environment’s probability of the next state p, times the start distribution ρ₀. Of the three parts only π involves θ. If rewards are also stochastic, factors p(r<sub>t+1</sub>|s<sub>t</sub>,a<sub>t</sub>) multiply in as well — equally θ-free, so nothing downstream changes (hence omitted outright).' } },
+          /* 8 · 取 log */
+          { tex: String.raw`\ln P(\tau;\theta) \;=\; \ln\rho_0(s_0) \;+\; \sum_{t=0}^{T-1}\ln\pi(a_t\mid s_t,\theta) \;+\; \sum_{t=0}^{T-1}\ln p(s_{t+1}\mid s_t,a_t)`,
+            why: { zh: '这就是 log 出场的原因：乘积变加法。对 T 个因子的乘积求导要用乘积法则、交叉项满天飞；对加法求导则逐项独立——每项要么含 θ、要么不含，泾渭分明。第 5 步的 log-derivative 恒等式已经把 ∇θ 引到 log 门口，现在把门里的东西摊开。', en: 'This is why the log shows up: products become sums. Differentiating a product of T factors needs the product rule with cross-terms sprouting everywhere; differentiating a sum proceeds term by term — each term either contains θ or it does not, cleanly separated. Step 5’s log-derivative identity already led ∇θ to the log’s doorstep; now we lay out what is inside.' } },
+          /* 9 · ★ 环境项消失 */
+          { tex: String.raw`\nabla_\theta \ln P(\tau;\theta) \;=\; \nabla_\theta\ln\rho_0(s_0) \;+\; \sum_{t=0}^{T-1}\nabla_\theta\ln\pi(a_t\mid s_t,\theta) \;+\; \sum_{t=0}^{T-1}\nabla_\theta\ln p(s_{t+1}\mid s_t,a_t) \;=\; \htmlClass{fx-gold}{\,?\,}`,
+            why: { zh: '定理的灵魂步：ρ₀ 与 p 不含 θ，梯度恒为零——环境模型在求导中整个消失。剩下的 ∇lnP(τ;θ) 只关心"这条轨迹上每一步的动作概率怎么随 θ 变"。这是策略梯度方法模型无关（model-free）的数学出生证明：从不需要知道 p 和 ρ₀ 长什么样，只需要能采样。', en: 'The theorem’s soul step: ρ₀ and p carry no θ, so their gradients are identically zero — the entire environment model vanishes under differentiation. What remains of ∇lnP(τ;θ) cares only about “how the probability of each action along this one trajectory varies with θ”. This is the mathematical birth certificate of policy-gradient methods being model-free: you never need to know what p and ρ₀ look like — only to be able to sample.' },
+            blank: {
+              q: { zh: '对 θ 求导：三个部分里，谁活了下来？', en: 'Differentiate with respect to θ: of the three parts, which survive?' },
+              choices: [
+                { tex: String.raw`\sum_{t=0}^{T-1}\nabla_\theta\ln\pi(a_t\mid s_t,\theta)` },
+                { tex: String.raw`\sum_{t=0}^{T-1}\nabla_\theta\ln p(s_{t+1}\mid s_t,a_t)` },
+                { tex: String.raw`\nabla_\theta\ln\rho_0(s_0)\;+\;\sum_{t=0}^{T-1}\nabla_\theta\ln\pi(a_t\mid s_t,\theta)` },
+                { tex: String.raw`\sum_{t=0}^{T-1}\nabla_\theta\ln\pi(a_t\mid s_t,\theta)\;+\;\sum_{t=0}^{T-1}\nabla_\theta\ln p(s_{t+1}\mid s_t,a_t)` },
+              ],
+              answer: 0,
+              whyWrong: [
+                { zh: '正确——ρ₀ 与 p 是环境的物理，不随 θ 动，梯度恒为零；整条轨迹的梯度塌缩成"每步策略 log 梯度"之和。', en: 'Correct — ρ₀ and p are the environment’s physics, unmoved by θ, so their gradients are identically zero; the whole-trajectory gradient collapses to the sum of per-step policy log-gradients.' },
+                { zh: '转移模型 p(s′|s,a) 是环境规律——θ 是策略的参数，动不了它：∇lnp ≡ 0。若它幸存，策略梯度就模型相关了，第 9 章将不复存在。', en: 'The transition model p(s′|s,a) is an environment law — θ is the policy’s parameter and cannot move it: ∇lnp ≡ 0. If it survived, the policy gradient would be model-dependent and Chapter 9 would not exist.' },
+                { zh: '起点分布 ρ₀(s₀) 在回合开始前就定死，不含 θ——常数的梯度为零，不该出现在结果里。', en: 'The start distribution ρ₀(s₀) is fixed before the episode begins and contains no θ — a constant’s gradient is zero and has no business in the result.' },
+                { zh: 'π 与 p 都留着：p 不含 θ、∇lnp ≡ 0——留下它等于声称"策略参数能扭动物理"。', en: 'Keeping both π and p: p carries no θ and ∇lnp ≡ 0 — keeping it amounts to claiming “policy parameters can bend physics”.' },
+              ],
+              hint: { zh: '问自己：θ 是谁的参数？环境还是策略？', en: 'Ask yourself: whose parameter is θ? The environment’s or the policy’s?' },
+            } },
+          /* 10 · REINFORCE 原始形式 */
+          { tex: String.raw`\nabla_\theta J(\theta) \;=\; \mathbb{E}_{\tau\sim\pi_\theta}\Big[\sum_{t=0}^{T-1} \nabla_\theta\ln\pi(a_t\mid s_t,\theta)\cdot R(\tau)\Big]`,
+            why: { zh: '把第 9 步代回第 6 步的期望：REINFORCE 的原始形式。整条链上任何一处都见不到 ρ₀ 与 p——期望在"跑策略采轨迹"上取，而这恰是智能体本来就会做的事。直觉读法：∇lnπ(a<sub>t</sub>|s<sub>t</sub>) 指向"抬高 a<sub>t</sub> 概率"的方向，乘上 R(τ) 意味着整条轨迹的回报给每个动作统一打分。', en: 'Substituting step 9 back into step 6’s expectation: the original form of REINFORCE. Nowhere in the chain do ρ₀ or p appear — the expectation is over “run the policy and collect trajectories”, precisely what an agent already does. Intuitive reading: ∇lnπ(a<sub>t</sub>|s<sub>t</sub>) points toward “raise a<sub>t</sub>’s probability”, and multiplying by R(τ) means the whole trajectory’s return grades every action uniformly.' } },
+          /* 11 · 因果性引理 */
+          { tex: String.raw`\mathbb{E}\big[\nabla_\theta\ln\pi(a_t\mid s_t,\theta)\cdot b(s_0,a_0,\dots,s_t)\big] \;=\; 0`,
+            why: { zh: '因果性引理（也是第 10 章 baseline 不变性的引擎）：对 s<sub>t</sub> 条件化后，历史量 b 可提到动作求和外——E[∇lnπ·b|s<sub>t</sub>] = b·Σ<sub>a</sub>π(a|s<sub>t</sub>)∇lnπ(a|s<sub>t</sub>) = b·Σ<sub>a</sub>∇π(a|s<sub>t</sub>) = b·∇<sub>θ</sub>(Σ<sub>a</sub>π(a|s<sub>t</sub>)) = b·∇<sub>θ</sub>1 = 0。最后一步用的正是 §9.1 记下的概率守恒 Σ<sub>a</sub>π≡1。结论：任何"a<sub>t</sub> 出生之前"的量乘进期望都贡献为零。', en: 'The causality lemma (also the engine of Chapter 10’s baseline invariance): conditioning on s<sub>t</sub> lets the history-quantity b factor out of the action sum — E[∇lnπ·b|s<sub>t</sub>] = b·Σ<sub>a</sub>π(a|s<sub>t</sub>)∇lnπ(a|s<sub>t</sub>) = b·Σ<sub>a</sub>∇π(a|s<sub>t</sub>) = b·∇<sub>θ</sub>(Σ<sub>a</sub>π(a|s<sub>t</sub>)) = b·∇<sub>θ</sub>1 = 0. The last step is exactly the probability conservation Σ<sub>a</sub>π≡1 noted in §9.1. Conclusion: any quantity “born before a<sub>t</sub>” contributes zero inside the expectation.' } },
+          /* 12 · ★ 因果裁剪 */
+          { tex: String.raw`R(\tau) \;=\; \underbrace{\sum_{k=0}^{t-1}\gamma^{k}r_{k+1}}_{\text{乘 }\nabla\ln\pi\text{ 后}} \;+\; \underbrace{\sum_{k=t}^{T-1}\gamma^{k}r_{k+1}}_{\text{乘 }\nabla\ln\pi\text{ 后}} \qquad\Rightarrow\qquad \nabla_\theta J \;=\; \mathbb{E}\Big[\sum_{t} \nabla_\theta\ln\pi(a_t\mid s_t,\theta)\cdot\,\htmlClass{fx-accent}{\,?\,}\Big]`,
+            why: { zh: '凭什么期望不变：R(τ) 拆成"t 之前 + t 起的尾巴"，乘上 ∇lnπ(a<sub>t</sub>|s<sub>t</sub>) 后，"之前"那段恰是第 11 步引理里的 b——期望为零，扔掉无罪。方差为什么变小：每个动作的评分不再被它无法影响的运气污染。γ<sup>k</sup> 的绝对折扣原样保留在尾巴里（下一步提出 γ<sup>t</sup>）。', en: 'Why the expectation is unchanged: R(τ) splits into “the part before t + the tail from t”; multiplied by ∇lnπ(a<sub>t</sub>|s<sub>t</sub>), the “before” part is precisely the lemma’s b of step 11 — zero in expectation, guilt-free to discard. Why the variance drops: each action’s grade is no longer polluted by luck it cannot influence. The absolute discounting γ<sup>k</sup> stays in the tail as is (γ<sup>t</sup> gets pulled out next step).' },
+            blank: {
+              q: { zh: '因果裁剪：a<sub>t</sub> 影响不了它之前的奖励。把评分从整条 R(τ) 换成哪一段，期望不变、方差更小？', en: 'Causal clipping: a<sub>t</sub> cannot affect rewards from before it. Replace the grader R(τ) with which segment — same expectation, smaller variance?' },
+              choices: [
+                { tex: String.raw`\sum_{k=t}^{T-1}\gamma^{k}\,r_{k+1}` },
+                { tex: String.raw`\sum_{k=0}^{t-1}\gamma^{k}\,r_{k+1}` },
+                { tex: String.raw`\sum_{k=0}^{T-1}\gamma^{k}\,r_{k+1}` },
+                { tex: String.raw`r_{t+1}` },
+              ],
+              answer: 0,
+              whyWrong: [
+                { zh: '正确——从 t 起的折扣尾巴：t 之前的奖励与 a<sub>t</sub> 无关，按第 11 步期望为零，扔掉它们期望分毫不动，方差却实打实地变小。', en: 'Correct — the discounted tail from t: rewards before t are causally unrelated to a<sub>t</sub> and zero in expectation by step 11; discarding them leaves the expectation untouched while the variance genuinely shrinks.' },
+                { zh: '只留 t 之前的奖励——那是 a<sub>t</sub> 尚未出生的历史，与它毫无因果；这一项的期望为零，梯度信号直接消失。', en: 'Keeping only rewards before t — that is history from before a<sub>t</sub> was born, causally unrelated to it; the term is zero in expectation and the gradient signal vanishes outright.' },
+                { zh: '这就是 R(τ) 本身：期望当然对，但把与 a<sub>t</sub> 无关的"过去噪声"原样乘进每个动作的评分——方差白白变大，正是本步要治的病。', en: 'That is R(τ) itself: the expectation is right, of course, but it multiplies each action’s grade by “past noise” unrelated to a<sub>t</sub> — variance inflated for nothing, precisely the ailment this step treats.' },
+                { zh: '只看眼前一步的奖励 r<sub>t+1</sub>：丢掉全部长期信用分配，期望不再等于 ∇J——只有延迟回报的好动作会被它冤枉。', en: 'Only the immediate reward r<sub>t+1</sub>: all long-term credit assignment is lost and the expectation no longer equals ∇J — good actions with delayed rewards get wronged by it.' },
+              ],
+              hint: { zh: '站在 a<sub>t</sub> 的时刻往未来看：哪些奖励还"没发生"？', en: 'Stand at a<sub>t</sub> and look forward: which rewards have “not happened yet”?' },
+            } },
+          /* 13 · 按时间步形式（式 9.32 的 γ^t 显式版） */
+          { tex: String.raw`\sum_{k=t}^{T-1}\gamma^{k}\,r_{k+1} \;=\; \gamma^{t}\underbrace{\sum_{k=t}^{T-1}\gamma^{k-t}\,r_{k+1}}_{G_t} \;\;\Longrightarrow\;\; \nabla_\theta J(\theta) \;=\; \mathbb{E}\Big[\sum_{t}\gamma^{t}\,\nabla_\theta\ln\pi(a_t\mid s_t,\theta)\,G_t\Big]`,
+            why: { zh: '把尾巴里的公共因子 γ<sup>t</sup> 提出来，评分变成 γ<sup>t</sup>·G<sub>t</sub>——式 (9.32) 的 γ<sup>t</sup> 显式版里那个 γ<sup>t</sup> 的出处就在这（书 (9.32) 以 q<sub>t</sub> 记此式，此处展开其 γ<sup>t</sup> 显式形式）：动作离回合起点越远，对"起点价值"这个度量的责任越轻（账面折价）。G<sub>t</sub> 就是从 t 出发的折扣回报，与 L2/L5 的 G<sub>t</sub> 同一个人。采一条轨迹、每步执行 θ ← θ + αγ<sup>t</sup>G<sub>t</sub>∇lnπ，就是 REINFORCE。', en: 'Factoring the common γ<sup>t</sup> out of the tail turns the grader into γ<sup>t</sup>·G<sub>t</sub> — precisely where the γ<sup>t</sup> in the γ<sup>t</sup>-explicit version of Eq. (9.32) comes from (the book’s (9.32) writes q<sub>t</sub>; this chain spells out its explicit γ<sup>t</sup> form): the farther an action sits from the episode’s start, the lighter its responsibility toward the start-value metric (a bookkeeping discount). G<sub>t</sub> is the discounted return from t — the same G<sub>t</sub> as in L2/L5. Sample one trajectory, apply θ ← θ + αγ<sup>t</sup>G<sub>t</sub>∇lnπ per step, and you have REINFORCE.' } },
+          /* 14 · ★ 条件期望 */
+          { tex: String.raw`\mathbb{E}\big[G_t \mid s_t = s,\; a_t = a\big] \;=\; \htmlClass{fx-gold}{\,?\,}`,
+            why: { zh: '凭什么是它：马尔可夫性——给定 (s<sub>t</sub>,a<sub>t</sub>)，未来的分布不再依赖更早的历史，条件期望只由 (s,a) 决定，而"从 (s,a) 出发的期望回报"正是 q<sub>π</sub> 的定义。注意 q<sub>π</sub> 的 θ 导数没有出场：它只以"值"的身份乘在旁边——这就是定理 9.1 结论里不见 ∇<sub>θ</sub>q<sub>π</sub> 的原因，也是 Actor-Critic 能换评分员的许可证。', en: 'Why it: the Markov property — given (s<sub>t</sub>,a<sub>t</sub>), the future’s distribution no longer depends on earlier history, so the conditional expectation is fixed by (s,a) alone, and “the expected return starting from (s,a)” is exactly q<sub>π</sub>’s definition. Note q<sub>π</sub>’s own θ-derivative never enters: it multiplies alongside purely as a value — the reason no ∇<sub>θ</sub>q<sub>π</sub> appears in Theorem 9.1’s conclusion, and the licence that lets Actor-Critic swap in another grader.' },
+            blank: {
+              q: { zh: '全期望公式（塔规则）往里收一层：G<sub>t</sub> 在 (s<sub>t</sub>,a<sub>t</sub>) 条件下的期望是什么？', en: 'Pull the tower rule one layer in: what is G<sub>t</sub>’s expectation conditioned on (s<sub>t</sub>,a<sub>t</sub>)?' },
+              choices: [
+                { tex: String.raw`q_\pi(s,a)` },
+                { tex: String.raw`v_\pi(s)` },
+                { tex: String.raw`\max_{a'} q_\pi(s,a')` },
+              ],
+              answer: 0,
+              whyWrong: [
+                { zh: '正确——马尔可夫性保证"从 (s,a) 出发的未来"只依赖 (s,a) 本身，其期望正是动作价值 q<sub>π</sub> 的定义。', en: 'Correct — the Markov property guarantees “the future from (s,a)” depends on (s,a) alone, and its expectation is exactly the action-value q<sub>π</sub>’s definition.' },
+                { zh: 'v<sub>π</sub>(s) 是对动作再取平均后的状态价值——a 的信息已被平均掉；放这里会让同一状态的不同动作拿到同一个评分。', en: 'v<sub>π</sub>(s) is the state value after further averaging over actions — a’s information is already averaged away; using it here hands every action in a state the same grade.' },
+                { zh: 'max 是贪婪备份（值迭代的动作），会系统性高估评分并带来最大化偏差——策略梯度要的是"这个动作"的期望回报，不是最好动作的。', en: 'max is the greedy backup (value iteration’s move); it systematically overgrades and imports maximisation bias — the policy gradient wants “this action’s” expected return, not the best action’s.' },
+              ],
+              hint: { zh: '把 q<sub>π</sub> 的定义式写出来，就是它：q<sub>π</sub>(s,a) := E[G<sub>t</sub> | s<sub>t</sub>=s, a<sub>t</sub>=a]。', en: 'Write out q<sub>π</sub>’s definition and there it is: q<sub>π</sub>(s,a) := E[G<sub>t</sub> | s<sub>t</sub>=s, a<sub>t</sub>=a].' },
+            } },
+          /* 15 · 值函数形式 */
+          { tex: String.raw`\nabla_\theta J(\theta) \;=\; \mathbb{E}\Big[\sum_{t}\gamma^{t}\,\nabla_\theta\ln\pi(a_t\mid s_t,\theta)\,q_\pi(s_t,a_t)\Big]`,
+            why: { zh: '塔规则把随机评分 G<sub>t</sub> 换成它的条件均值 q<sub>π</sub>：期望不变（全期望公式），方差再降一层（G<sub>t</sub> 的随机性被平均掉）。到这一步，"评分员"已从"一条轨迹的实际回报"进化成"策略本身的期望回报"——正是定理口径。剩下的只是记账：把 Σ<sub>t</sub> 的期望整理成按状态加权的形式。', en: 'The tower rule swaps the random grader G<sub>t</sub> for its conditional mean q<sub>π</sub>: the expectation is unchanged (law of total expectation), and the variance drops another floor (G<sub>t</sub>’s randomness is averaged out). At this point the grader has evolved from “one trajectory’s realised return” to “the policy’s own expected return” — precisely the theorem’s caliber. What remains is bookkeeping: reorganise the Σ<sub>t</sub> expectation into a state-weighted form.' } },
+          /* 16 · 访问分布加权 */
+          { tex: String.raw`\nabla_\theta J(\theta) \;=\; \sum_{s} \htmlClass{fx-violet}{\eta_\pi(s)} \sum_{a} \pi(a\mid s,\theta)\,\nabla_\theta\ln\pi(a\mid s,\theta)\,q_\pi(s,a), \qquad \eta_\pi(s) \;=\; \sum_{t\geq 0}\gamma^{t}\,\Pr(s_t = s)`,
+            why: { zh: '把 Σ<sub>t</sub>E[·] 按"第 t 步落在哪个状态"展开再合并同类项：状态 s 的总权重是 η<sub>π</sub>(s)=Σ<sub>t</sub>γ<sup>t</sup>·Pr(s<sub>t</sub>=s)——折扣访问测度。它把"无穷步折扣转移"打包成一个分布（书引理 9.2 的 (I−γP<sub>π</sub>)⁻¹ 正是这台打包机）；"未来的策略也依赖 θ"的那条链式尾巴，全部折叠进 η<sub>π</sub>，不再露面。', en: 'Expanding Σ<sub>t</sub>E[·] by “which state step t lands in” and collecting like terms: state s’s total weight is η<sub>π</sub>(s)=Σ<sub>t</sub>γ<sup>t</sup>·Pr(s<sub>t</sub>=s) — the discounted visitation measure. It packs “infinitely many discounted transitions” into one distribution (Lemma 9.2’s (I−γP<sub>π</sub>)⁻¹ is exactly this packing machine); the chain tail of “the future policy also depends on θ” is folded entirely into η<sub>π</sub> and never shows its face again.' } },
+          /* 17 · 反向用 log 技巧 → 求和形式 */
+          { tex: String.raw`\sum_{a}\pi(a\mid s,\theta)\,\nabla_\theta\ln\pi(a\mid s,\theta) \;=\; \sum_{a}\nabla_\theta\pi(a\mid s,\theta) \;\;\Longrightarrow\;\; \nabla_\theta J(\theta) \;=\; \sum_{s}\eta_\pi(s)\sum_{a}\nabla_\theta\pi(a\mid s,\theta)\,q_\pi(s,a)`,
+            why: { zh: '同一条 log-derivative 恒等式反向使用：Σ<sub>a</sub>π·∇lnπ = Σ<sub>a</sub>∇π。得到定理 9.1 的求和形式——与书（和本讲 §9.3 公式块）完全同口径。注意形态的干净：∂ 只打在 π 上，q<sub>π</sub> 以纯"值"的身份出现，η<sub>π</sub> 只做加权。', en: 'The same log-derivative identity, run in reverse: Σ<sub>a</sub>π·∇lnπ = Σ<sub>a</sub>∇π. This yields Theorem 9.1’s summation form — exactly the caliber of the book (and this lecture’s §9.3 formula block). Note the cleanliness: ∂ lands only on π, q<sub>π</sub> appears purely as a value, η<sub>π</sub> merely weights.' } },
+          /* 18 · 最终定理 */
+          { tex: String.raw`\htmlClass{fx-green}{\nabla_\theta J(\theta) \;=\; \mathbb{E}_{s\sim\eta_\pi,\;a\sim\pi(\cdot\mid s,\theta)}\big[\nabla_\theta\ln\pi(a\mid s,\theta)\cdot q_\pi(s,a)\big]}`,
+            why: { zh: '定理 9.1 最终形态：双重求和读回一个期望——按折扣访问分布 η<sub>π</sub> 抽状态、按当前策略抽动作。读法：好动作（q 大）概率往上推、差动作往下压，推力正比于 q。书里另两个度量（平均状态值、平均奖励）的梯度最后也长成这一族——殊途同归。全程只用了：交换求导与求和、log 恒等式、概率守恒、马尔可夫性、全期望公式——五个本科工具。', en: 'Theorem 9.1 in final form: the double sum read back as a single expectation — states drawn from the discounted visitation distribution η<sub>π</sub>, actions from the current policy. Reading: good actions (large q) get their probabilities pushed up, poor ones down, force proportional to q. The gradients of the book’s other two metrics (average state value, average reward) end up in this same family — all roads converge. The whole chain used only: swapping derivative and sum, the log identity, probability conservation, the Markov property, and the law of total expectation — five undergraduate tools.' } },
+          /* 19 · 三口径对照 */
+          { tex: String.raw`\nabla_\theta\ln\pi(a_t\mid s_t,\theta)\;\times\; \underbrace{R(\tau) \quad\Big|\quad \gamma^{t}G_t \quad\Big|\quad q_\pi(s_t,a_t)}_{\text{同一期望 · 三个评分口径 · same expectation, three graders}}`,
+            why: { zh: '三个口径一张表：整条回报 R(τ)——REINFORCE 原始版，无偏但把整条轨迹的运气乘进同一个数；因果裁剪 γ<sup>t</sup>G<sub>t</sub>——式 (9.32) 的 γ<sup>t</sup> 显式版，期望不变、方差变小（扔掉过去的噪声）；条件均值 q<sub>π</sub>——期望不变、方差最小（未来的随机性也被平均掉，但 q<sub>π</sub> 未知，需另学一个 critic 来估——第 10 章的活）。期望相同、方差递减、估计成本递增：一条"方差—计算"的交换谱。', en: 'Three calibers, one table: the whole-trajectory return R(τ) — original REINFORCE, unbiased but multiplying all the trajectory’s luck into one number; the causally clipped γ<sup>t</sup>G<sub>t</sub> — the γ<sup>t</sup>-explicit version of Eq. (9.32), same expectation, smaller variance (the past’s noise discarded); the conditional mean q<sub>π</sub> — same expectation, minimal variance (the future’s randomness averaged out too, but q<sub>π</sub> is unknown and needs a critic to estimate — Chapter 10’s job). Same expectation, decreasing variance, increasing estimation cost: a “variance-for-computation” exchange spectrum.' } },
+          /* 20 · 收官：模型无关 + NB6 钩子 */
+          { tex: String.raw`\theta \;\leftarrow\; \theta + \alpha\,\gamma^{t}G_t\,\nabla_\theta\ln\pi(a_t\mid s_t,\theta) \qquad \text{Eq. (9.32), } \gamma^{t}\text{-explicit}`,
+            why: { zh: '收官回到算法：这条链解释了 REINFORCE 为什么只需要"能采样、能算 ∇lnπ"两样——环境模型 ρ₀、p 在第 9 步就被求导本身删除，G<sub>t</sub> 只是把采到的奖励加总。softmax 还白送闭式 ∇lnπ = onehot(a) − π（§9.1）。到 NB6 把它跑成 numpy：30 行代码、无环境模型、样本即梯度。下一站第 10 章：G<sub>t</sub> 方差大，换评分员（baseline 与 critic）。', en: 'The chain closes back at the algorithm: it explains why REINFORCE needs only two things — “being able to sample” and “being able to compute ∇lnπ” — the environment model ρ₀, p was deleted by differentiation itself at step 9, and G<sub>t</sub> merely sums sampled rewards. Softmax even donates the closed form ∇lnπ = onehot(a) − π (§9.1). Next stop, NB6 runs it in numpy: thirty lines, no environment model, samples as gradients. Then Chapter 10: G<sub>t</sub>’s variance is heavy — swap the grader (baseline and critic).' } },
+        ],
+      },
     ],
   };
 

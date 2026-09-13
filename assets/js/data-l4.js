@@ -109,6 +109,7 @@
     blocks: [
       { t: 'p', zh: '把两个算法写并排，相似处和差异处一目了然。策略迭代里内嵌的评估循环直接复用 L2 的 <code class="inline">policy_evaluation</code>——好的函数设计会让你在第 5、7 章继续白嫖这个结构。', en: 'Write both algorithms side by side and the similarities and the one difference pop out. The evaluation loop inside policy iteration reuses L2\'s <code class="inline">policy_evaluation</code> as-is — good function design lets you keep freeriding on this structure in Chapters 5 and 7.' },
       { t: 'widget', component: 'code-lab', props: { source: 'l4' } },
+      { t: 'widget', component: 'notebook-bridge', props: { nb: 'nb2' } },
     ],
   };
 
@@ -121,6 +122,7 @@
       { t: 'p', zh: '翻卡前先自查三个最易翻车的点：① 值迭代的中间量 v<sub>k</sub> 是不是状态值（不是——它不满足任何策略的 Bellman 方程）；② 停止时 ‖Δv‖ &lt; ε 对应的真实误差是多少（γε/(1−γ)，γ = 0.9 时是 9ε）；③ 策略迭代凭什么有限步终止（策略总数有限 + 每轮严格改进或已最优）。答不上哪条，就回对应小节再看一遍。', en: 'Before flipping cards, self-check the three most crash-prone points: ① is VI’s intermediate v<sub>k</sub> a state value (no — it satisfies no policy’s Bellman equation); ② what true error does ‖Δv‖ &lt; ε at stopping correspond to (γε/(1−γ), a factor 9 at γ = 0.9); ③ why does policy iteration terminate in finitely many steps (finitely many policies + strict improvement or already optimal). If any answer escapes you, revisit the matching section.' },
       { t: 'widget', component: 'qa-lab', props: { source: 'l4' } },
       { t: 'widget', component: 'fill-lab', props: { source: 'l4' } },
+      { t: 'widget', component: 'derivation-lab', props: { source: 'l4' } },
     ],
   };
 
@@ -333,6 +335,303 @@ def policy_iteration(env, gamma=0.9, theta=1e-6, max_outer=1_000):
             why: { zh: '30 次/轮 × 3 轮 = 90。对照同一实验台的 j = 1（即值迭代）：5 轮、总扫描仅 5 次——小世界上 VI 的总账更省，"中间 j 总扫描最少"通常要到大世界才显现。评估不彻底并不致命：贪心只看动作名次，只要截断误差小于动作间的价值差距，挑出的动作就不变。',
                    en: '30 per round × 3 rounds = 90. Compare j = 1 (value iteration) on the same lab: 5 rounds, only 5 sweeps in total — on a small world VI wins the bill; a middle j usually minimises sweeps only on larger worlds. An unfinished evaluation is not fatal: greedy cares only about the ranking of actions, and as long as the truncation error stays below the value gaps, the chosen actions do not change.' } },
         ] },
+    ],
+  };
+
+
+  /* ═══════════════════════════════════════════════════════════
+     L4 · 定理推导（DerivationLab 组件按 derivationSets[source] 渲染：
+     走步模式逐步展开，带 blank 的 ★ 关键步答对才放行；
+     契约校验见 scripts/check_data.js 的 derivationSets 段）
+     ═══════════════════════════════════════════════════════════ */
+  D.derivationSets = D.derivationSets || {};   // 兜底：若 data.js 核心尚未注册 derivationSets 容器，此处就地创建；已注册则为空操作
+  D.derivationSets['l4'] = {
+    title: { zh: '第四讲 · 定理推导', en: 'Lecture 4 · Theorem Derivations' },
+    items: [
+      {
+        // #1 压缩映射与不动点存在唯一（14 步；★ blank 在第 5、7 步）
+        id: 'contraction-banach',
+        name: { zh: '压缩映射与不动点存在唯一', en: 'Contraction Mapping and the Unique Fixed Point' },
+        intro: {
+          zh: '§4.1 说"收敛性由压缩映射定理背书"——本条把这张背书单完整走一遍：从 ∞-范数这把尺子出发，逐状态做差、翻过 max 的 Lipschitz 关卡、让概率加权和收缩，证出 Bellman 最优算子 T* 是系数恰为 γ 的压缩映射；再用 Banach 不动点定理兑现 v* 存在唯一、值迭代从任意初值收敛。两处关键步（max 怎么放缩、γ 从哪进场）要你自己填对才放行。',
+          en: '§4.1 says convergence is "vouched by the contraction mapping theorem" — this derivation walks the full voucher: from the ruler that is the ∞-norm, through state-wise subtraction, the Lipschitz hurdle of max, and the contraction of probability-weighted sums, to the Bellman optimality operator T* being a contraction with factor exactly γ; Banach\'s fixed-point theorem then honours existence, uniqueness, and convergence from any start. Two key steps (how max is tamed, where γ enters) unlock only when you fill them correctly.',
+        },
+        steps: [
+          { // 步 1 · 尺子先行：∞-范数与它诱导的距离
+            tex: String.raw`\lVert v\rVert_\infty \;\doteq\; \max_{s\in\mathcal{S}}\,\big|v(s)\big|, \qquad d(u,v) \;\doteq\; \lVert u-v\rVert_\infty`,
+            why: {
+              zh: '尺子先于定理：∞-范数量的是"最坏状态的价值误差"——所有状态都差得少，两个价值函数才算靠得近。状态空间有限，max 必然取到；由它诱导的距离 d(u,v) = ‖u−v‖<sub>∞</sub> 让全体价值向量成为一个度量空间，且有限维上自动完备——Banach 定理要的舞台条件之一已在此就位。',
+              en: 'The ruler comes before the theorem: the ∞-norm measures "the value error in the worst state" — two value functions count as close only if every state agrees. The state space is finite, so the max is attained; the induced distance d(u,v) = ‖u−v‖<sub>∞</sub> makes all value vectors a metric space, automatically complete in finite dimensions — one of the stage conditions Banach\'s theorem demands is already in place.',
+            },
+          },
+          { // 步 2 · 主角登场：Bellman 最优算子 T*
+            tex: String.raw`(T^*v)(s) \;=\; \htmlClass{fx-gold}{\max_a}\; \sum_{s'} p(s'\mid s,a)\Big[\,r(s,a,s') + \gamma\,v(s')\,\Big]`,
+            why: {
+              zh: '主角登场：Bellman 最优算子 T*。L3 的推导里它写成两项和 Σ<sub>r</sub> p(r|s,a)r + γΣ<sub>s′</sub> p(s′|s,a)v(s′)；这里把平均奖励折叠进 r(s,a,s′)，紧凑一档、推导分毫不变。值迭代的每一轮就是施加一次 T*（v<sub>k+1</sub> = T*v<sub>k</sub>）；§4.1 的矩阵外号 f(v) = max<sub>π</sub>(r<sub>π</sub> + γP<sub>π</sub>v) 与它逐点等价——最优总在确定性贪心策略处取到。本条目标：证 T* 是系数恰为 γ 的压缩映射。',
+              en: 'Enter the protagonist: the Bellman optimality operator T*. L3\'s derivation wrote it as the two-term sum Σ<sub>r</sub> p(r|s,a)r + γΣ<sub>s′</sub> p(s′|s,a)v(s′); here the mean reward is folded into r(s,a,s′) — one notch more compact, the derivation unchanged. Each round of value iteration applies T* once (v<sub>k+1</sub> = T*v<sub>k</sub>); §4.1\'s matrix alias f(v) = max<sub>π</sub>(r<sub>π</sub> + γP<sub>π</sub>v) equals it pointwise — the optimum is always attained at a deterministic greedy policy. This derivation\'s goal: prove T* is a contraction with factor exactly γ.',
+            },
+          },
+          { // 步 3 · 目标：γ-压缩的定义
+            tex: String.raw`\htmlClass{fx-gold}{\text{goal:}}\quad \lVert T^*u - T^*v\rVert_\infty \;\le\; \gamma\,\lVert u-v\rVert_\infty \qquad \forall\,u,v,\quad \gamma\in(0,1)`,
+            why: {
+              zh: '压缩映射的定义：映射后两点的距离 ≤ γ × 映射前的距离，γ 严格小于 1——每施加一次算子，任意两点都至少靠近 γ 倍。注意它比"迭代序列收敛"更强：要对一切 u、v 同时成立（全局压缩），而证明全程不需要知道极限在哪、也不需要知道贪心动作是谁——这正是压缩论证比硬解 BOE 高明的地方。',
+              en: 'The definition of a contraction: distance after the map ≤ γ × distance before, with γ strictly below 1 — each application brings any two points at least γ times closer. Note it is stronger than "the iterates converge": it must hold for all u, v at once (a global contraction), yet the proof never needs to know where the limit is or which greedy actions are chosen — precisely where the contraction argument outshines solving the BOE head-on.',
+            },
+          },
+          { // 步 4 · 逐状态做差：max 结构成形
+            tex: String.raw`\Big|(T^*u)(s)-(T^*v)(s)\Big| = \Big|\max_a f(a)-\max_a g(a)\Big|\qquad\begin{gathered} f(a) \doteq \sum_{s'} p(s'\mid s,a)\big[r(s,a,s')+\gamma\,u(s')\big] \\[2pt] g(a) \doteq \sum_{s'} p(s'\mid s,a)\big[r(s,a,s')+\gamma\,v(s')\big] \end{gathered}`,
+            why: {
+              zh: '逐状态做差：∞-范数是"逐状态误差再取 max"，所以先任意固定一个 s，把它控制住，最后一步再统一取 max。对每个动作 a，u 与 v 各给出一枚 Bellman 核 f(a)、g(a)；(T*u)(s) 与 (T*v)(s) 分别是这两组核的最大值——"先取 max 再作差"的格局在此成形，下一关就是它。',
+              en: 'Subtract state by state: the ∞-norm is "per-state error, then max", so fix any s first, control it, and take the max uniformly at the very end. For each action a, u and v each contribute a Bellman kernel f(a), g(a); (T*u)(s) and (T*v)(s) are the maxima of the two families — the "max-then-subtract" pattern takes shape here, and it is the next hurdle.',
+            },
+          },
+          { // 步 5 ★ blank：max 的 1-Lipschitz
+            tex: String.raw`\Big|\max_a f(a)-\max_a g(a)\Big| \;\le\; \htmlClass{fx-gold}{\text{?}}`,
+            why: {
+              zh: 'max 的 1-Lipschitz 性质：取最大值的运算对逐点差不放大——整条证明里唯一非代数的一步，也是 max 结构留下的唯一关卡。它对任意两组数 f、g 成立，与 argmax 在哪里毫无关系；填对它，后面的路全是坦途。',
+              en: 'The 1-Lipschitz property of max: taking the maximum never amplifies a pointwise difference — the only non-algebraic step in the whole proof, and the only hurdle the max structure leaves behind. It holds for any two families f and g, utterly regardless of where the argmax sits; fill it in correctly and the rest of the road is flat.',
+            },
+            blank: {
+              q: {
+                zh: '两个"先取 max 再作差"的量：|max<sub>a</sub> f(a) − max<sub>a</sub> g(a)| 能被什么控制？硬性要求：右边在 f = g 时必须为 0（否则证不出压缩）。',
+                en: 'Two "max-then-subtract" quantities: what bounds |max<sub>a</sub> f(a) − max<sub>a</sub> g(a)|? Hard requirement: the right-hand side must vanish when f = g (otherwise no contraction can follow).',
+              },
+              choices: [
+                { tex: String.raw`\max_a\big|f(a)-g(a)\big|` },
+                { tex: String.raw`\Big|\max_a f(a)-\max_a g(a)\Big| \;=\; \max_a\big|f(a)-g(a)\big|` },
+                { tex: String.raw`\max_a\big|f(a)\big|+\max_a\big|g(a)\big|` },
+                { zh: '无法只凭 f 与 g 的逐点差估计——必须先分别求出 f 与 g 的最大值点再比较', en: 'No estimate from the pointwise difference alone — one must first locate the maximizers of f and of g, then compare' },
+              ],
+              answer: 0,
+              whyWrong: [
+                { zh: '正确。两行放缩：max f = f(a<sub>f</sub>) ≤ g(a<sub>f</sub>) + |f(a<sub>f</sub>)−g(a<sub>f</sub>)| ≤ max g + max<sub>a</sub>|f−g|（a<sub>f</sub> 是 f 的最大值点）；对称交换 f、g 再来一遍。全程不需要知道最大值点在哪里。', en: 'Correct. A two-line squeeze: max f = f(a<sub>f</sub>) ≤ g(a<sub>f</sub>) + |f(a<sub>f</sub>)−g(a<sub>f</sub>)| ≤ max g + max<sub>a</sub>|f−g| (a<sub>f</sub> a maximizer of f); swap f and g and repeat. Where the maximizer sits never matters.' },
+                { zh: '等号一般不成立：两组数各自的最大值点可以不同——u 与 v 的贪心动作不一致时正是这种情形，此时左端严格更小。只有 argmax 恰好重合才取等；把它当恒等式用，等于偷偷假设了"贪心动作不变"。', en: 'Equality generally fails: the two families can peak at different actions — exactly what happens when u and v disagree on the greedy move, leaving the left side strictly smaller. Equality needs coinciding argmaxes; treating it as an identity quietly assumes "the greedy action never changes".' },
+                { zh: '这个界不随 u−v 消失：取 u = v，则 f = g、左端 = 0，而右端 = 2‖T*u‖<sub>∞</sub> 一般非零——压缩要求"差为零则界为零"，用它永远证不出压缩。', en: 'This bound never vanishes with u−v: take u = v, so f = g and the left side is 0, while the right side is 2‖T*u‖<sub>∞</sub>, generally nonzero — contraction demands "zero difference ⇒ zero bound", which this can never deliver.' },
+                { zh: '引理的价值恰在回避这件事：上面的放缩对任意 f、g 成立，argmax 的位置从头到尾没出场——Bellman 迭代中贪心动作每轮都可能更换，收敛证明却毫发无损。', en: 'The lemma\'s value is precisely avoiding that: the squeeze holds for arbitrary f and g, and the argmax never takes the stage — greedy actions may change every round of Bellman iteration, yet the convergence proof is unscathed.' },
+              ],
+              hint: { zh: '把 max f 写成 max(g + (f−g))：先用 |f−g| 控制增量，再取 max；对称交换 f、g 再来一遍。', en: 'Write max f as max(g + (f−g)): control the increment by |f−g| first, then take max; run it again with f and g swapped.' },
+            },
+          },
+          { // 步 6 · 奖励对消：f−g 只剩 γΣp(u−v)
+            tex: String.raw`f(a)-g(a) \;=\; \sum_{s'}p(s'\mid s,a)\big[r+\gamma u(s')\big]-\sum_{s'}p(s'\mid s,a)\big[r+\gamma v(s')\big] \;=\; \gamma\sum_{s'}p(s'\mid s,a)\big(u(s')-v(s')\big)`,
+            why: {
+              zh: '奖励对消：f 与 g 共享同一组 r(s,a,s′) 与同一组转移概率 p(s′|s,a)——逐项作差，奖励与转移全部退场，只剩 γ(u(s′)−v(s′))。这是 T* 结构送的大礼：正因为两个核出自同一个算子，r 才能对消。γ 作为常数提到求和号外，整装待发。',
+              en: 'The rewards cancel: f and g share the same r(s,a,s′) and the same transition probabilities p(s′|s,a) — subtract termwise and everything exits except γ(u(s′)−v(s′)). A gift of T*\'s structure: precisely because both kernels come from the same operator, r can leave the stage. γ, pulled out as a constant, stands ready in front of the sum.',
+            },
+          },
+          { // 步 7 ★ blank：概率加权和的收缩 + γ 从哪来
+            tex: String.raw`\big|f(a)-g(a)\big| \;=\; \Big|\gamma\sum_{s'}p(s'\mid s,a)\big(u(s')-v(s')\big)\Big| \;\le\; \htmlClass{fx-gold}{\text{?}}`,
+            why: {
+              zh: '概率加权和的收缩：绝对值挪进求和（三角不等式），每个 |u−v| 都 ≤ ‖u−v‖<sub>∞</sub>，而权重之和恰为 1——加权和的绝对值 ≤ 绝对值的加权和 ≤ 最大分量。γ 从第 6 步的"常数提出"一路骑在界的前面：压缩系数正是从这里进场。',
+              en: 'The probability-weighted sum contracts: move the absolute value into the sum (triangle inequality), bound each |u−v| by ‖u−v‖<sub>∞</sub>, and note the weights sum to exactly 1 — the absolute value of the weighted sum ≤ the weighted sum of absolute values ≤ the largest component. γ, extracted as a constant in step 6, rides in front of the bound the whole way: the contraction factor enters exactly here.',
+            },
+            blank: {
+              q: {
+                zh: '概率加权和的绝对值怎么放缩？γ 又从哪来——这一步结束时 |f(a)−g(a)| 的上界是什么（γ 必须在场，压缩系数全指着它）？',
+                en: 'How does the probability-weighted sum contract, and where does γ come from — what is the bound on |f(a)−g(a)| at the end of this step (γ must be present; the contraction factor depends on it)?',
+              },
+              choices: [
+                { tex: String.raw`\gamma\sum_{s'}p(s'\mid s,a)\,\big|u(s')-v(s')\big| \;\le\; \gamma\,\lVert u-v\rVert_\infty` },
+                { tex: String.raw`\sum_{s'}p(s'\mid s,a)\,\big|u(s')-v(s')\big| \;\le\; \lVert u-v\rVert_\infty` },
+                { tex: String.raw`\gamma\,\Big(\max_{s'}p(s'\mid s,a)\Big)\,\lVert u-v\rVert_\infty` },
+                { zh: 'γ 源自奖励有界性与级数求和 Σγ<sup>k</sup> = 1/(1−γ)，不在这一步出现', en: 'γ originates from bounded rewards and the series sum Σγ<sup>k</sup> = 1/(1−γ); it does not appear at this step' },
+              ],
+              answer: 0,
+              whyWrong: [
+                { zh: '正确。三件套一次用完：绝对值进求和（三角不等式）→ 权重和为 1 且每个 |u−v| ≤ ‖u−v‖<sub>∞</sub> → γ 是第 6 步提出的折扣常数，全程骑在界的前面。压缩系数 γ 正是从这条通道进场的。', en: 'Correct. Three tools spent at once: absolute value into the sum (triangle inequality) → weights sum to 1 with every |u−v| ≤ ‖u−v‖<sub>∞</sub> → γ is the discount constant extracted in step 6, riding in front throughout. The contraction factor γ enters through exactly this channel.' },
+                { zh: 'γ 丢了：γ 必须跟着不等式走。丢掉它只能得到"不放大"（系数 1），而压缩要求系数严格小于 1——γ &lt; 1 是整套收敛论证的心脏，第 8 步收网就指着它。', en: 'γ went missing: it must travel with the inequality. Without it you only get "no amplification" (factor 1), while contraction demands a factor strictly below 1 — γ &lt; 1 is the heart of the whole convergence argument, and step 8\'s closing move depends on it.' },
+                { zh: '因子错位：控制加权平均的是"权重之和 = 1"，不是"最大权重"。反例：两个 s′ 各占 p = 0.5 且都取最坏误差时，加权和达到 ‖u−v‖<sub>∞</sub>，而 max p × ‖u−v‖ 只有它的一半——界被说小了，不等式并不成立。', en: 'Wrong factor: what controls a weighted average is "the weights sum to 1", not "the largest weight". Counterexample: two states s′ each with p = 0.5 both at the worst error — the weighted sum reaches ‖u−v‖<sub>∞</sub> while max p × ‖u−v‖ is only half of it — the bound is understated and the inequality fails.' },
+                { zh: '张冠李戴：1/(1−γ) 是几何级数的和，属于"余项/误差换算"的账（下一条推导的主角）；γ 在这一步的来源只有一个——折扣常数本身，第 6 步作差时从求和号里提出，一路乘在界的前面。', en: 'Misattributed: 1/(1−γ) is the geometric-series sum, the business of remainders and error conversion (the next derivation\'s protagonist); γ has exactly one origin at this step — the discount constant itself, extracted from the sum in step 6 and multiplying the front of the bound ever since.' },
+              ],
+              hint: { zh: '三件事：绝对值进求和；Σp = 1；|u−v| 逐点 ≤ ‖u−v‖<sub>∞</sub>。γ 在第 6 步已经提出，别弄丢。', en: 'Three moves: absolute value into the sum; Σp = 1; |u−v| ≤ ‖u−v‖<sub>∞</sub> pointwise. γ was already extracted in step 6 — don\'t lose it.' },
+            },
+          },
+          { // 步 8 · 收网：取 max 得 γ-压缩
+            tex: String.raw`\lVert T^*u-T^*v\rVert_\infty \;=\; \max_s\Big|(T^*u)(s)-(T^*v)(s)\Big| \;\le\; \max_s\;\gamma\,\lVert u-v\rVert_\infty \;=\; \htmlClass{fx-gold}{\gamma\,\lVert u-v\rVert_\infty}`,
+            why: {
+              zh: '收网：第 7 步的界对每个 s 都成立，而右边与 s 无关——取 max 不改变它。‖T*u−T*v‖<sub>∞</sub> ≤ γ‖u−v‖<sub>∞</sub>，压缩系数恰为 γ，不多不少：这就是 L3 定理 3.2 的结论（§4.1 兑现的那张票），"误差每轮精确地乘一次 γ"从此字面成立。γ = 0.9 ⇒ 每轮 ×0.9。',
+              en: 'Close the net: step 7\'s bound holds for every s while the right side is independent of s — taking the max changes nothing. ‖T*u−T*v‖<sub>∞</sub> ≤ γ‖u−v‖<sub>∞</sub> with contraction factor exactly γ, no more, no less: this is L3\'s Theorem 3.2 (the ticket §4.1 cashes), and "the error is multiplied by γ once per round" now holds literally. γ = 0.9 ⇒ ×0.9 per round.',
+            },
+          },
+          { // 步 9 · Banach 不动点定理陈述
+            tex: String.raw`\text{(Banach)}\quad \mathcal{X}\ \text{complete},\ \ T\colon\mathcal{X}\to\mathcal{X},\ \ \lVert Tu-Tv\rVert\le\gamma\lVert u-v\rVert\ (\gamma<1)\ \Longrightarrow\ \htmlClass{fx-gold}{\exists!\,v^\star\colon\ Tv^\star=v^\star},\ \ T^kv_0\to v^\star\ \ \forall v_0`,
+            why: {
+              zh: 'Banach 不动点定理（站点 L3 引用为定理 3.1）：完备度量空间上的 γ-压缩映射有且仅有一个不动点，且从任意初值出发反复施加都收敛到它。两个前提在此全部到位——舞台是配 ∞-范数的价值向量空间（有限维、完备，步 1），演员是刚证好的 γ-压缩 T*（步 8）。定理不问出身：v₀ = 0 也好、随手猜一个也好，终点唯一。',
+              en: 'The Banach fixed-point theorem (cited as Theorem 3.1 in the site\'s L3): a γ-contraction on a complete metric space has exactly one fixed point, and iterating from any start converges to it. Both premises are in place — the stage is the value-vector space with the ∞-norm (finite-dimensional, complete, step 1), the actor is the freshly proved γ-contraction T* (step 8). The theorem asks nothing about origins: v₀ = 0 or a wild guess, the destination is the same and unique.',
+            },
+          },
+          { // 步 10 · T* 的不动点 = BOE 的解
+            tex: String.raw`T^*v = v \;\Longleftrightarrow\; v(s) = \max_a\sum_{s'}p(s'\mid s,a)\big[r(s,a,s')+\gamma\,v(s')\big]\quad\forall s \;\Longleftrightarrow\; \htmlClass{fx-gold}{v\ \text{solves the BOE}}`,
+            why: {
+              zh: '对号入座：不动点方程 T*v = v 逐状态展开，恰好就是 Bellman 最优方程（BOE，L3 全讲的主角）。于是 Banach 的"存在唯一不动点"翻译成 RL 语言：BOE 的解 v* 存在且唯一——最优价值函数从记号升格为定理担保的实物。§4.1 那句"这个不动点正是 BOE 的解 v*"的完整依据就是这一行。',
+              en: 'Fitting the crown: the fixed-point equation T*v = v, expanded state by state, is exactly the Bellman optimality equation (the BOE, L3\'s protagonist throughout). Banach\'s "a unique fixed point exists" thus translates into RL language: the BOE\'s solution v* exists and is unique — the optimal value function is promoted from notation to an object guaranteed by theorem. This one line is the full warrant behind §4.1\'s "that fixed point is exactly the BOE\'s solution v*".',
+            },
+          },
+          { // 步 11 · 值迭代收敛：任意初值
+            tex: String.raw`v_{k+1} = T^*v_k \;\xrightarrow{\ k\to\infty\ }\; v^\star \qquad\Longrightarrow\qquad \htmlClass{fx-green}{\text{value iteration converges to } v^* \text{ from any } v_0}`,
+            why: {
+              zh: '值迭代就是反复施加 T*：v<sub>k+1</sub> = T*v<sub>k</sub>。Banach 直接兑付收敛性——从任意初值出发、不需要任何关于 v* 的先验知识。§4.1"收敛性从哪来"的完整票根在此。丑话照旧（§4.1 的 danger 提醒）：沿途的 v<sub>k</sub> 不是任何策略的状态值，收敛保证只许诺终点，不许诺沿途的名分。',
+              en: 'Value iteration is exactly repeated application of T*: v<sub>k+1</sub> = T*v<sub>k</sub>. Banach pays out convergence directly — any initial value, zero prior knowledge about v*. Here is the complete ticket stub behind §4.1\'s "where does convergence come from". The caveat stands (§4.1\'s danger callout): the intermediate v<sub>k</sub> is no policy\'s state value; the guarantee covers the destination, not the standing of waypoints.',
+            },
+          },
+          { // 步 12 · 白送的速率：γ^k
+            tex: String.raw`\lVert v_k-v^\star\rVert_\infty = \lVert T^*v_{k-1}-T^*v^\star\rVert_\infty \;\le\; \gamma\,\lVert v_{k-1}-v^\star\rVert_\infty \;\le\; \cdots \;\le\; \htmlClass{fx-gold}{\gamma^k\,\lVert v_0-v^\star\rVert_\infty}`,
+            why: {
+              zh: '压缩白送的速率：把第 8 步用在 (v<sub>k−1</sub>, v*) 这一对上——v* 是不动点，v<sub>k</sub> − v* = T*v<sub>k−1</sub> − T*v*——再归纳链乘 k 次得 γ<sup>k</sup>。几何式（指数式）衰减，速度被 γ 一手决定：γ = 0.9 时约 22 轮缩 10 倍。这个 γ<sup>k</sup> 正是下一条推导的起点。',
+              en: 'The rate thrown in for free: apply step 8 to the pair (v<sub>k−1</sub>, v*) — v* being a fixed point, v<sub>k</sub> − v* = T*v<sub>k−1</sub> − T*v* — then chain it k times by induction to get γ<sup>k</sup>. Geometric (exponential) decay, the speed dictated solely by γ: about 22 rounds per factor of 10 at γ = 0.9. This γ<sup>k</sup> is exactly the starting point of the next derivation.',
+            },
+          },
+          { // 步 13 · 数值对账：3×3 世界逐轮吻合
+            tex: String.raw`\gamma=0.9:\quad \lVert v_k-v^*\rVert_\infty = 9\times0.9^{k-1} = \htmlClass{fx-green}{10\times0.9^{k}} \qquad \text{(the 3×3 world of §4.1, round by round)}`,
+            why: {
+              zh: '数值对账（§4.1 的 3×3 世界，γ = 0.9，v₀ = 0）：真实误差 ‖v<sub>k</sub> − v*‖<sub>∞</sub> = 9×0.9<sup>k−1</sup>，与压缩预言逐轮吻合；v<sub>k</sub>(s9) = 10(1−0.9<sup>k</sup>) 按几何级数补齐缺口。定理不是墙上的装饰——它在具体数字上一分不差。',
+              en: 'A numeric audit (§4.1\'s 3×3 world, γ = 0.9, v₀ = 0): the true error ‖v<sub>k</sub> − v*‖<sub>∞</sub> = 9×0.9<sup>k−1</sup>, matching the contraction prediction round by round; v<sub>k</sub>(s9) = 10(1−0.9<sup>k</sup>) fills in its missing chunk as a geometric series. The theorem is no wall decoration — it is exact to the last digit on concrete numbers.',
+            },
+          },
+          { // 步 14 · 闭合卡
+            tex: String.raw`\boxed{\;\lVert T^*u-T^*v\rVert_\infty\le\gamma\,\lVert u-v\rVert_\infty \;\Longrightarrow\; \exists!\,v^\star=T^*v^\star,\quad (T^*)^kv_0\to v^\star,\quad \lVert v_k-v^\star\rVert_\infty\le\gamma^k\,\lVert v_0-v^\star\rVert_\infty\;}`,
+            why: {
+              zh: '链条闭合，逐环清点：∞-范数备尺（步 1）→ T* 定义（步 2）→ 压缩目标（步 3）→ 逐状态做差（步 4）→ max 的 1-Lipschitz 放行（步 5）→ 奖励对消、γ 提出（步 6）→ 加权和收缩（步 7）→ 取 max 收网（步 8）→ Banach 兑现存在唯一与任意初值收敛（步 9–11）。但 γ<sup>k</sup>‖v₀−v*‖ 里仍藏着一个看不见的量：‖v₀−v*‖ 要真跑完迭代才知道。把它换成看得见的量、再落成停机准则，是下一条推导的全部任务——NB2 的收敛曲线会把这条几何衰减画在你眼前。',
+              en: 'The chain closes; audit it link by link: the ∞-norm provides the ruler (step 1) → T* defined (step 2) → the contraction goal (step 3) → state-wise subtraction (step 4) → the 1-Lipschitz max waves it through (step 5) → rewards cancel, γ steps out (step 6) → the weighted sum contracts (step 7) → taking the max closes the net (step 8) → Banach delivers existence, uniqueness and convergence from any start (steps 9–11). Yet γ<sup>k</sup>‖v₀−v*‖ still hides an invisible quantity: ‖v₀−v*‖ is known only after actually finishing the iteration. Trading it for an observable and casting that into a stopping rule is the entire task of the next derivation — NB2 will paint this geometric decay before your eyes.',
+            },
+          },
+        ],
+      },
+      {
+        // #2 值迭代误差界与停机准则（12 步；★ blank 在第 4、10 步）
+        id: 'vi-error-bound',
+        name: { zh: '值迭代误差界与停机准则', en: 'The Error Bound and Stopping Rule of Value Iteration' },
+        intro: {
+          zh: '上一条推到 γ<sup>k</sup>‖v₀−v*‖ 就停了——界里藏着一个看不见的量：v* 正是要求解的未知数。本条把它换成第 0 轮就能算的 ‖v₀−T*v₀‖，合并出教科书形态的误差界 γ<sup>k</sup>/(1−γ)·‖v₀−T*v₀‖；再落到实践：停机阈值怎么设（γ = 0.9 时 ε 得先缩成 ε(1−γ)/γ）、要误差 &lt; 0.1 到底几轮够（对数除法实算）。两处关键步（三角不等式换观测量、停机阈值）答对才放行。',
+          en: 'The previous derivation stopped at γ<sup>k</sup>‖v₀−v*‖ — the bound hides an invisible quantity: v* is the very unknown being solved for. This one trades it for ‖v₀−T*v₀‖, computable at round 0, merging into the textbook error bound γ<sup>k</sup>/(1−γ)·‖v₀−T*v₀‖; then lands it in practice: how to set the stopping threshold (at γ = 0.9, ε must first shrink to ε(1−γ)/γ) and how many rounds error &lt; 0.1 really takes (computed by logarithm division). Two key steps (the triangle-inequality swap and the stopping threshold) unlock only when filled correctly.',
+        },
+        steps: [
+          { // 步 1 · 误差传播：压缩性套在 (v_k, v*) 上
+            tex: String.raw`v_{k+1}=T^*v_k,\quad v^\star=T^*v^\star \;\Longrightarrow\; \lVert v_{k+1}-v^\star\rVert_\infty = \lVert T^*v_k-T^*v^\star\rVert_\infty \;\le\; \htmlClass{fx-gold}{\gamma\,\lVert v_k-v^\star\rVert_\infty}`,
+            why: {
+              zh: '误差传播：上条推导证好的压缩性（‖T*u−T*v‖<sub>∞</sub> ≤ γ‖u−v‖<sub>∞</sub>）原样套在 (v<sub>k</sub>, v*) 这一对上——v* 是不动点，v<sub>k+1</sub> = T*v<sub>k</sub> 与 v* = T*v* 作差，恰好是"映射后的差"。每迭代一轮，到终点的距离乘一次 γ：几何收敛的引擎就这一行。',
+              en: 'Error propagation: the contraction just proved (‖T*u−T*v‖<sub>∞</sub> ≤ γ‖u−v‖<sub>∞</sub>) applied verbatim to the pair (v<sub>k</sub>, v*) — v* is a fixed point, so v<sub>k+1</sub> = T*v<sub>k</sub> minus v* = T*v* is exactly "the distance after the map". Each round multiplies the distance to the destination by γ: the entire engine of geometric convergence in one line.',
+            },
+          },
+          { // 步 2 · 链式累乘 γ^k
+            tex: String.raw`\lVert v_k-v^\star\rVert_\infty \;\le\; \gamma\,\lVert v_{k-1}-v^\star\rVert_\infty \;\le\; \gamma^2\,\lVert v_{k-2}-v^\star\rVert_\infty \;\le\;\cdots\le\; \htmlClass{fx-gold}{\gamma^k\,\lVert v_0-v^\star\rVert_\infty}`,
+            why: {
+              zh: '链式累乘：第 1 步对每个下标都成立，从 k 一路递推回 0（数学归纳），得 γ<sup>k</sup>‖v₀−v*‖<sub>∞</sub>——§4.1 的"几何收敛率"公式。到此一切白送；真正的麻烦在下一环。',
+              en: 'Chained multiplication: step 1 holds at every index, so recurse from k back to 0 (induction) to get γ<sup>k</sup>‖v₀−v*‖<sub>∞</sub> — §4.1\'s "geometric convergence rate" formula. Everything so far is free; the real trouble waits at the next link.',
+            },
+          },
+          { // 步 3 · 障碍：v* 不可观测
+            tex: String.raw`\underbrace{\htmlClass{fx-red}{\lVert v_0-v^\star\rVert_\infty}}_{\text{unobservable: } v^\star \text{ is the unknown}} \qquad\text{vs}\qquad \underbrace{\lVert v_0-T^*v_0\rVert_\infty}_{\text{observable: one Bellman sweep}}`,
+            why: {
+              zh: '障碍：γ<sup>k</sup>‖v₀−v*‖<sub>∞</sub> 理论漂亮、实践看不见——v* 正是要求解的未知数，知道它就不必迭代了。但 ‖v₀−T*v₀‖<sub>∞</sub> 第 0 轮就能观测：施加一次 T*（恰好是值迭代的第一轮），量出挪了多远。任务：用这个看得见的量给看不见的 ‖v₀−v*‖ 定价。',
+              en: 'The obstacle: γ<sup>k</sup>‖v₀−v*‖<sub>∞</sub> is beautiful in theory and invisible in practice — v* is the very unknown being solved for; know it and no iteration is needed. But ‖v₀−T*v₀‖<sub>∞</sub> is observable at round 0: apply T* once (exactly value iteration\'s first sweep) and measure how far it moved. Task: price the invisible ‖v₀−v*‖ with this visible quantity.',
+            },
+          },
+          { // 步 4 ★ blank：三角不等式 + 压缩，解出可观测上界
+            tex: String.raw`\lVert v_0-v^\star\rVert_\infty \;\le\; \underbrace{\lVert v_0-T^*v_0\rVert_\infty}_{\text{observable}} \;+\; \underbrace{\gamma\,\lVert v_0-v^\star\rVert_\infty}_{\text{contracted back}} \qquad\Longrightarrow\qquad \lVert v_0-v^\star\rVert_\infty \;\le\; \htmlClass{fx-gold}{\text{?}}`,
+            why: {
+              zh: '三角不等式插一个中转站 T*v₀：v₀ 到 v* 的距离 ≤ v₀ 到 T*v₀ 的距离 + T*v₀ 到 v* 的距离；第二段用压缩性折回 γ‖v₀−v*‖<sub>∞</sub>。于是未知量 ‖v₀−v*‖ 同时站在不等式两边——这不是坏事，恰是解出它的钥匙。',
+              en: 'The triangle inequality inserts a waypoint T*v₀: the distance from v₀ to v* ≤ distance from v₀ to T*v₀ plus distance from T*v₀ to v*; the second leg folds back into γ‖v₀−v*‖<sub>∞</sub> by contraction. The unknown ‖v₀−v*‖ now stands on both sides — not a flaw but the very key to solving for it.',
+            },
+            blank: {
+              q: {
+                zh: '解这个不等式：未知量 ‖v₀−v*‖<sub>∞</sub> 同时出现在两边，移项合并后它能被哪个"看得见的量"控制？',
+                en: 'Solve the inequality: the unknown ‖v₀−v*‖<sub>∞</sub> appears on both sides — after moving and merging, which observable quantity bounds it?',
+              },
+              choices: [
+                { tex: String.raw`\dfrac{\lVert v_0-T^*v_0\rVert_\infty}{1-\gamma}` },
+                { tex: String.raw`\lVert v_0-T^*v_0\rVert_\infty` },
+                { tex: String.raw`\dfrac{\gamma\,\lVert v_0-T^*v_0\rVert_\infty}{1-\gamma}` },
+                { tex: String.raw`\dfrac{\lVert v_0-T^*v_0\rVert_\infty}{\gamma}` },
+              ],
+              answer: 0,
+              whyWrong: [
+                { zh: '正确。两边除以 1−γ（γ &lt; 1 保证为正）。看不见的 ‖v₀−v*‖ 被换成一轮就能算的 ‖v₀−T*v₀‖——先付一轮 Bellman 扫描，买到全程的误差定价权。', en: 'Correct. Divide both sides by 1−γ (positive since γ &lt; 1). The invisible ‖v₀−v*‖ is traded for ‖v₀−T*v₀‖, computable in one sweep — pay one Bellman sweep up front, buy the pricing rights for the error all the way.' },
+                { zh: '漏了放大系数：1/(1−γ) 必不可少——γ = 0.9 时相差 10 倍。直觉：残差每轮乘 γ，初值误差相当于"未来所有轮残差的几何级数和"，Σγ<sup>k</sup> = 1/(1−γ)。', en: 'Missing the amplification: 1/(1−γ) is indispensable — a factor of 10 at γ = 0.9. Intuition: the residual is multiplied by γ each round, so the initial error is the geometric sum of all future residuals, Σγ<sup>k</sup> = 1/(1−γ).' },
+                { zh: '多乘了 γ：γ/(1−γ) 的形态属于"停机时用相邻两轮差"的界（本推导第 9 步）；初始换算这一步里，压缩项被移项消去，系数干净地是 1/(1−γ)。', en: 'An extra γ: the γ/(1−γ) shape belongs to the stopping-time bound via the round-to-round gap (step 9 below); in this initial conversion the contraction term is moved and cancelled, leaving a clean 1/(1−γ).' },
+                { zh: '分母写错：移项后左边是 (1−γ)‖v₀−v*‖<sub>∞</sub>，除掉的是 (1−γ)；γ 单独蹲在分母的位置没有任何一步支撑。', en: 'Wrong denominator: after rearranging, the left side is (1−γ)‖v₀−v*‖<sub>∞</sub>, so (1−γ) is what gets divided out; nothing in any step puts γ alone in a denominator.' },
+              ],
+              hint: { zh: '把 γ‖v₀−v*‖ 移到左边与 ‖v₀−v*‖ 合并，再两边同除 1−γ。', en: 'Move γ‖v₀−v*‖ to the left, merge it with ‖v₀−v*‖, then divide both sides by 1−γ.' },
+            },
+          },
+          { // 步 5 · 合并主结果：先验误差界
+            tex: String.raw`\htmlClass{fx-gold}{\lVert v_k-v^\star\rVert_\infty \;\le\; \frac{\gamma^k}{1-\gamma}\,\lVert v_0-T^*v_0\rVert_\infty}`,
+            why: {
+              zh: '合并第 2、4 步：教科书形态的先验误差界。特别地 v₀ = 0 时 ‖v₀−T*v₀‖<sub>∞</sub> = ‖T*v₀‖<sub>∞</sub> ≤ max|r|（概率加权和不超过最大奖励绝对值），得到书上的简化版 γ<sup>k</sup>/(1−γ)·max|r|。',
+              en: 'Merge steps 2 and 4: the textbook a-priori error bound. In particular, with v₀ = 0, ‖v₀−T*v₀‖<sub>∞</sub> = ‖T*v₀‖<sub>∞</sub> ≤ max|r| (a probability-weighted sum never exceeds the largest |r|), giving the book\'s simplified form γ<sup>k</sup>/(1−γ)·max|r|.',
+            },
+          },
+          { // 步 6 · 数值对账：3×3 世界界取等
+            tex: String.raw`\gamma=0.9,\ v_0=0:\quad \lVert v_0-T^*v_0\rVert_\infty=1 \;\Longrightarrow\; \lVert v_k-v^\star\rVert_\infty\le 10\times0.9^{k}, \qquad \text{true error} = 9\times0.9^{k-1} = \htmlClass{fx-green}{10\times0.9^{k}}`,
+            why: {
+              zh: '数值对账（§4.1 的 3×3 世界）：‖v₀−T*v₀‖<sub>∞</sub> = 1（第一轮只看得到即时奖励），界 = 10×0.9<sup>k</sup>；而真实误差恰为 9×0.9<sup>k−1</sup> = 10×0.9<sup>k</sup>——界在此例取等（紧）。本讲填空 T2 的 γ<sup>n+1</sup>/(1−γ)·max|r| 是同一条界换一套下标记法（从"再扫 n 轮"数起），数字一致。',
+              en: 'A numeric audit (§4.1\'s 3×3 world): ‖v₀−T*v₀‖<sub>∞</sub> = 1 (the first sweep sees only immediate rewards), so the bound is 10×0.9<sup>k</sup>; and the true error is exactly 9×0.9<sup>k−1</sup> = 10×0.9<sup>k</sup> — the bound is attained (tight) in this example. Fill-in T2\'s γ<sup>n+1</sup>/(1−γ)·max|r| is the same bound under a shifted index convention ("n more sweeps to go"); the numbers agree.',
+            },
+          },
+          { // 步 7 · 实算：误差 < 0.1 需要几轮
+            tex: String.raw`10\times0.9^{k}<0.1 \;\Longleftrightarrow\; 0.9^{k}<0.01 \;\Longleftrightarrow\; k>\frac{\ln 0.01}{\ln 0.9}\approx \htmlClass{fx-green}{43.7} \;\Longrightarrow\; k=\htmlClass{fx-green}{44}`,
+            why: {
+              zh: '实算（node 验算过）：10×0.9<sup>k</sup> &lt; 0.1 ⇔ 0.9<sup>k</sup> &lt; 0.01 ⇔ k &gt; ln 0.01 / ln 0.9 ≈ 43.7（除以 ln 0.9 &lt; 0 时不等号反向，别翻车）⇒ k = 44：0.9<sup>44</sup> ≈ 0.0097，界 ≈ 0.097 &lt; 0.1；k = 43 时 ≈ 0.108 &gt; 0.1，不够。"44 轮"不是拍脑袋，是对数除法算出来的。',
+              en: 'Computed for real (re-verified in node): 10×0.9<sup>k</sup> &lt; 0.1 ⇔ 0.9<sup>k</sup> &lt; 0.01 ⇔ k &gt; ln 0.01 / ln 0.9 ≈ 43.7 (dividing by ln 0.9 &lt; 0 flips the inequality — do not skid) ⇒ k = 44: 0.9<sup>44</sup> ≈ 0.0097, bound ≈ 0.097 &lt; 0.1; at k = 43 it is ≈ 0.108 &gt; 0.1, not enough. "44 rounds" is not a guess — it is what logarithm division produces.',
+            },
+          },
+          { // 步 8 · 当前轮版本：三角不等式再上一次
+            tex: String.raw`(1-\gamma)\,\lVert v_{k+1}-v^\star\rVert_\infty \;\le\; \gamma\,\lVert v_{k+1}-v_k\rVert_\infty`,
+            why: {
+              zh: '先验界两处不便：‖v₀−T*v₀‖ 要预付一轮，γ<sup>k</sup> 的计数也从第 0 轮定死；实践更爱问"当前这轮挪了多少，离终点还有多远"。推导照旧两件套：先压缩（v<sub>k+1</sub>−v* = T*v<sub>k</sub>−T*v* ≤ γ‖v<sub>k</sub>−v*‖），再对 ‖v<sub>k</sub>−v*‖ 用三角不等式拆出 ‖v<sub>k</sub>−v<sub>k+1</sub>‖ + ‖v<sub>k+1</sub>−v*‖，移项合并。所得即 §4.1 停止条件换算公式的下标平移版。',
+              en: 'Two inconveniences of the a-priori bound: ‖v₀−T*v₀‖ must be prepaid with a sweep, and the γ<sup>k</sup> count is fixed from round 0; practice prefers asking "how far did this round move, and how far to the destination?". The derivation reuses the same two tools: contract first (v<sub>k+1</sub>−v* = T*v<sub>k</sub>−T*v* ≤ γ‖v<sub>k</sub>−v*‖), then split ‖v<sub>k</sub>−v*‖ by the triangle inequality into ‖v<sub>k</sub>−v<sub>k+1</sub>‖ + ‖v<sub>k+1</sub>−v*‖, and rearrange. The result is §4.1\'s stopping-condition conversion with the index shifted by one.',
+            },
+          },
+          { // 步 9 · 解出停机形态：γ/(1−γ) × 相邻差
+            tex: String.raw`\lVert v_{k+1}-v^\star\rVert_\infty \;\le\; \frac{\gamma}{1-\gamma}\,\lVert v_{k+1}-v_k\rVert_\infty \;=\; \frac{\gamma}{1-\gamma}\,\lVert v_k-T^*v_k\rVert_\infty`,
+            why: {
+              zh: '解出停机形态：误差 ≤ γ/(1−γ) × 相邻两轮差。γ = 0.9 时即 9 倍——§4.1 误区②那个"9 倍"的出处。注意恒等式 ‖v<sub>k</sub>−T*v<sub>k</sub>‖<sub>∞</sub> = ‖v<sub>k+1</sub>−v<sub>k</sub>‖<sub>∞</sub>：残差与相邻差是同一个量的两种写法（T*v<sub>k</sub> 就是下一轮的 v<sub>k+1</sub>），实践里观测的就是它。',
+              en: 'Solved into stopping form: error ≤ γ/(1−γ) × the round-to-round gap. At γ = 0.9 that is the 9× — the very origin of §4.1 misconception ②\'s "factor 9". Note the identity ‖v<sub>k</sub>−T*v<sub>k</sub>‖<sub>∞</sub> = ‖v<sub>k+1</sub>−v<sub>k</sub>‖<sub>∞</sub>: residual and consecutive gap are one quantity written twice (T*v<sub>k</sub> is precisely the next round\'s v<sub>k+1</sub>) — exactly what practice observes.',
+            },
+          },
+          { // 步 10 ★ blank：停机阈值
+            tex: String.raw`\lVert v_k-T^*v_k\rVert_\infty \;<\; \htmlClass{fx-gold}{\text{?}} \qquad\Longrightarrow\qquad \lVert v_{k+1}-v^\star\rVert_\infty \;<\; \varepsilon`,
+            why: {
+              zh: '停机准则落地：要保留下来的 v<sub>k+1</sub> 误差 &lt; ε，从第 9 步反解出观测差的阈值。γ = 0.9 时阈值 ≈ 0.111ε——要误差 &lt; 0.1，相邻差得压到 ≈ 0.011，正是 §4.1 callout 里那个数。两个方向别混：阈值在停机前设，误差界在停机后报。',
+              en: 'The stopping rule lands: for the retained v<sub>k+1</sub> to have error &lt; ε, invert step 9 to get the threshold on the observed gap. At γ = 0.9 the threshold is ≈ 0.111ε — for error &lt; 0.1 the gap must be squeezed to ≈ 0.011, exactly the number in §4.1\'s callout. Do not mix the two directions: the threshold is set before stopping, the error bound is reported after.',
+            },
+            blank: {
+              q: {
+                zh: '停机准则：观测相邻两轮差 ‖v<sub>k</sub>−T*v<sub>k</sub>‖<sub>∞</sub>（= ‖v<sub>k+1</sub>−v<sub>k</sub>‖<sub>∞</sub>），要保证保留下来的 v<sub>k+1</sub> 满足误差 &lt; ε，阈值应设为多少？',
+                en: 'Stopping rule: observing the round-to-round gap ‖v<sub>k</sub>−T*v<sub>k</sub>‖<sub>∞</sub> (= ‖v<sub>k+1</sub>−v<sub>k</sub>‖<sub>∞</sub>), what threshold guarantees the retained v<sub>k+1</sub> has error &lt; ε?',
+              },
+              choices: [
+                { tex: String.raw`\dfrac{\varepsilon\,(1-\gamma)}{\gamma}` },
+                { tex: String.raw`\varepsilon` },
+                { tex: String.raw`\dfrac{\varepsilon\,\gamma}{1-\gamma}` },
+                { zh: '不需要换算——相邻两轮差本身就已经是当前真实误差', en: 'No conversion needed — the round-to-round gap already equals the current true error' },
+              ],
+              answer: 0,
+              whyWrong: [
+                { zh: '正确。从第 9 步反解：要 γ/(1−γ)·‖v<sub>k</sub>−T*v<sub>k</sub>‖ &lt; ε，阈值须 ‖v<sub>k</sub>−T*v<sub>k</sub>‖ &lt; ε(1−γ)/γ。γ = 0.9 时即 ε ≈ 0.111×目标：要误差 &lt; 0.1，相邻差压到 ≈ 0.011——§4.1 callout 的那个数。', en: 'Correct. Invert step 9: for γ/(1−γ)·‖v<sub>k</sub>−T*v<sub>k</sub>‖ &lt; ε, the threshold must be ‖v<sub>k</sub>−T*v<sub>k</sub>‖ &lt; ε(1−γ)/γ. At γ = 0.9 that is ≈ 0.111× the target: for error &lt; 0.1, squeeze the gap to ≈ 0.011 — the number in §4.1\'s callout.' },
+                { zh: '直接拿 ε 当阈值 = 把"每轮挪动量"当"离终点的距离"，γ = 0.9 时误差被低估 9 倍——本讲误区②、实验报告里最常见的错。', en: 'Using ε itself as the threshold equates "how far this round moved" with "how far to the destination", underestimating the error by a factor 9 at γ = 0.9 — misconception ② of this lecture and the most common lab-report mistake.' },
+                { zh: '方向反了——这是"阈值为 ε 时的误差上界"（γ = 0.9 时 9ε），不是"要误差 ε 所需的阈值"。乘除 γ/(1−γ) 的方向别搞混。', en: 'Direction reversed — this is the error upper bound when the threshold is ε (9ε at γ = 0.9), not the threshold needed for error ε. Keep the direction of multiplying/dividing by γ/(1−γ) straight.' },
+                { zh: '相邻差量的是"这一轮挪了多少"，不是"离 v* 还有多远"：v<sub>k</sub> 仍在几何逼近的半路上，二者相差因子 γ/(1−γ)。停机前做一次换算，是写对实验报告的最低要求。', en: 'The gap measures "how far this round moved", not "how far from v*": v<sub>k</sub> is still mid-way through its geometric approach, the two differing by the factor γ/(1−γ). Converting before stopping is the bare minimum for an honest lab report.' },
+              ],
+              hint: { zh: '第 9 步右边是 γ/(1−γ)×观测差——要它小于 ε，观测差得小于什么？', en: 'Step 9\'s right side is γ/(1−γ) × the observed gap — for it to stay below ε, what must the gap stay below?' },
+            },
+          },
+          { // 步 11 · NB2 钩子：γ 扫描的预言
+            tex: String.raw`\text{NB2 sweep:}\quad \gamma\in\{0.5,\,0.9,\,0.99\},\ \ \lVert v_0-T^*v_0\rVert_\infty=1,\ \ \text{err}<0.1\ \text{needs}\ k=\htmlClass{fx-green}{5,\ 44,\ 688}`,
+            why: {
+              zh: 'γ 的杠杆有多重，一并摆出（node 实算核对）：γ = 0.5 时 k = 5、γ = 0.9 时 k = 44、γ = 0.99 时 k = 688——γ 逼近 1，轮数按 1/(1−γ) 量级爆炸（0.99 比 0.9 慢 15 倍以上）。NB2（本讲代码节尾的笔记本入口卡）的 γ ∈ {0.5, 0.9, 0.99} 扫描实验会画出这三条收敛曲线，assert 阈值就该照本条的换算设。',
+              en: 'How heavy is γ\'s leverage, all at once (re-verified in node): k = 5 at γ = 0.5, k = 44 at γ = 0.9, k = 688 at γ = 0.99 — as γ approaches 1 the round count explodes on the order of 1/(1−γ) (0.99 is over 15× slower than 0.9). NB2 (the notebook entry card at the end of this lecture\'s code section) sweeps γ ∈ {0.5, 0.9, 0.99} and plots these three convergence curves; its assert thresholds should be set by this derivation\'s conversion.',
+            },
+          },
+          { // 步 12 · 闭合卡
+            tex: String.raw`\boxed{\;\lVert v_k-v^\star\rVert_\infty\le\frac{\gamma^k}{1-\gamma}\,\lVert v_0-T^*v_0\rVert_\infty\;}\qquad\boxed{\;\lVert v_k-T^*v_k\rVert_\infty<\frac{\varepsilon(1-\gamma)}{\gamma}\ \Rightarrow\ \lVert v_{k+1}-v^\star\rVert_\infty<\varepsilon\;}`,
+            why: {
+              zh: '闭合卡，逐环清点：压缩性给误差传播（步 1）→ 链乘 γ<sup>k</sup>（步 2）→ 三角不等式把看不见的 ‖v₀−v*‖ 换成第 0 轮残差（步 3–4）→ 合并成先验界（步 5）→ 数值换算 k = 44（步 6–7）→ 当前轮版本 + 停机阈值（步 8–10）。全套手艺只有一个思想：<strong>用看得见的量给看不见的误差定价</strong>——它是"跑够了没有"的唯一合法判据，也是实验报告里该写的那行界。',
+              en: 'The chain closes; audit it link by link: contraction gives error propagation (step 1) → chaining to γ<sup>k</sup> (step 2) → the triangle inequality trades the invisible ‖v₀−v*‖ for the round-0 residual (steps 3–4) → merging into the a-priori bound (step 5) → the numeric conversion k = 44 (steps 6–7) → the current-round version plus the stopping threshold (steps 8–10). One idea powers the whole toolkit: <strong>price the invisible error with visible quantities</strong> — the only legitimate criterion for "have we run enough", and the line your lab report should quote.',
+            },
+          },
+        ],
+      },
     ],
   };
 

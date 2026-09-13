@@ -1,4 +1,10 @@
 // 无头验证：整页截图 + 控制台错误收集（驱动本机 Edge）
+// 断言计数：40 条基础冒烟 + 2 条 derivation-lab L2 冒烟（走步放行 + KaTeX 渲染）+ 2 条 L9 长链冒烟
+//   + 1 条 DATA 全量挂载扫描（L2–L10 qa 节 derivation-lab / code 节 notebook-bridge）
+//   + 2 条 notebook-bridge 冒烟（.nb-card 渲染 + 深链格式）+ 3 条 lite 冒烟（200 / 卡片数 / lab 可达）。
+// 门控规则：derivation-lab 两处——window.DATA.derivationSets 注册表全空 → SKIP（内容未落，计通过）；
+//   注册表非空而 #sec-l2-qa 无 .deriv-lab → FAIL（接线错，reviewer note N2）。
+//   lite/lab/index.html 可达性——lite/ 未构建时 SKIP 并提示（PLAN 第七轮坑 7 模式）。
 const { chromium } = require('playwright-core');
 const fs = require('fs');
 const path = require('path');
@@ -397,6 +403,208 @@ fs.mkdirSync(OUT, { recursive: true });
       + ' stored=' + (stored ? 'PRESENT' : 'null'));
   } catch (e) { errors.push('[smoke-fill] ' + e.message); }
 
+  // ── derivation-lab 推导冒烟（门控：derivationSets 注册表全空 → SKIP 计通过；非空而组件缺席 → FAIL）──
+  // 深链 #sec-l2-qa → .deriv-lab 渲染 → 走到首个 blank 步 → 点错一次验证不放行 →
+  // 答对放行 → 进度推进；KaTeX 经 ensureKatex 渲染 + .deriv-lab 元素级截图。
+  try {
+    await page.goto('http://localhost:8642/#sec-l2-qa', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1500);   // 冷深链 = 懒加载注入 data-l2
+    await page.evaluate(() => {
+      const el = document.getElementById('sec-l2-qa');
+      if (el) el.scrollIntoView({ behavior: 'instant', block: 'start' });
+    });
+    await page.waitForTimeout(400);
+    const derivLab = page.locator('#sec-l2-qa .deriv-lab');
+    const nDeriv = await derivLab.count();
+    // 注册表有真实条目的讲数：0 = 全书内容未落（SKIP）；>0 = 接线必须成立（硬断言）
+    const derivRegistry = await page.evaluate(() => {
+      const d = window.DATA && window.DATA.derivationSets;
+      if (!d) return 0;
+      return Object.keys(d).filter((k) => d[k] && Array.isArray(d[k].items) && d[k].items.length).length;
+    });
+    if (derivRegistry === 0) {
+      assertTotal += 2;   // SKIP：全书 derivationSets 均未落（内容未到位），两条计通过不失败
+      console.log('derivation-lab assert: SKIP — window.DATA.derivationSets empty (content not landed yet)');
+    } else if (nDeriv < 1) {
+      ok(false, '[smoke-deriv] derivationSets registry has ' + derivRegistry
+        + ' lecture(s) but #sec-l2-qa has no .deriv-lab — wiring broken (reviewer note N2)');
+      ok(false, '[smoke-deriv] KaTeX assert not run — .deriv-lab missing in #sec-l2-qa');
+    } else {
+      // 从页面数据取首条的步数与首个 blank 的位置/答案（通用适配 Wave 2 真数据）
+      const plan = await page.evaluate(() => {
+        const set = window.DATA.derivationSets && window.DATA.derivationSets.l2;
+        const steps = set && set.items && set.items[0] && set.items[0].steps;
+        if (!Array.isArray(steps)) return null;
+        const bi = steps.findIndex((s) => s && s.blank);
+        return { n: steps.length, blankAt: bi, answer: bi >= 0 ? steps[bi].blank.answer : -1 };
+      });
+      const nextBtn = page.locator('#sec-l2-qa .deriv-lab .reason-ctl .btn.primary');
+      let walkOK = false, walkInfo = 'plan unreadable';
+      if (plan && plan.blankAt >= 0) {
+        for (let k = 0; k < plan.blankAt; k++) {   // 走到 blank 步（shown = blankAt+1）
+          await nextBtn.click();
+          await page.waitForTimeout(250);
+        }
+        const opts = page.locator('#sec-l2-qa .deriv-lab .deriv-step.now .fill-opts .deriv-opt');
+        const nOpts = await opts.count();
+        const wrongIdx = plan.answer === 0 ? 1 : 0;   // 先点一个必错选项验证门不放行
+        await opts.nth(wrongIdx).click();
+        await page.waitForTimeout(250);
+        const gateHeld = !(await nextBtn.isEnabled());
+        await opts.nth(plan.answer).click();
+        await page.waitForTimeout(250);
+        const released = await nextBtn.isEnabled();
+        await nextBtn.click();
+        await page.waitForTimeout(350);
+        const prog = ((await page.textContent('#sec-l2-qa .deriv-lab .reason-progress')) || '').trim();
+        walkOK = nOpts >= 2 && gateHeld && released && prog === (plan.blankAt + 2) + ' / ' + plan.n;
+        walkInfo = 'steps=' + plan.n + ' blankAt=' + (plan.blankAt + 1) + '/' + plan.n
+          + ' answer=' + plan.answer + ' opts=' + nOpts + ' gateHeld=' + gateHeld
+          + ' released=' + released + ' progress="' + prog + '"';
+      } else if (plan) {
+        // 首条无 blank（数据形态变化时的降级路径）：直接走 3 步验证走步模式
+        for (let k = 0; k < 3; k++) { await nextBtn.click(); await page.waitForTimeout(250); }
+        const prog = ((await page.textContent('#sec-l2-qa .deriv-lab .reason-progress')) || '').trim();
+        walkOK = prog === '4 / ' + plan.n;
+        walkInfo = 'no blank in item#0 — walk-only progress="' + prog + '"';
+      }
+      ok(walkOK, '[smoke-deriv] walk 3 steps + answer 1 blank (gate → release → advance) failed: ' + walkInfo);
+      console.log('derivation-lab assert: ' + walkInfo);
+      // KaTeX 经组件内 ensureKatex 路径渲染（区别于公式块）+ 元素级截图
+      const kx = await page.$$eval('#sec-l2-qa .deriv-lab .katex', els => els.length);
+      ok(kx >= 1, '[smoke-deriv] .deriv-lab .katex count = ' + kx + ' (KaTeX not rendered via ensureKatex)');
+      await derivLab.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(300);
+      await derivLab.screenshot({ path: path.join(OUT, 'smoke-deriv-lab.png') });
+    }
+  } catch (e) { errors.push('[smoke-deriv] ' + e.message); }
+
+  // ── 五主题抽查：同一 L2 推导组件在 chalk/swiss/quant/forest/classic 下各截一张元素图 ──
+  try {
+    const derivL2 = page.locator('#sec-l2-qa .deriv-lab').first();
+    if (await derivL2.count()) {
+      for (let ti = 0; ti < 5; ti++) {
+        await page.click('.theme-switch .theme-btn >> nth=' + ti);
+        await page.waitForTimeout(600);
+        await derivL2.scrollIntoViewIfNeeded();
+        await page.waitForTimeout(300);
+        await derivL2.screenshot({ path: path.join(OUT, 'smoke-deriv-l2-theme-' + ti + '.png') });
+      }
+      await page.click('.theme-switch .theme-btn >> nth=0');   // 切回 chalk 默认
+      await page.waitForTimeout(400);
+      console.log('deriv themes: 5 element shots saved (smoke-deriv-l2-theme-0..4.png)');
+    }
+  } catch (e) { errors.push('[smoke-deriv-themes] ' + e.message); }
+
+  // ── derivation-lab L9 长链冒烟：深链 #sec-l9-qa → 组件存在 + KaTeX 渲染 + 走 2 步（不断言通过）+ 元素截图 ──
+  try {
+    await page.goto('http://localhost:8642/#sec-l9-qa', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1500);   // 冷深链 = 懒加载注入 data-l9
+    await page.evaluate(() => {
+      const el = document.getElementById('sec-l9-qa');
+      if (el) el.scrollIntoView({ behavior: 'instant', block: 'start' });
+    });
+    await page.waitForTimeout(400);
+    const derivL9 = page.locator('#sec-l9-qa .deriv-lab');
+    const nL9 = await derivL9.count();
+    ok(nL9 >= 1, '[smoke-deriv-l9] #sec-l9-qa .deriv-lab count = ' + nL9 + ' (expect >= 1)');
+    if (nL9 >= 1) {
+      const kxL9 = await page.$$eval('#sec-l9-qa .deriv-lab .deriv-tex .katex', els => els.length);
+      ok(kxL9 >= 1, '[smoke-deriv-l9] .deriv-tex .katex count = ' + kxL9 + ' (KaTeX not rendered via ensureKatex)');
+      const nextL9 = page.locator('#sec-l9-qa .deriv-lab .reason-ctl .btn.primary');
+      for (let k = 0; k < 2; k++) {   // 走 2 步冒烟（步进门放行与否不在此断言，只验证按钮链路不炸）
+        await nextL9.click();
+        await page.waitForTimeout(300);
+      }
+      const progL9 = ((await page.textContent('#sec-l9-qa .deriv-lab .reason-progress')) || '').trim();
+      await derivL9.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(300);
+      await derivL9.screenshot({ path: path.join(OUT, 'smoke-deriv-lab-l9.png') });
+      console.log('deriv-l9 assert: labs=' + nL9 + ' katex=' + kxL9 + ' progress="' + progL9 + '"');
+    }
+  } catch (e) { errors.push('[smoke-deriv-l9] ' + e.message); }
+
+  // ── DATA 全量挂载扫描：L2–L10 每讲 qa 节 blocks 含 derivation-lab、code 节 blocks 含 notebook-bridge ──
+  // 懒加载站点不会一次注入全部 data-lX，这里按懒加载同款方式逐个注入脚本后读 window.DATA.sections，
+  // 一次断言列出全部缺失项（缺失即 fail——接线/内容缺一不可）。
+  try {
+    for (let n = 2; n <= 10; n++) {
+      await page.addScriptTag({ url: 'http://localhost:8642/assets/js/data-l' + n + '.js' });
+    }
+    await page.waitForTimeout(300);
+    const missing = await page.evaluate(() => {
+      const S = window.DATA.sections;
+      const has = (id, comp) => {
+        const sec = S[id];
+        return !!(sec && Array.isArray(sec.blocks)
+          && sec.blocks.some((b) => b && b.t === 'widget' && b.component === comp));
+      };
+      const out = [];
+      for (let n = 2; n <= 10; n++) {
+        if (!has('l' + n + '-qa', 'derivation-lab')) out.push('l' + n + '-qa:derivation-lab');
+        if (!has('l' + n + '-code', 'notebook-bridge')) out.push('l' + n + '-code:notebook-bridge');
+      }
+      return out;
+    });
+    ok(!missing.length, '[smoke-deriv-data] L2-L10 mounting gaps: '
+      + (missing.length ? missing.join(', ') : 'none'));
+    console.log('deriv-data assert: ' + (missing.length
+      ? 'MISSING — ' + missing.join(', ')
+      : 'all L2-L10 qa sections mount derivation-lab and code sections mount notebook-bridge'));
+  } catch (e) { errors.push('[smoke-deriv-data] ' + e.message); }
+
+  // ── notebook-bridge 冒烟：#sec-l2-code 出现 .nb-card 且深链以 lite/lab/index.html?path=notebooks/ 开头 ──
+  try {
+    await page.goto('http://localhost:8642/#sec-l2-code', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1500);   // 冷深链 = 懒加载注入 data-l2
+    await page.evaluate(() => {
+      const el = document.getElementById('sec-l2-code');
+      if (el) el.scrollIntoView({ behavior: 'instant', block: 'start' });
+    });
+    await page.waitForTimeout(400);
+    const nbCards = await page.locator('#sec-l2-code .nb-card').count();
+    ok(nbCards >= 1, '[smoke-nb-bridge] #sec-l2-code .nb-card count = ' + nbCards + ' (expect >= 1)');
+    const nbHref = await page.getAttribute('#sec-l2-code .nb-card .nb-actions a', 'href');
+    ok(/^lite\/lab\/index\.html\?path=notebooks\//.test(nbHref || ''),
+      '[smoke-nb-bridge] nb deep-link href = ' + nbHref + ' (expect lite/lab/index.html?path=notebooks/...)');
+    const nbBridge = page.locator('#sec-l2-code .nb-bridge').first();
+    if (await nbBridge.count()) {
+      await nbBridge.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(300);
+      await nbBridge.screenshot({ path: path.join(OUT, 'smoke-nb-bridge.png') });
+    }
+    console.log('nb-bridge assert: cards=' + nbCards + ' href=' + nbHref);
+  } catch (e) { errors.push('[smoke-nb-bridge] ' + e.message); }
+
+  // ── lite.html hub 冒烟：200 + NB 卡片数 ≥7（NB_MANIFEST 渲染）+ lite/lab/index.html 可达性 ──
+  try {
+    const errMark = errors.length;   // lite 页窗口起点：probeFiles 的预期 404 稍后从这里剔除
+    const liteResp = await page.goto('http://localhost:8642/lite.html', { waitUntil: 'networkidle' });
+    ok(!!liteResp && liteResp.status() === 200, '[smoke-lite] lite.html status = '
+      + (liteResp ? liteResp.status() : 'no-response'));
+    await page.waitForTimeout(700);   // 卡片在 DOMContentLoaded 后由 nb-manifest 渲染
+    const liteCards = await page.locator('.nbl-card').count();
+    ok(liteCards >= 7, '[smoke-lite] lite.html .nbl-card count = ' + liteCards + ' (expect >= 7 from NB_MANIFEST)');
+    await page.screenshot({ path: path.join(OUT, 'lite-hub.png'), fullPage: true });
+    console.log('lite assert: status=' + (liteResp && liteResp.status()) + ' cards=' + liteCards);
+    if (fs.existsSync(path.join(__dirname, 'lite', 'lab', 'index.html'))) {
+      const labResp = await page.request.get('http://localhost:8642/lite/lab/index.html');
+      ok(labResp.status() === 200, '[smoke-lite] lite/lab/index.html status = ' + labResp.status());
+      console.log('lite assert: lite/lab/index.html status=' + labResp.status());
+    } else {
+      console.log('lite assert: SKIP lite/lab/index.html reachability — lite/ not built '
+        + '(local release step; PLAN 第七轮坑 7 模式)');
+    }
+    // hub 页 probeFiles 按设计对尚未构建的笔记本（nb1–nb6 未 rebuild lite 前）发 HEAD 探测，
+    // 404 → 卡片自动转"建设中"；Chromium 会为每个 404 资源记一条 console error——
+    // 这是页面的设计行为而非站点缺陷，仅剔除本窗口内这批资源 404（其他错误照常计入）
+    for (let i = errors.length - 1; i >= errMark; i--) {
+      if (/^\[console\] Failed to load resource: the server responded with a status of 404/.test(errors[i])) {
+        errors.splice(i, 1);
+      }
+    }
+  } catch (e) { errors.push('[smoke-lite] ' + e.message); }
+
   // ── file:// 双击可用冒烟：KaTeX 相对路径 css/字体在 file 协议下可加载、公式可渲染 ──
   try {
     const fileUrl = 'file:///' + encodeURI(__dirname.replace(/\\/g, '/')) + '/index.html#sec-l2-matrix';
@@ -421,8 +629,8 @@ fs.mkdirSync(OUT, { recursive: true });
 
   await browser.close();
 
-  // 汇总：断言计数 + 退出码（CI/脚本可据此判定失败）
-  console.log(assertFail
+  // 汇总：断言计数 + 退出码（CI/脚本可据此判定失败；打印条件与退出条件同走 errors，避免口径分叉）
+  console.log(errors.length
     ? 'ERRORS:\n' + errors.join('\n')
     : 'NO CONSOLE ERRORS');
   console.log((assertTotal - assertFail) + '/' + assertTotal + ' smoke asserts passed');

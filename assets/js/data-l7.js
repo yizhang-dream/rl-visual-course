@@ -168,6 +168,7 @@
     blocks: [
       { t: 'p', zh: '两个算法只差一行——TD 目标里"下一个动作的 q"还是"下一状态的最大 q"。并排写出来，on-policy 与 off-policy 的工程差别一目了然：Sarsa 采样时必须先算 a′，Q-learning 不用。', en: 'The two algorithms differ by a single line — whether the TD target reads "the next action\'s q" or "the max q of the next state". Written side by side, the engineering difference between on- and off-policy pops out: Sarsa must compute a′ while sampling; Q-learning does not.' },
       { t: 'widget', component: 'code-lab', props: { source: 'l7' } },
+      { t: 'widget', component: 'notebook-bridge', props: { nb: 'nb4' } },
     ],
   };
 
@@ -180,6 +181,7 @@
       { t: 'p', zh: '翻卡前先过三题：① "TD 的目标为什么是 r + γv(s′) 而不是别的形状"（Bellman 期望方程 + 自举 + 一步采样，三视角缺一不可）；② "Sarsa 和 Q-learning 到底差在哪"（目标里的 a′ 换成 max——一个评估自己、一个瞄准最优，on/off-policy 之分全由此起）；③ "学习率到底该衰减还是常数"（平稳目标衰减、非平稳目标小常数——被评估的策略一直在变，这正是 L6 两种记忆的现场应用）。', en: 'Before flipping, run through three: ① “Why is the TD target r + γv(s′) and not some other shape” (Bellman expectation equation + bootstrapping + one-step sampling — no view may be missing); ② “Where exactly do Sarsa and Q-learning differ” (a′ in the target replaced by max — one evaluates itself, the other aims at the optimum; the on/off-policy split starts exactly there); ③ “Should the learning rate decay or stay constant” (decay for stationary targets, small constants for nonstationary ones — the policy being evaluated keeps changing, L6’s two kinds of memory applied on the spot).' },
       { t: 'widget', component: 'qa-lab', props: { source: 'l7' } },
       { t: 'widget', component: 'fill-lab', props: { source: 'l7' } },
+      { t: 'widget', component: 'derivation-lab', props: { source: 'l7' } },
     ],
   };
 
@@ -403,6 +405,122 @@ def q_learning(env, episodes=5000, gamma=0.9, alpha=0.1, eps=0.1, max_steps=200)
               { zh: 'Q-learning 的 max 目标在负奖励下不收敛', en: 'Q-learning’s max target fails to converge under negative rewards' },
             ], answer: 0,
             why: { zh: '两张表优化的对象本来就不是同一个：Sarsa 评估"带探索噪声走路"的价值，陷阱附近的 q 被系统性压低，于是绕行；Q* 表按无探索的最优记账，执行时 ε 一触发失足就付 −10。执行时两者用的是同一个 ε-greedy，掉坑概率没有差别——差别全在表里，不在执行里。', en: 'The two tables were never optimising the same object: Sarsa evaluates “walking with exploration noise on”, so q near the pit is pushed down systematically and it detours; the Q* table books the no-exploration optimum and pays −10 the moment ε trips at execution. At execution both use the same ε-greedy — the fall rate is identical. The difference lives in the tables, not in the execution.' } },
+        ],
+      },
+    ],
+  };
+
+  /* ═══ L7 定理推导 ═══ */
+  D.derivationSets = D.derivationSets || {};
+  D.derivationSets['l7'] = {
+    title: { zh: '第七讲 · 定理推导', en: 'Lecture 7 · Theorem Derivations' },
+    items: [
+      {
+        id: 'dvoretzky-ql-convergence',
+        name: { zh: 'Dvoretzky × Q-learning 收敛', en: 'Dvoretzky × Q-learning Convergence' },
+        intro: {
+          zh: '正文说“Q-learning 的收敛证明引用 Dvoretzky 定理”——这条链把引用做实：陈述定理，把误差递推整理成它的形状，逐条核对条件，最后落到“表格 Q-learning 以概率 1 收敛到 q*”，并圈出表格口径的边界。只核对条件，不重证 Dvoretzky 本身（它是 L6 的工具箱）。',
+          en: 'The text says Q-learning’s convergence proof “cites Dvoretzky’s theorem” — this chain makes the citation real: state the theorem, reshape the error recursion into its form, verify the conditions one by one, land on “tabular Q-learning converges to q* almost surely”, and mark the tabular boundary. Conditions are verified only; Dvoretzky itself is L6’s toolbox and is not re-proved here.',
+        },
+        steps: [
+          {
+            tex: String.raw`q_{t+1}(s_t,a_t) = q_t(s_t,a_t) + \alpha_t\big[\underbrace{r_{t+1} + \gamma \max_{a'} q_t(s_{t+1},a')}_{\htmlClass{fx-gold}{\text{target moves with } q_t}} - q_t(s_t,a_t)\big] \quad\Longrightarrow\quad q_t \to q^* \ \text{a.s.}`,
+            why: { zh: '要证的命题：表格 Q-learning 以概率 1（almost surely）收敛到最优动作价值 q*。证法不是从零开始：把误差整理成随机近似定理的形状，再逐条核对条件。为什么 L6 的基本 RM 定理不够用：RM 求根时目标是<strong>固定的未知常数</strong>，而这里的目标 r + γmax q<sub>t</sub>(s′,·) 含当前表的读数、随 t 变化——需要“目标会动”的版本。', en: 'The claim: tabular Q-learning converges to the optimal action values q* almost surely. The proof does not start from zero: reshape the error into the form of a stochastic-approximation theorem, then verify its conditions. Why L6’s basic RM theorem does not suffice: RM seeks the root of a <strong>fixed unknown constant</strong>, whereas here the target r + γmax q<sub>t</sub>(s′,·) reads the current table and moves with t — the “moving target” version is needed.' },
+          },
+          {
+            tex: String.raw`\begin{gathered} \Delta_{k+1} = (1-\alpha_k)\,\Delta_k + \beta_k\,\eta_k \;\xrightarrow{\;\text{a.s.}\;}\; 0 \\[2pt] \text{(a) } \sum_k \alpha_k = \infty,\;\; \sum_k \alpha_k^2 < \infty,\;\; \sum_k \beta_k^2 < \infty \;\text{(uniformly a.s.)} \qquad \text{(b) } \mathbb{E}[\eta_k \mid H_k] = 0,\;\; \mathbb{E}[\eta_k^2 \mid H_k] \le C \end{gathered}`,
+            why: { zh: '<strong>Dvoretzky 定理（书 Theorem 6.2）</strong>：随机递推 Δ<sub>k+1</sub> = (1−α<sub>k</sub>)Δ<sub>k</sub> + β<sub>k</sub>η<sub>k</sub> 在两组条件下以概率 1 收敛到零——(a) 步长与系数的级数条件；(b) 噪声对历史 H<sub>k</sub> 零均值、方差有界。关键放宽：α<sub>k</sub>、β<sub>k</sub> 可以是依赖历史的随机变量（基本 RM 只许确定性步长）。Q-learning 里 α 取决于访问次数，正吃这个放宽的红利。', en: '<strong>Dvoretzky’s theorem (book Theorem 6.2)</strong>: the random recursion converges to zero almost surely under two groups of conditions — (a) series conditions on the steps and coefficients; (b) noise that is zero-mean given the history H<sub>k</sub> with bounded variance. The key relaxation: α<sub>k</sub> and β<sub>k</sub> may be random and history-dependent (basic RM allows only deterministic steps). Q-learning’s visit-count-dependent α feeds exactly on this relaxation.' },
+          },
+          {
+            tex: String.raw`\begin{gathered} \Delta_{k+1}(s) = (1-\alpha_k(s))\,\Delta_k(s) + \beta_k(s)\,\eta_k(s), \qquad s \in \mathcal{S} \\[2pt] \text{(a) steps: } \sum_k \alpha_k(s) = \infty,\; \sum_k \alpha_k^2(s) < \infty,\; \sum_k \beta_k^2(s) < \infty,\; \mathbb{E}[\beta_k(s)\mid H_k] \le \mathbb{E}[\alpha_k(s)\mid H_k] \;\text{(uniformly a.s.)} \\[2pt] \text{(b) contraction: } \big\|\mathbb{E}[\eta_k(s) \mid H_k]\big\|_\infty \le \gamma\|\Delta_k\|_\infty,\; \gamma \in (0,1) \qquad \text{(c) variance: } \mathrm{var}[\eta_k(s) \mid H_k] \le C\big(1+\|\Delta_k\|_\infty\big)^2 \end{gathered}`,
+            why: { zh: '真正被 Theorem 7.1 的证明引用的是升级版 <strong>Theorem 6.3</strong>：把单变量的 Dvoretzky 推广到有限指标集 S（这里 = 全体状态-动作对）；条件 (a) 在级数组上补两条 β 侧约束（Σβ<sub>k</sub>²(s)&lt;∞、E[β<sub>k</sub>(s)|H<sub>k</sub>] ≤ E[α<sub>k</sub>(s)|H<sub>k</sub>]——噪声系数不得压过步长），并把零均值要求放宽成“条件期望被误差的 γ 倍压住”（b）——系统漂移不必为零，但必须收缩；方差条件 (c) 同步放宽为“随误差平方增长以内”。Q-learning 的收敛证明“与 Theorem 7.1 类似”（书 §7.4 原话），套的正是这个模板。', en: 'What Theorem 7.1’s proof actually cites is the upgraded <strong>Theorem 6.3</strong>: Dvoretzky generalised to a finite index set S (here: all state–action pairs); condition (a) adds two β-side constraints on top of the series group (Σβ<sub>k</sub>²(s)&lt;∞ and E[β<sub>k</sub>(s)|H<sub>k</sub>] ≤ E[α<sub>k</sub>(s)|H<sub>k</sub>] — the noise coefficient must not outweigh the step), with the zero-mean requirement relaxed to “the conditional mean is pressed below γ times the error” (b) — the systematic drift need not vanish, but it must contract; the variance condition (c) is likewise relaxed to “within squared-error growth”. Q-learning’s convergence analysis is “similar to Theorem 7.1” (book §7.4, verbatim) and fills in exactly this template.' },
+          },
+          {
+            tex: String.raw`\underbrace{\sum\alpha = \infty,\; \sum\alpha^2 < \infty}_{\text{(a) reach it, then settle}} \qquad \underbrace{\big\|\mathbb{E}[\eta \mid H]\big\|_\infty \le \gamma\|\Delta\|_\infty}_{\text{(b) drift pulls back}} \qquad \underbrace{\mathrm{var}[\eta \mid H] \le C\big(1+\|\Delta\|_\infty\big)^2}_{\text{(c) noise stays tame}}`,
+            why: { zh: '三个条件各一句直觉：(a) <strong>走得到又抖得停</strong>——Σα=∞ 保证再远的误差也有足够步数走完，Σα²&lt;∞ 保证后期抖动收敛（L6 已逐条验尸）；(b) <strong>目标会动，但动不过误差</strong>——漂移被 γ&lt;1 逐环打折，往回拉而非往外推；(c) <strong>噪声有界但不要求消失</strong>——它在期望中相消（大数定律的原料）。当漂移恒为零（目标固定）时 (b) 自动成立，剩下的正是 L6 RM 的两条件：Dvoretzky 推广了 RM，RM 是它的特例。', en: 'One sentence of intuition per condition: (a) <strong>you can get there, and the wobble dies</strong> — Σα=∞ supplies enough steps for any error, Σα²&lt;∞ settles the late oscillations (autopsied in L6); (b) <strong>the target moves, but never farther than the error</strong> — the drift is discounted link by link by γ&lt;1, pulled back rather than pushed out; (c) <strong>noise is bounded yet need not vanish</strong> — it cancels in expectation (raw material for the law of large numbers). When the drift is identically zero (a fixed target), (b) holds automatically and what remains is exactly L6’s two RM conditions: Dvoretzky generalises RM; RM is its special case.' },
+          },
+          {
+            tex: String.raw`\Delta_t(s,a) \;\triangleq\; q_t(s,a) - q^*(s,a), \qquad \|\Delta_t\|_\infty = \max_{s,a}\big|\Delta_t(s,a)\big|, \qquad \text{goal: } \Delta_t(s,a) \to 0 \;\; \forall (s,a)`,
+            why: { zh: '误差 = 当前表减真值表；范数 ‖Δ<sub>t</sub>‖<sub>∞</sub> 取全表最大格子差（书 Theorem 6.3 的口径）。“q<sub>t</sub> → q*”等价于“每一对的误差都趋于零”。接下来推导的核心动作只有两类：定义误差，把更新式改写成误差的语言（两侧减 q*）。', en: 'The error = the current table minus the true table; the norm ‖Δ<sub>t</sub>‖<sub>∞</sub> takes the largest cell gap over the whole table (the book Theorem 6.3 convention). The claim “q<sub>t</sub> → q*” is equivalent to “every pair’s error tends to zero”. From here the derivation has only two core moves: define the error, and rewrite the update in the error’s language (subtract q* from both sides).' },
+          },
+          {
+            tex: String.raw`q^*(s,a) = \mathbb{E}\big[R_{t+1} + \gamma \max_{a'} q^*(S_{t+1}, a') \,\big|\, S_t = s,\, A_t = a\big]`,
+            why: { zh: 'q* 是动作价值版 Bellman 最优方程（式 7.19，Box 7.5）的不动点——Q-learning 就是解这个方程的随机近似算法。误差递推拿它当“零点”：更新目标与这个方程右边的差，就是误差的全部来源；后面凡出现 E[R + γmax q(S′,a′)|s,a]，都用它换掉 q*(s,a)。', en: 'q* is the fixed point of the action-value Bellman optimality equation (Eq. 7.19, Box 7.5) — Q-learning is precisely the stochastic-approximation algorithm solving this equation. It serves as the “zero” of the error recursion: whatever the update target deviates from this equation’s right-hand side is the entire source of the error; whenever E[R + γmax q(S′,a′)|s,a] appears later, q*(s,a) is exchanged for it.' },
+          },
+          {
+            tex: String.raw`\begin{gathered} (s_t,a_t)=(s,a):\;\; \Delta_{t+1}(s,a) = (1-\alpha_t)\,\Delta_t(s,a) + \alpha_t\,\underbrace{\big[r_{t+1} + \gamma\max_{a'} q_t(s_{t+1},a') - q^*(s,a)\big]}_{\htmlClass{fx-green}{\eta_t(s,a)}} \\[2pt] (s_t,a_t)\neq(s,a):\;\; \Delta_{t+1}(s,a) = \Delta_t(s,a) \;\equiv\; (1-\alpha_t)\Delta_t(s,a) + \alpha_t\eta_t(s,a) \;\;\text{with } \alpha_t = \eta_t = 0 \end{gathered}`,
+            why: { zh: '书的统一化技巧（Theorem 7.1 证明的式 7.7–7.9 同款）：访问到 (s,a) 的时刻，两侧减 q* 凑出 (1−α)Δ 骨架，方括号整体记作 η<sub>t</sub>(s,a)；没访问到的时刻表项不动，恰好等于 α 记零的同一表达式。于是无论访问与否，误差递推<strong>永远</strong>是 Δ<sub>t+1</sub> = (1−α<sub>t</sub>)Δ<sub>t</sub> + α<sub>t</sub>η<sub>t</sub>——Theorem 6.3 要的形状原样出现（β<sub>t</sub> = α<sub>t</sub>，E[β|H] ≤ E[α|H] 取等号）。', en: 'The book’s unification trick (same as Eqs. 7.7–7.9 in Theorem 7.1’s proof): at moments that visit (s,a), subtract q* from both sides to assemble the (1−α)Δ skeleton, naming the whole bracket η<sub>t</sub>(s,a); at other moments the entry stays put — exactly the same expression with α recorded as zero. So visited or not, the error recursion is <strong>always</strong> Δ<sub>t+1</sub> = (1−α<sub>t</sub>)Δ<sub>t</sub> + α<sub>t</sub>η<sub>t</sub> — Theorem 6.3’s shape appears verbatim (with β<sub>t</sub> = α<sub>t</sub>, so E[β|H] ≤ E[α|H] holds with equality).' },
+          },
+          {
+            tex: String.raw`\eta_t(s,a) = \underbrace{\Big[(r_{t+1} - \mathbb{E}R) + \gamma\big(\max_{a'} q_t(s_{t+1},a') - \mathbb{E}\max_{a'} q_t(S_{t+1},a')\big)\Big]}_{\htmlClass{fx-green}{\text{sampling noise}}} \;+\; \underbrace{\gamma\,\mathbb{E}\big[\max_{a'} q_t(S_{t+1},a') - \max_{a'} q^*(S_{t+1},a')\big]}_{\htmlClass{fx-gold}{\text{systematic drift}}}`,
+            why: { zh: '在 η<sub>t</sub>(s,a) 里垫一层条件期望 F<sub>t</sub>(s,a) ≜ E[R + γmax q<sub>t</sub>(S<sub>t+1</sub>,·)|s,a] 做中介：采样对期望的偏离归<strong>噪声</strong>（绿），期望对 q* 的偏离归<strong>系统漂移</strong>（金）——后者再用 q* 的方程（上一步）折叠成“同一转移分布下两张表的 max 之差的期望”。关键观察：噪声部分继承 Dvoretzky 的零均值血统（下步核对）；漂移部分<strong>不是</strong>零均值——这正是基本 RM 不够用、必须换 Theorem 6.3 的地方（条件 (b) 专收留这种漂移）。', en: 'Pad η<sub>t</sub>(s,a) with a layer of conditional expectation F<sub>t</sub>(s,a) ≜ E[R + γmax q<sub>t</sub>(S<sub>t+1</sub>,·)|s,a] as intermediary: the sample’s deviation from its expectation goes to the <strong>noise</strong> (green), the expectation’s deviation from q* goes to the <strong>systematic drift</strong> (gold) — the latter then folds, via q*’s own equation (previous step), into “the expected max-gap between the two tables under the same transition distribution”. Key observation: the noise part inherits Dvoretzky’s zero-mean bloodline (checked next); the drift part is <strong>not</strong> zero-mean — precisely why basic RM does not suffice and Theorem 6.3 must step in (its condition (b) shelters exactly this drift).' },
+          },
+          {
+            tex: String.raw`\mathbb{E}\big[\underbrace{(r_{t+1} - \mathbb{E}R) + \gamma\big(\max_{a'} q_t(s_{t+1},a') - \mathbb{E}\max_{a'} q_t(S_{t+1},a')\big)}_{\htmlClass{fx-green}{\text{sampling noise}}}\;\Big|\; H_t\big] = 0 \quad\Longrightarrow\quad \mathbb{E}[\eta_t(s,a) \mid H_t] = \htmlClass{fx-gold}{\text{(drift only)}}`,
+            why: { zh: '两个事实合围。其一（马尔可夫性）：给定 (s,a) 后 (r<sub>t+1</sub>, s<sub>t+1</sub>) 的分布与历史 H<sub>t</sub> 无关，条件期望退化为 E[·|s,a]；q<sub>t</sub> 在 H<sub>t</sub> 上是确定的表，不添随机性。其二（条件期望的定义）：随机变量减去自己的期望，均值恰为零——采样噪声整块消失，只剩系统漂移。方差侧：奖励有界 + 表有界 ⇒ 噪声方差有界。Dvoretzky 的零均值要求在“采样部分”成立；漂移交给 6.3 的收缩条件——分工明确。', en: 'Two facts close in. First (Markov property): given (s,a), the distribution of (r<sub>t+1</sub>, s<sub>t+1</sub>) does not depend on the history H<sub>t</sub>, so the conditional expectation degenerates to E[·|s,a]; q<sub>t</sub> is a fixed table given H<sub>t</sub> and adds no randomness. Second (definition of conditional expectation): a random variable minus its own expectation has exactly zero mean — the sampling noise vanishes wholesale, leaving only the systematic drift. On the variance side: bounded rewards plus a bounded table give bounded noise variance. Dvoretzky’s zero-mean requirement holds for the sampling part; the drift is handed to 6.3’s contraction condition — a clean division of labour.' },
+            blank: {
+              q: { zh: '噪声块在条件期望下整块归零——起决定作用的事实是哪一个？', en: 'The noise block vanishes wholesale under the conditional expectation — which fact does the decisive work?' },
+              choices: [
+                { zh: '给定 (s,a) 后 (r, s′) 的分布不依赖历史（马尔可夫性），且 q_t 在历史上是确定的表——采样对自身条件期望的偏差均值为零', en: 'given (s,a), the distribution of (r, s′) does not depend on history (Markov property) and q_t is a fixed table given the history — a sample deviates from its own conditional expectation with mean zero' },
+                { zh: '步长 α_t 衰减得足够快，把噪声的均值压到了零', en: 'the step size α_t decays fast enough to press the noise mean to zero' },
+                { zh: '奖励有界，而有界随机变量的均值必为零', en: 'rewards are bounded, and a bounded random variable must have zero mean' },
+                { zh: '每个 (s,a) 被无穷次访问，大数定律把每一次噪声都洗成零均值', en: 'every (s,a) is visited infinitely often, and the law of large numbers washes each single noise term to zero mean' },
+              ],
+              answer: 0,
+              whyWrong: [
+                '',
+                { zh: 'α 只决定这步走多远，既不改变噪声的分布也不改变均值；零均值是采样机制的性质，与步长无关。', en: 'α only decides how far this step travels; it changes neither the noise distribution nor its mean — zero-meanness belongs to the sampling mechanism, not to the step size.' },
+                { zh: '有界只保证方差有界；有界随机变量的均值可以是任何数——r 的均值是 E[R|s,a]，本就不必为零、也无需为零。', en: 'Boundedness only secures bounded variance; a bounded random variable may carry any mean — r’s mean is E[R|s,a], which need not be zero and is never required to be.' },
+                { zh: '层次反了：逐点零均值不需要任何访问次数假设，它是条件期望定义的直接推论；无穷访问保证的是噪声充分相消（收敛到真值而非偏移值）——那是步长条件的事。', en: 'The levels are swapped: pointwise zero mean needs no visitation assumption — it is a direct corollary of the definition of conditional expectation; infinite visits secure the full cancellation of noise (convergence to the truth, not to a shifted value) — that is the step-size condition’s business.' },
+              ],
+              hint: { zh: '条件在历史上之后，更新式里还剩什么是随机的？', en: 'After conditioning on the history, what inside the update is still random?' },
+            },
+          },
+          {
+            tex: String.raw`\mathbb{E}[\eta_t(s,a) \mid H_t] = \gamma\sum_{s'} p(s'|s,a)\big[\max_{a'} q_t(s',a') - \max_{a'} q^*(s',a')\big] \quad\Longrightarrow\quad \big|\mathbb{E}[\eta_t(s,a) \mid H_t]\big| \;\le\; \gamma\max_{s',a'}\big|\Delta_t(s',a')\big| = \gamma\|\Delta_t\|_\infty`,
+            why: { zh: '把漂移精确算出来：用 q* 的方程换掉期望里的 q*(s,a)，得 E[η<sub>t</sub>|H<sub>t</sub>] = γ Σ<sub>s′</sub> p(s′|s,a)[max q<sub>t</sub>(s′,·) − max q*(s′,·)]。再收口：max 算子 1-Lipschitz（|max<sub>a</sub>x(a) − max<sub>a</sub>y(a)| ≤ max<sub>a</sub>|x(a)−y(a)|，换表最多让 max 变动两表最大格差）+ Σ<sub>s′</sub>p = 1 ⇒ |E[η<sub>t</sub>|H<sub>t</sub>]| ≤ γ‖Δ<sub>t</sub>‖<sub>∞</sub>。<strong>Theorem 6.3 条件 (b) 核对完毕</strong>——顺带消化了多对耦合：本对的漂移以全表最大误差为上界，其他格子的误差只能往回拉、不能往外推。', en: 'Compute the drift exactly: replace the q*(s,a) inside the expectation using q*’s equation to get E[η<sub>t</sub>|H<sub>t</sub>] = γ Σ<sub>s′</sub> p(s′|s,a)[max q<sub>t</sub>(s′,·) − max q*(s′,·)]. Then close it: the max operator is 1-Lipschitz (|max<sub>a</sub>x(a) − max<sub>a</sub>y(a)| ≤ max<sub>a</sub>|x(a)−y(a)| — swapping tables moves the max by at most the largest cell gap) plus Σ<sub>s′</sub>p = 1 give |E[η<sub>t</sub>|H<sub>t</sub>]| ≤ γ‖Δ<sub>t</sub>‖<sub>∞</sub>. <strong>Theorem 6.3 condition (b) verified</strong> — and the multi-pair coupling is digested along the way: this pair’s drift is bounded by the table-wide max error, so other cells’ errors can only pull back, never push out.' },
+          },
+          {
+            tex: String.raw`\big\|\mathbb{E}[\eta_t(s,a) \mid H_t]\big\|_\infty \;\le\; \htmlClass{fx-gold}{\gamma}\,\|\Delta_t\|_\infty \quad\text{with } \gamma \in (0,1) \qquad\Longrightarrow\qquad \text{condition (b) of Theorem 6.3}`,
+            why: { zh: 'γ &lt; 1 的岗位在收缩条件 (b)：它把“目标漂移”压到当前全表最大误差的 γ 倍以内——目标会动，但动不过误差本身。若 γ = 1，上界失去折扣、漂移可与误差打平，逐环衰减断链；γ &lt; 1 保证表内误差互相拖向零而非互相放大。这个 γ 正是 Bellman 算子那个 γ：L4 的压缩映射与这里的噪声收缩，是同一台折扣发动机的两次点火。', en: 'γ &lt; 1’s post is the contraction condition (b): it presses the target’s drift below γ times the table-wide max error — the target moves, but never farther than the error itself. At γ = 1 the bound loses its cut, the drift can match the error, and the per-link decay snaps; γ &lt; 1 ensures the table’s errors drag each other toward zero rather than amplifying one another. This γ is the Bellman operator’s γ: L4’s contraction mapping and this noise contraction are the same discount engine firing twice.' },
+            blank: {
+              q: { zh: 'γ &lt; 1 在这套收敛论证里担纲的角色是？', en: 'What role does γ &lt; 1 play in this convergence argument?' },
+              choices: [
+                { zh: '收缩条件 (b)：系统漂移 ≤ γ × 全表最大误差——目标会动，但动不过误差本身', en: 'the contraction condition (b): systematic drift ≤ γ × the table-wide max error — the target moves, but never farther than the error itself' },
+                { zh: '步长条件 (a)：γ < 1 保证 Σα = ∞ 且 Σα² < ∞', en: 'the step-size condition (a): γ < 1 guarantees Σα = ∞ and Σα² < ∞' },
+                { zh: '噪声零均值：γ < 1 把噪声的均值变成零', en: 'noise zero-mean: γ < 1 turns the noise mean into zero' },
+                { zh: '它只是把奖励统一缩放一个倍数，不参与任何条件', en: 'it merely rescales all rewards by a constant and takes part in no condition' },
+              ],
+              answer: 0,
+              whyWrong: [
+                '',
+                { zh: '步长条件只审查 α 自己的级数：1/N 型步长与 γ 毫无关系地满足 (a)，γ 根本不出现在 (a) 的表达式里。', en: 'The step-size condition audits only the series of α itself: 1/N-type steps satisfy (a) with γ nowhere in sight; γ never appears in (a) at all.' },
+                { zh: '零均值来自“采样对条件期望的偏差”这一身份，常数乘零期望仍是零期望——γ 乘在噪声里不改变均值，顶多帮忙压方差。', en: 'Zero mean comes from the identity “a sample deviating from its conditional expectation”; a constant times a zero mean stays zero — γ riding inside the noise changes no mean, at most helping the variance.' },
+                { zh: '把 γ 设成 1 试试：漂移上界变成 ‖Δ‖∞（不打折），逐环衰减断链，连 |q| ≤ r_max/(1−γ) 的有界性也会爆掉。γ 恰是这套证明的承重墙。', en: 'Set γ = 1 and watch: the drift bound becomes ‖Δ‖∞ (no cut), the per-link decay snaps, and even the boundedness |q| ≤ r_max/(1−γ) explodes. γ is the load-bearing wall of this proof.' },
+              ],
+              hint: { zh: '问自己：γ 从 1 变到 0.999，哪个条件的成立性最先被改变？', en: 'Ask yourself: as γ moves from 1 to 0.999, which condition changes its verdict first?' },
+            },
+          },
+          {
+            tex: String.raw`|q_t(s,a)| \le \frac{r_{\max}}{1-\gamma}, \qquad |q^*(s,a)| \le \frac{r_{\max}}{1-\gamma} \qquad\Longrightarrow\qquad \mathrm{var}[\eta_t(s,a) \mid H_t] \le C\big(1+\|\Delta_t\|_\infty\big)^2 \quad\text{(c)}`,
+            why: { zh: '有界性先看真值：折扣回报 |G| ≤ r<sub>max</sub>/(1−γ)（L1 等比级数），q* 天然有界。再看估计：更新是凸组合（α ∈ (0,1]）——若全表落在 [−B, B] 内且 B = r<sub>max</sub>/(1−γ)，则目标 r + γmax q<sub>t</sub>(s′,·) 也落在 [−B, B] 内（r<sub>max</sub> + γB = B），归纳下去整张表永不越界。于是 η<sub>t</sub> 由有界的 r、有界的表读数与有界的 q* 组成，方差被常数封顶——远强于条件 (c) 的“不超过误差平方增长”。表格世界天然有界，无需投影算子（投影登场要等 L8 的函数近似）。', en: 'Boundedness, truth first: discounted returns obey |G| ≤ r<sub>max</sub>/(1−γ) (L1’s geometric series), so q* is bounded by nature. Then the estimate: the update is a convex combination (α ∈ (0,1]) — if the whole table sits in [−B, B] with B = r<sub>max</sub>/(1−γ), the target r + γmax q<sub>t</sub>(s′,·) also lands in [−B, B] (r<sub>max</sub> + γB = B), and by induction the table never escapes. Hence η<sub>t</sub> is assembled from bounded r, bounded table readings and bounded q*, so its variance is capped by a constant — far stronger than condition (c)’s “within squared-error growth”. The tabular world is bounded by nature; no projection operator needed (projection waits for L8’s function approximation).' },
+          },
+          {
+            tex: String.raw`\sum_{t:\,(s_t,a_t)=(s,a)} \alpha_t(s,a) = \infty, \qquad \sum_{t:\,(s_t,a_t)=(s,a)} \alpha_t^2(s,a) < \infty \qquad\text{for every } (s,a)`,
+            why: { zh: '条件 (a) 的确切形状：没被访问的时刻 α 记零，级数只对访问时刻求和。Σα = ∞ 要求每个 (s,a) 被<strong>无穷次访问</strong>——ε-greedy（乃至完全随机，Figure 7.4）的行为策略保证这一点；访问计数步长 α = 1/N(s,a) 同时给出 Σα = ∞（调和级数发散）与 Σα² &lt; ∞（平方收敛）。注意 α<sub>t</sub>(s,a) 依赖历史（访问次数）：基本 RM 的确定性步长假设在此不成立，必须用允许随机步长的 Dvoretzky/6.3——这是“为什么偏偏要它”的第二条理由。', en: 'Condition (a) in its exact shape: non-visiting times record α = 0, so the series run over visiting times only. Σα = ∞ demands that every (s,a) be <strong>visited infinitely often</strong> — guaranteed by an ε-greedy (or even fully random, Figure 7.4) behavior policy; visit-count steps α = 1/N(s,a) deliver both Σα = ∞ (the harmonic series diverges) and Σα² &lt; ∞ (its square converges). Note that α<sub>t</sub>(s,a) depends on history (visit counts): basic RM’s deterministic-step assumption fails here, and the history-tolerant Dvoretzky/6.3 is mandatory — the second reason why it, of all theorems.' },
+          },
+          {
+            tex: String.raw`\Delta_t(s,a) \xrightarrow{\;\text{a.s.}\;} 0 \;\;\text{for every } (s,a) \qquad\Longleftrightarrow\qquad \|\Delta_t\|_\infty \to 0 \qquad\Longleftrightarrow\qquad q_t \to q^*`,
+            why: { zh: '三条条件对每个 (s,a) 全部核对通过——(a) 覆盖性步长、(b) γ-收缩、(c) 有界方差——Theorem 6.3 的结论到账：Δ<sub>t</sub>(s,a) → 0（a.s.）对所有 (s,a)；有限表格上逐对收敛即全表一致收敛。两件附带礼物：① 与行为策略无关（只要探索充分——off-policy 的收敛保证，完全随机行为也在保护范围）；② max 已在目标里，q<sub>t</sub> → q* 后 argmax 直接提取最优策略，无需另跑改进步。', en: 'All three conditions verified for every (s,a) — (a) coverage steps, (b) γ-contraction, (c) bounded variance — and Theorem 6.3 delivers: Δ<sub>t</sub>(s,a) → 0 almost surely for all (s,a); on a finite table, per-pair convergence is uniform whole-table convergence. Two gifts ride along: ① independence of the behavior policy (given sufficient exploration — the off-policy guarantee, with fully random behavior inside the protection zone); ② the max already sits in the target, so once q<sub>t</sub> → q*, argmax extracts the optimal policy with no separate improvement step.' },
+          },
+          {
+            tex: String.raw`\hat{q}(s,a;w_t) \;\not\to\; q^*(s,a) \quad\text{in general under function approximation}`,
+            why: { zh: '这条保证是<strong>表格口径</strong>的：每个 (s,a) 一格、逐格独立更新、天然有界——三件表格特产缺一不可。L8 把表换成参数化函数后：更新变半梯度（上面条件核对的推导不再逐字成立）、有界性失去凸组合保护、max 还会传播高估误差——收敛保证不继承，需要目标网络等工程手段稳住。这也是下一讲的入场动机。', en: 'This guarantee is <strong>tabular</strong>: one cell per (s,a), per-cell independent updates, boundedness by nature — three tabular specialities, none dispensable. When L8 swaps the table for a parameterised function: updates become semi-gradient (the condition verifications above no longer hold verbatim), boundedness loses its convex-combination shield, and the max propagates overestimation — the guarantee is not inherited, and engineering devices like target networks step in to steady it. That is exactly the motivation for the next lecture.' },
+          },
+          {
+            tex: String.raw`\underbrace{(1-\alpha_t)\,\Delta_t}_{\text{skeleton}} + \alpha_t\Big[\underbrace{\text{sampling noise}}_{\text{zero mean, bounded var.}} + \underbrace{\gamma\,\|\Delta_t\|_\infty}_{\text{contractive drift}}\Big] \;\xrightarrow{\;\text{a.s.}\;}\; 0`,
+            why: { zh: '回看整条链：陈述 Dvoretzky（6.2）→ 升级到 6.3（多对 + 收缩）→ 条件直觉（RM 是特例）→ 定义误差 → 对齐 q* 的最优方程 → 统一递推（访问/未访问）→ 拆噪声/漂移 → 零均值核对 → Lipschitz 收缩 → 有界与方差 → 覆盖性步长 → 三条件全过、结论到账 → 圈出表格边界。正文那句“收敛证明引用 Dvoretzky”从此有了内容：引用不是一笔带过，而是把每个核对一件件做实。', en: 'Look back along the chain: state Dvoretzky (6.2) → upgrade to 6.3 (multi-pair + contraction) → intuition per condition (RM as special case) → define the error → align with q*’s optimality equation → the unified recursion (visited / not) → split noise from drift → verify zero mean → Lipschitz contraction → boundedness and variance → coverage steps → all conditions pass, the conclusion arrives → mark the tabular boundary. The text’s phrase “the proof cites Dvoretzky” now has content: the citation is not a wave of the hand — it is every verification, made real one by one.' },
+          },
         ],
       },
     ],

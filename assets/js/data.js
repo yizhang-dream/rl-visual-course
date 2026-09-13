@@ -796,18 +796,18 @@ if __name__ == "__main__":
   },
   ];
 
-  // widgets = 本讲交互实验台数（widget 块数不含 concept-chain 复盘链），须与数据实际一致
+  // widgets = 本讲交互实验台数（widget 块数不含 concept-chain 复盘链与 notebook-bridge 入口卡；L2-L10 各含 1 个 derivation-lab），须与数据实际一致
   const LECTURES = [
     { no: 1, zh: '基本概念', en: 'Basic concepts', done: true, widgets: 13 },
-    { no: 2, zh: '状态价值与 Bellman 方程', en: 'Bellman equation', done: true, widgets: 9 },
-    { no: 3, zh: 'Bellman 最优方程', en: 'Bellman optimality', done: true, widgets: 8 },
-    { no: 4, zh: '值迭代与策略迭代', en: 'VI & PI', done: true, widgets: 7 },
-    { no: 5, zh: '蒙特卡洛方法', en: 'Monte Carlo', done: true, widgets: 7 },
-    { no: 6, zh: '随机近似', en: 'Stochastic approx.', done: true, widgets: 7 },
-    { no: 7, zh: '时序差分方法', en: 'Temporal-difference', done: true, widgets: 6 },
-    { no: 8, zh: '值函数近似', en: 'Value function approx.', done: true, widgets: 5 },
-    { no: 9, zh: '策略梯度方法', en: 'Policy gradient', done: true, widgets: 5 },
-    { no: 10, zh: 'Actor-Critic', en: 'Actor-Critic', done: true, widgets: 5 },
+    { no: 2, zh: '状态价值与 Bellman 方程', en: 'Bellman equation', done: true, widgets: 10 },
+    { no: 3, zh: 'Bellman 最优方程', en: 'Bellman optimality', done: true, widgets: 9 },
+    { no: 4, zh: '值迭代与策略迭代', en: 'VI & PI', done: true, widgets: 8 },
+    { no: 5, zh: '蒙特卡洛方法', en: 'Monte Carlo', done: true, widgets: 8 },
+    { no: 6, zh: '随机近似', en: 'Stochastic approx.', done: true, widgets: 8 },
+    { no: 7, zh: '时序差分方法', en: 'Temporal-difference', done: true, widgets: 7 },
+    { no: 8, zh: '值函数近似', en: 'Value function approx.', done: true, widgets: 6 },
+    { no: 9, zh: '策略梯度方法', en: 'Policy gradient', done: true, widgets: 6 },
+    { no: 10, zh: 'Actor-Critic', en: 'Actor-Critic', done: true, widgets: 6 },
   ];
 
   return {
@@ -825,6 +825,7 @@ if __name__ == "__main__":
     reasoningSets: {},
     qaSets: {},
     fillSets: {},
+    derivationSets: {},
     codeFileSets: {},
     sections: S,
   };

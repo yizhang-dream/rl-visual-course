@@ -1,0 +1,7 @@
+{
+  "PyodideLockAddon": {
+    "enabled": true,
+    "specs": ["numpy", "matplotlib", "pexpect"],
+    "wheels": ["lite-build/pyodide-wheels"]
+  }
+}

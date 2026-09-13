@@ -1,11 +1,11 @@
-// 数据完整性校验（CI 用）：88 小节 / 45 组件 / 57 个公式块 katex 严格渲染零失败
+// 数据完整性校验（CI 用）：88 小节 / 47 组件 / 57 个公式块 katex 严格渲染零失败
 // 加载方式与 check_templates.js 相同：stub window → eval 核心与各讲 data/components。
 const fs = require('fs');
 const path = require('path');
 const katex = require('katex');
 
 const EXPECT_SECTIONS = 88;
-const EXPECT_COMPONENTS = 45;
+const EXPECT_COMPONENTS = 47;
 const EXPECT_FORMULAS = 57;
 
 let fail = 0;
@@ -80,7 +80,8 @@ for (const id of sectionIds) {
   }
 }
 if (formulas !== EXPECT_FORMULAS) failMsg(`formula blocks = ${formulas} (expect ${EXPECT_FORMULAS})`);
-if (texErrors.length) failMsg(`katex strict render failures: ${texErrors.length}\n` + texErrors.join('\n'));
+// texErrors 门禁统一放在第 5 段 derivation 渲染之后（见下）：公式块与推导的 KaTeX
+// 失败都计入同一份 texErrors，任何一处失败都必须让进程 exit 1，不留在原地判导致假绿。
 
 // ── 4. 知识填空题库 fillSets（只校验存在的讲；fillSets / 某讲缺失 → 跳过不报错） ──
 // 契约：kind ∈ choice|number|code；stem.zh/en 的 [[n]] 从 1 连续且数量===blanks.length；
@@ -151,7 +152,65 @@ for (const src of Object.keys(fillBanks).sort()) {
   });
 }
 
-console.log(`sections: ${sectionIds.length}/${EXPECT_SECTIONS} · components: ${compCount}/${EXPECT_COMPONENTS} · formula blocks: ${formulas}/${EXPECT_FORMULAS} · katex snippets rendered: ${rendered}, failures: ${texErrors.length} · fill sets: ${fillChecked}`);
+// ── 5. 定理推导题库 derivationSets（只校验存在的讲；derivationSets / 某讲缺失 → 跳过不报错） ──
+// 契约：每 item 有 id（非空字符串）+ 双语 name/intro；steps ≥ 6；每 step tex 非空且
+// katex 严格渲染零失败（display）、why 双语非空；blank 可选，存在时 choices ≥ 2、
+// answer 为界内整数下标、{tex} 型 choice 的 tex 也须 katex 渲染过、非 {tex} 型 choice 的
+// zh/en 非空串；whyWrong 存在时长度 === choices 长度（whyWrongHTML 按 pick 下标取）。
+const derivBanks = (typeof D.derivationSets === 'object' && D.derivationSets) || {};
+let derivChecked = 0;
+for (const src of Object.keys(derivBanks).sort()) {
+  const bank = derivBanks[src];
+  const bad = (m) => failMsg(`derivationSets[${src}] ${m}`);
+  derivChecked++;
+  if (!bank || typeof bank !== 'object') { bad('bank 不是对象'); continue; }
+  const items = Array.isArray(bank.items) ? bank.items : [];
+  if (!items.length) { bad('items 为空'); continue; }
+  items.forEach((it, ii) => {
+    const where = `item#${ii}`;
+    if (!it || typeof it !== 'object') { bad(where + ' 不是对象'); return; }
+    if (typeof it.id !== 'string' || !it.id) bad(where + ' id 非空字符串缺失');
+    for (const f of ['name', 'intro']) {
+      if (!it[f] || !it[f].zh || !it[f].en) bad(`${where} ${f}.zh / ${f}.en 非空`);
+    }
+    const steps = Array.isArray(it.steps) ? it.steps : [];
+    if (steps.length < 6) { bad(`${where} steps.length = ${steps.length}（须 ≥ 6）`); return; }
+    steps.forEach((st, si) => {
+      const ws = `${where} step#${si}`;
+      if (!st || typeof st !== 'object') { bad(ws + ' 不是对象'); return; }
+      if (typeof st.tex !== 'string' || !st.tex.trim()) bad(ws + ' tex 非空字符串缺失');
+      else renderOne(`derivationSets[${src}]`, ws, st.tex);
+      if (!st.why || !st.why.zh || !st.why.en) bad(ws + ' why.zh / why.en 非空');
+      const bl = st.blank;
+      if (bl == null) return;
+      if (typeof bl !== 'object') { bad(ws + ' blank 不是对象'); return; }
+      const choices = Array.isArray(bl.choices) ? bl.choices : null;
+      if (!choices || choices.length < 2) { bad(ws + ' blank.choices 须为长度 ≥ 2 的数组'); return; }
+      if (typeof bl.answer !== 'number' || bl.answer % 1 !== 0 ||
+          bl.answer < 0 || bl.answer >= choices.length) {
+        bad(ws + ` blank.answer=${bl.answer} 下标越界或非整数`);
+      }
+      choices.forEach((c, ci) => {
+        if (c && typeof c === 'object' && c.tex != null) {
+          renderOne(`derivationSets[${src}]`, ws + ` choice#${ci}`, String(c.tex));
+        } else if (c && typeof c === 'object') {
+          if (!String(c.zh || '').trim() || !String(c.en || '').trim()) {
+            bad(`${ws} choice#${ci} 非 {tex} 型 choice 的 zh/en 不得为空串`);
+          }
+        }
+      });
+      if (Array.isArray(bl.whyWrong) && bl.whyWrong.length !== choices.length) {
+        bad(`${ws} blank.whyWrong 长度 ${bl.whyWrong.length} 须等于 choices 长度 ${choices.length}`);
+      }
+    });
+  });
+}
+
+// katex 统一门禁：公式块与推导 step/choice tex 的所有 renderOne 都已执行完
+// （fillSets 不含 tex），texErrors 非空即 FAIL → exit 1。
+if (texErrors.length) failMsg(`katex strict render failures: ${texErrors.length}\n` + texErrors.join('\n'));
+
+console.log(`sections: ${sectionIds.length}/${EXPECT_SECTIONS} · components: ${compCount}/${EXPECT_COMPONENTS} · formula blocks: ${formulas}/${EXPECT_FORMULAS} · katex snippets rendered: ${rendered}, failures: ${texErrors.length} · fill sets: ${fillChecked} · derivation sets: ${derivChecked}`);
 if (fail) {
   console.log(`\n${fail} FAILED`);
   process.exit(1);

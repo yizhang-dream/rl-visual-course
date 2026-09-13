@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>笔记本实验室 · Notebook Lab — RL 可视化课堂</title>
+<meta name="description" content="浏览器内的 Jupyter 笔记本实验室（JupyterLite + Pyodide）：零安装、纯静态、离线可用。NB0 导览本带环境自检与 4×4 GridWorld 复刻，NB1–NB6 六本 numpy 实验笔记本。">
+<script>
+// 主题防闪烁：在样式表生效前定好 data-theme（与 index.html 同款机制）
+try { document.documentElement.dataset.theme = localStorage.getItem('rl-viz-theme') || 'chalk'; } catch (e) {}
+// 静态资源版本戳：与站点一致，靠它穿透浏览器长缓存
+window.RLV_VERSION = '20260913a';
+</script>
+<link rel="stylesheet" href="assets/css/main.css?v=20260913a">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📓</text></svg>">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   笔记本实验室 hub 页 · 独立静态页（graph3d.html 同款先例）
+   颜色全部走 main.css 的 token（五主题自动成立），不写死色值
+   ═══════════════════════════════════════════════════════════════ */
+
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font);
+  color: var(--ink);
+  background: var(--bg);
+}
+
+/* ── 顶栏（g3d-topbar 同款手法） ── */
+.nbl-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  height: 56px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  background: var(--topbar-bg);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+}
+.nbl-nav { display: flex; gap: 4px; flex: none; }
+.nbl-nav a {
+  color: var(--ink-2);
+  text-decoration: none;
+  font: 600 13px var(--font);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  white-space: nowrap;
+  transition: all var(--t-fast) var(--ease);
+}
+.nbl-nav a:hover { color: var(--ink); background: var(--bg-soft); border-color: var(--line); }
+.nbl-heading {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  font: 700 16px var(--display);
+  color: var(--ink);
+  overflow: hidden;
+  white-space: nowrap;
+}
+.nbl-heading .en { font: 500 12.5px var(--font); color: var(--ink-3); letter-spacing: .4px; }
+.nbl-tools { flex: none; display: flex; align-items: center; gap: 10px; }
+
+.nbl-lang {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-radius: 99px;
+}
+.nbl-lang-btn {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: 600 12px var(--font);
+  color: var(--ink-2);
+  padding: 4px 11px;
+  border-radius: 99px;
+  transition: all var(--t-fast) var(--ease);
+}
+.nbl-lang-btn:hover { color: var(--ink); }
+.nbl-lang-btn.is-active { background: var(--surface); color: var(--accent-deep); box-shadow: var(--shadow-1); }
+
+.nbl-themes {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 6px;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-radius: 99px;
+}
+.nbl-theme-btn {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 99px;
+  background: transparent;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: transform var(--t-fast) var(--ease);
+}
+.nbl-theme-btn:hover { transform: scale(1.14); }
+.nbl-theme-btn.is-active { box-shadow: 0 0 0 2px var(--bg-soft), 0 0 0 4px var(--ink-3); }
+.nbl-theme-dot {
+  display: block;
+  width: 13px;
+  height: 13px;
+  border-radius: 99px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 16%, transparent);
+}
+.dot-theme-chalk { background: var(--gold); }
+.dot-theme-swiss { background: var(--accent); }
+.dot-theme-quant { background: var(--cyan); }
+.dot-theme-forest { background: var(--green); }
+.dot-theme-classic { background: var(--violet); }
+
+/* ── 主体 ── */
+.nbl-main { flex: 1; width: 100%; max-width: 1060px; margin: 0 auto; padding: 40px 20px 64px; }
+
+.nbl-hero { margin-bottom: 34px; }
+.nbl-kicker {
+  font: 700 11px var(--font);
+  color: var(--ink-3);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+.nbl-title {
+  margin: 8px 0 10px;
+  font: 700 clamp(24px, 4vw, 34px) / 1.2 var(--display);
+  color: var(--ink);
+}
+.nbl-lead { margin: 0 0 18px; max-width: 68ch; font: 400 15px / 1.75 var(--font); color: var(--ink-2); }
+
+.nbl-callout {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--cyan);
+  border-radius: var(--radius-sm);
+  background: var(--cyan-soft);
+  color: var(--ink-2);
+  font: 400 13.5px / 1.7 var(--font);
+  max-width: 72ch;
+}
+.nbl-callout strong { color: var(--ink); }
+.nbl-callout .warn { border-left-color: var(--gold); background: var(--gold-soft); margin-top: 10px; }
+.nbl-callout .mark { flex: none; font-size: 16px; line-height: 1.4; }
+
+.nbl-launch-row { margin: 22px 0 0; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.nbl-launch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 22px;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--on-accent);
+  font: 700 14.5px var(--font);
+  text-decoration: none;
+  border: 1px solid transparent;
+  box-shadow: var(--shadow-1);
+  transition: all var(--t-fast) var(--ease);
+}
+.nbl-launch:hover { background: var(--accent-deep); transform: translateY(-1px); box-shadow: var(--shadow-2); }
+.nbl-launch-note { font: 400 12.5px var(--font); color: var(--ink-3); }
+
+/* ── 卡片网格 ── */
+.nbl-sec-title {
+  margin: 40px 0 16px;
+  font: 700 18px var(--display);
+  color: var(--ink);
+}
+.nbl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  gap: 16px;
+}
+.nbl-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px 18px 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-1);
+  transition: transform var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+.nbl-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-2); border-color: var(--line-strong); }
+.nbl-card-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.nbl-id {
+  font: 700 11px var(--mono);
+  color: var(--accent-deep);
+  background: var(--accent-soft);
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: .5px;
+}
+.nbl-lect {
+  font: 600 11.5px var(--font);
+  color: var(--ink-3);
+  border: 1px solid var(--line);
+  padding: 2px 8px;
+  border-radius: 99px;
+}
+.nbl-diff { font: 600 11px var(--font); padding: 3px 8px; border-radius: 99px; }
+.nbl-diff.d1 { background: var(--green-soft); color: var(--ink-2); }
+.nbl-diff.d2 { background: var(--accent-soft); color: var(--accent-deep); }
+.nbl-diff.d3 { background: var(--red-soft); color: var(--ink-2); }
+.nbl-name { margin: 2px 0 0; font: 700 16.5px / 1.35 var(--display); color: var(--ink); }
+.nbl-name .en { display: block; font: 500 12px var(--mono); color: var(--ink-3); margin-top: 3px; letter-spacing: .2px; }
+.nbl-goal { margin: 0; flex: 1; font: 400 13px / 1.7 var(--font); color: var(--ink-2); }
+.nbl-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.nbl-min { font: 600 12px var(--font); color: var(--ink-3); white-space: nowrap; }
+.nbl-open {
+  font: 700 12.5px var(--font);
+  color: var(--accent-deep);
+  text-decoration: none;
+  padding: 7px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  white-space: nowrap;
+  transition: all var(--t-fast) var(--ease);
+}
+.nbl-open:hover { background: var(--accent-soft); border-color: var(--accent); }
+.nbl-card.is-wip { opacity: .78; }
+.nbl-wip {
+  font: 600 12px var(--font);
+  color: var(--ink-3);
+  background: var(--bg-soft);
+  border: 1px dashed var(--line-strong);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+.nbl-foot {
+  flex: none;
+  padding: 18px 20px 26px;
+  text-align: center;
+  font: 400 12px var(--font);
+  color: var(--ink-3);
+  border-top: 1px solid var(--line);
+}
+.nbl-foot a { color: var(--ink-2); text-decoration: none; border-bottom: 1px dotted var(--line-strong); }
+.nbl-foot a:hover { color: var(--accent-deep); }
+
+@media (max-width: 720px) {
+  .nbl-topbar { flex-wrap: wrap; height: auto; min-height: 56px; padding: 8px 10px; gap: 8px; }
+  .nbl-heading { order: 3; flex-basis: 100%; font-size: 14px; }
+  .nbl-main { padding: 26px 14px 48px; }
+}
+</style>
+</head>
+
+<body data-lang="both">
+
+<header class="nbl-topbar">
+  <nav class="nbl-nav" aria-label="站点导航 / Site navigation">
+    <a href="index.html"><span class="zh">← 返回课堂</span><span class="en">← Classroom</span></a>
+    <a href="graph3d.html"><span class="zh">星图</span><span class="en">Graph</span></a>
+  </nav>
+  <h1 class="nbl-heading"><span class="zh">笔记本实验室</span><span class="en">Notebook Lab</span></h1>
+  <div class="nbl-tools">
+    <div class="nbl-lang" role="group" aria-label="Language / 语言">
+      <button type="button" class="nbl-lang-btn" data-lang="both"><span class="zh">双语</span><span class="en">Both</span></button>
+      <button type="button" class="nbl-lang-btn" data-lang="zh">中</button>
+      <button type="button" class="nbl-lang-btn" data-lang="en">EN</button>
+    </div>
+    <div class="nbl-themes" role="group" aria-label="Theme / 主题">
+      <button type="button" class="nbl-theme-btn" data-theme="chalk" title="墨板 Chalkboard" aria-label="chalk"><span class="nbl-theme-dot dot-theme-chalk"></span></button>
+      <button type="button" class="nbl-theme-btn" data-theme="swiss" title="讲义 Swiss Notes" aria-label="swiss"><span class="nbl-theme-dot dot-theme-swiss"></span></button>
+      <button type="button" class="nbl-theme-btn" data-theme="quant" title="深空 Quant Dark" aria-label="quant"><span class="nbl-theme-dot dot-theme-quant"></span></button>
+      <button type="button" class="nbl-theme-btn" data-theme="forest" title="教科书 Forest" aria-label="forest"><span class="nbl-theme-dot dot-theme-forest"></span></button>
+      <button type="button" class="nbl-theme-btn" data-theme="classic" title="经典 Classic" aria-label="classic"><span class="nbl-theme-dot dot-theme-classic"></span></button>
+    </div>
+  </div>
+</header>
+
+<main class="nbl-main">
+
+  <section class="nbl-hero">
+    <p class="nbl-kicker">JupyterLite · Pyodide · 零安装</p>
+    <h2 class="nbl-title"><span class="zh">在浏览器里亲手跑强化学习</span><span class="en">Run RL code, right in the browser</span></h2>
+    <p class="nbl-lead">
+      <span class="zh">真 Jupyter 界面、真 Python 内核（Pyodide/WebAssembly），无需安装任何东西。每本笔记本都带 assert 自检格——全部跑绿即通过；NB0 会带你复刻 4×4 GridWorld，并与主站作业世界逐条对齐。</span>
+      <span class="en">A real Jupyter UI with a real Python kernel (Pyodide/WebAssembly) — nothing to install. Every notebook ships with self-check cells; turn them all green to pass. NB0 rebuilds the 4×4 GridWorld and aligns it with the assignment world on the main site.</span>
+    </p>
+    <div class="nbl-callout">
+      <span class="mark" aria-hidden="true">⏳</span>
+      <div>
+        <span class="zh"><strong>带宽提示：</strong>首次启动需下载 ~15MB 的 Python 内核，之后浏览器缓存——二次进入几乎秒开。笔记本全部 numpy-only，不加载 matplotlib。</span>
+        <span class="en"><strong>Bandwidth note:</strong> the first launch downloads a ~15MB Python kernel; afterwards it is cached by the browser. All notebooks are numpy-only — no matplotlib.</span>
+        <div class="nbl-callout warn">
+          <span class="mark" aria-hidden="true">⚠️</span>
+          <div>
+            <span class="zh"><strong>已知限制：</strong>浏览器刷新会清空 kernel 状态（变量需重跑）；笔记本改动默认保存在浏览器存储，清缓存即丢，重要改动请及时下载备份。</span>
+            <span class="en"><strong>Known limits:</strong> refreshing the page clears kernel state (re-run cells); edits live in browser storage and are lost when site data is cleared — download to keep changes.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="nbl-launch-row">
+      <a class="nbl-launch" href="lite/lab/index.html?path=notebooks/nb0-tour.ipynb">
+        <span class="zh">打开 JupyterLab，从 NB0 开始 →</span><span class="en">Open JupyterLab, start with NB0 →</span>
+      </a>
+      <span class="nbl-launch-note">
+        <span class="zh">深链直达某本笔记本请用下方卡片</span>
+        <span class="en">use a card below to jump to a specific notebook</span>
+      </span>
+    </div>
+  </section>
+
+  <h3 class="nbl-sec-title"><span class="zh">笔记本清单</span><span class="en">Notebooks</span></h3>
+  <div class="nbl-grid" id="nbl-grid" aria-label="笔记本清单 / Notebook list"></div>
+
+</main>
+
+<footer class="nbl-foot">
+  <span class="zh">笔记本实验室 · 构建与重建说明见 <a href="lite-build/build.md">lite-build/build.md</a> · 返回<a href="index.html">课堂</a>或<a href="graph3d.html">知识星图</a></span>
+  <span class="en">Notebook Lab · build docs in <a href="lite-build/build.md">lite-build/build.md</a> · back to the <a href="index.html">classroom</a> or the <a href="graph3d.html">constellation</a></span>
+</footer>
+
+<!-- NB 清单数据源：由 assets/js/nb-manifest.js 提供（window.NB_MANIFEST）；未加载时回退到下方页内 fallback 常量 -->
+<script src="assets/js/nb-manifest.js?v=20260913a" onerror="window.__NB_MANIFEST_MISS = true"></script>
+<script>
+(function () {
+  'use strict';
+
+  var THEME_KEY = 'rl-viz-theme';
+  var LANG_KEY = 'rl-viz-lang';
+
+  /* ── fallback 清单（与 assets/js/nb-manifest.js 的 NB_MANIFEST 同构）──
+     字段：id / file（notebooks/ 下的文件名）/ lectures（讲号数组，空=全站导览）/
+           level（1 入门 2 进阶 3 挑战）/ minutes（预估分钟）/
+           zh{name, goal} / en{name, goal}（双语文案）
+     注：渲染器同时兼容 lecture/difficulty/wip 旧字段名                      */
+  var FALLBACK_MANIFEST = [
+    { id: 'nb0', file: 'nb0-tour.ipynb', lectures: [], level: 1, minutes: 30,
+      zh: { name: 'NB0 · JupyterLite 导览', goal: '环境自检 + 4×4 GridWorld 复刻，全部格子跑绿即毕业。' },
+      en: { name: 'NB0 · JupyterLite tour', goal: 'Self-check the kernel and rebuild the 4×4 GridWorld — all-green cells mean you are ready.' } },
+    { id: 'nb1', file: 'nb1-bellman.ipynb', lectures: [2, 3], level: 1, minutes: 35,
+      zh: { name: 'NB1 · Bellman 方程手算与迭代', goal: '手算一轮 Bellman 迭代，再用代码验证；闭式解与迭代解对比到 1e-6。' },
+      en: { name: 'NB1 · Bellman by hand and by loop', goal: 'Hand-compute one Bellman sweep, verify in code, and match the closed form to 1e-6.' } },
+    { id: 'nb2', file: 'nb2-vi-pi.ipynb', lectures: [4], level: 2, minutes: 45,
+      zh: { name: 'NB2 · 值迭代与策略迭代', goal: '实现两种迭代并画出收敛曲线，扫描 γ∈{0.5, 0.9, 0.99}。' },
+      en: { name: 'NB2 · Value & policy iteration', goal: 'Implement both iterations, plot convergence, and sweep γ ∈ {0.5, 0.9, 0.99}.' } },
+    { id: 'nb3', file: 'nb3-mc-rm.ipynb', lectures: [5, 6], level: 2, minutes: 40,
+      zh: { name: 'NB3 · 蒙特卡洛与随机近似', goal: '多 seed 观察 MC 均值方差塌缩；对比 RM 步长 α=1/t^k 三种 k。' },
+      en: { name: 'NB3 · Monte Carlo & stochastic approximation', goal: 'Watch MC means collapse in variance across seeds; compare RM step sizes α = 1/t^k.' } },
+    { id: 'nb4', file: 'nb4-qlearning.ipynb', lectures: [7], level: 2, minutes: 50,
+      zh: { name: 'NB4 · Q-learning 复现', goal: 'seed 可调复现 Q-learning，做 α/ε 敏感性与 10-seed 误差带。' },
+      en: { name: 'NB4 · Q-learning reproduction', goal: 'Reproduce Q-learning with a tunable seed; sensitivity in α/ε and a 10-seed error band.' } },
+    { id: 'nb5', file: 'nb5-td-linear.ipynb', lectures: [8], level: 3, minutes: 45,
+      zh: { name: 'NB5 · TD 线性近似', goal: 'numpy 手写 TD-Linear，做特征设计消融实验。' },
+      en: { name: 'NB5 · Linear TD', goal: 'Hand-write TD with linear features in numpy; ablate the feature design.' } },
+    { id: 'nb6', file: 'nb6-reinforce.ipynb', lectures: [9, 10], level: 3, minutes: 50,
+      zh: { name: 'NB6 · REINFORCE 与 baseline', goal: 'numpy softmax 策略梯度完整实现，验证 baseline 只降方差不改期望。' },
+      en: { name: 'NB6 · REINFORCE with baselines', goal: 'A full numpy REINFORCE; verify baselines cut variance without moving the mean.' } }
+  ];
+
+  function getManifest() {
+    var m = window.NB_MANIFEST;
+    if (Array.isArray(m) && m.length) {
+      if (window.__NB_MANIFEST_MISS) window.__NB_MANIFEST_MISS = false;
+      return m;
+    }
+    if (window.console && window.console.info) {
+      window.console.info('nb-manifest.js 未加载或为空，lite.html 使用页内 fallback 清单');
+    }
+    return FALLBACK_MANIFEST;
+  }
+
+  var DIFF = [
+    { cls: 'd1', zh: '入门', en: 'beginner' },
+    { cls: 'd2', zh: '进阶', en: 'intermediate' },
+    { cls: 'd3', zh: '挑战', en: 'advanced' }
+  ];
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function lectText(e) {
+    var arr = e.lectures || (e.lecture ? [e.lecture] : []);
+    if (!arr.length) return { zh: '全站导览', en: 'site tour' };
+    if (typeof arr[0] === 'number') return { zh: 'L' + arr.join('/L'), en: 'L' + arr.join('/L') };
+    return { zh: String(arr.join('/')), en: String(arr.join('/')) };
+  }
+
+  function markWip(card) {
+    card.classList.add('is-wip');
+    var open = card.querySelector('.nbl-open');
+    if (!open) return;
+    var pill = document.createElement('span');
+    pill.className = 'nbl-wip';
+    pill.innerHTML = '<span class="zh">建设中</span><span class="en">coming soon</span>';
+    open.replaceWith(pill);
+  }
+
+  /* http(s) 下逐本探测 lite/files/notebooks/<file>：文件尚未构建的卡片自动转「建设中」；
+     file:// 直开（离线双击）无法 fetch，按 manifest 原样渲染不降级 */
+  function probeFiles(manifest) {
+    if (!/^https?:/.test(location.protocol)) return;
+    manifest.forEach(function (e) {
+      if (!e.file) return;
+      fetch('lite/files/notebooks/' + encodeURIComponent(e.file), { method: 'HEAD' })
+        .then(function (res) {
+          if (!res.ok) {
+            var card = document.querySelector('.nbl-card[data-id="' + (e.id || '') + '"]');
+            if (card) markWip(card);
+          }
+        })
+        .catch(function () { /* 网络异常不降级 */ });
+    });
+  }
+
+  function renderCards() {
+    var grid = document.getElementById('nbl-grid');
+    if (!grid) return;
+    var html = '';
+    var manifest = getManifest();
+    manifest.forEach(function (e) {
+      var zh = e.zh || {};
+      var en = e.en || {};
+      var nameZh = zh.name || e.name || e.id || '';
+      var nameEn = en.name || '';
+      var goal = zh.goal || e.goal || '';
+      var goalEn = en.goal || '';
+      var lect = lectText(e);
+      var diff = DIFF[Math.min(Math.max(((e.level || e.difficulty || 1) - 1), 0), 2)];
+      var minutes = e.minutes || e.duration || '';
+      var wip = !!e.wip;
+      var file = e.file || '';
+      var href = file ? 'lite/lab/index.html?path=notebooks/' + encodeURIComponent(file) : 'lite/lab/index.html';
+
+      html += '<article class="nbl-card' + (wip ? ' is-wip' : '') + '" data-id="' + esc(e.id || '') + '">'
+        + '<div class="nbl-card-top">'
+        + '<span class="nbl-id">' + esc(String(e.id || '').toUpperCase()) + '</span>'
+        + '<span class="nbl-lect"><span class="zh">' + esc(lect.zh) + '</span><span class="en">' + esc(lect.en) + '</span></span>'
+        + '<span class="nbl-diff ' + diff.cls + '"><span class="zh">' + diff.zh + '</span><span class="en">' + diff.en + '</span></span>'
+        + '</div>'
+        + '<h4 class="nbl-name"><span class="zh">' + esc(nameZh) + '</span>'
+        + (nameEn ? '<span class="en">' + esc(nameEn) + '</span>' : '')
+        + '</h4>'
+        + '<p class="nbl-goal"><span class="zh">' + esc(goal) + '</span>'
+        + (goalEn ? '<span class="en">' + esc(goalEn) + '</span>' : '')
+        + '</p>'
+        + '<div class="nbl-card-foot">'
+        + '<span class="nbl-min"><span class="zh">约 ' + esc(minutes) + ' 分钟</span><span class="en">~' + esc(minutes) + ' min</span></span>'
+        + (wip
+          ? '<span class="nbl-wip"><span class="zh">建设中</span><span class="en">coming soon</span></span>'
+          : '<a class="nbl-open" href="' + esc(href) + '"><span class="zh">在 Jupyter 中打开 →</span><span class="en">Open in Jupyter →</span></a>')
+        + '</div>'
+        + '</article>';
+    });
+    grid.innerHTML = html;
+    probeFiles(manifest);
+  }
+
+  /* ── 主题 / 语言（与 graph3d.js 同款机制，读写共享 localStorage 键） ── */
+  function setTheme(key) {
+    document.documentElement.dataset.theme = key;
+    try { localStorage.setItem(THEME_KEY, key); } catch (err) { /* 隐私模式下静默 */ }
+    document.querySelectorAll('.nbl-theme-btn').forEach(function (b) {
+      b.classList.toggle('is-active', b.dataset.theme === key);
+    });
+  }
+
+  function setLang(k) {
+    document.body.dataset.lang = k;
+    document.documentElement.lang = k === 'en' ? 'en' : 'zh-CN';
+    try { localStorage.setItem(LANG_KEY, k); } catch (err) { /* 隐私模式下静默 */ }
+    document.querySelectorAll('.nbl-lang-btn').forEach(function (b) {
+      b.classList.toggle('is-active', b.dataset.lang === k);
+    });
+  }
+
+  function init() {
+    var theme = 'chalk';
+    var lang = 'both';
+    try {
+      theme = localStorage.getItem(THEME_KEY) || 'chalk';
+      lang = localStorage.getItem(LANG_KEY) || 'both';
+    } catch (err) { /* 隐私模式下用默认值 */ }
+
+    document.querySelectorAll('.nbl-theme-btn').forEach(function (b) {
+      b.addEventListener('click', function () { setTheme(b.dataset.theme); });
+    });
+    document.querySelectorAll('.nbl-lang-btn').forEach(function (b) {
+      b.addEventListener('click', function () { setLang(b.dataset.lang); });
+    });
+
+    setTheme(theme);
+    setLang(lang);
+    renderCards();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+</body>
+</html>

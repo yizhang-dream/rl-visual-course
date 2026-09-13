@@ -345,12 +345,14 @@ sub, sup { font-size: .68em; }
 .formula-card .katex { font-size: 1.12em; }
 .formula-card .katex-display { margin: 6px 0; }
 .formula-card .fx-inline .katex { font-size: 1em; }
-.formula-card .fx-gold   { color: var(--gold); }
-.formula-card .fx-green  { color: var(--green); }
-.formula-card .fx-red    { color: var(--red); }
-.formula-card .fx-violet { color: var(--violet); }
-.formula-card .fx-accent { color: var(--accent-deep); }
-.formula-card .fx-dim    { color: var(--ink-3); }
+/* fx-* 颜色由 \htmlClass 注入，公式块 / 推导步骤 .deriv-tex / 推导 tex 选项 .deriv-cho-tex
+   三处容器都要命中（只走 CSS 变量，五主题 + 打印自动跟随） */
+.formula-card .fx-gold,   .deriv-tex .fx-gold,   .deriv-cho-tex .fx-gold   { color: var(--gold); }
+.formula-card .fx-green,  .deriv-tex .fx-green,  .deriv-cho-tex .fx-green  { color: var(--green); }
+.formula-card .fx-red,    .deriv-tex .fx-red,    .deriv-cho-tex .fx-red    { color: var(--red); }
+.formula-card .fx-violet, .deriv-tex .fx-violet, .deriv-cho-tex .fx-violet { color: var(--violet); }
+.formula-card .fx-accent, .deriv-tex .fx-accent, .deriv-cho-tex .fx-accent { color: var(--accent-deep); }
+.formula-card .fx-dim,    .deriv-tex .fx-dim,    .deriv-cho-tex .fx-dim    { color: var(--ink-3); }
 
 /* ─────────────── 通用控件 ─────────────── */
 .lab {
@@ -995,6 +997,78 @@ body[data-lang="en"] .fill-line.zh { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .fill-slot, .fill-num, .fill-opt { transition: none; }
 }
+
+/* ─────────────── 定理推导 DerivationLab ───────────────
+   走步卡复用 .reason-* / .fill-opts 体系；颜色只用既有 token，五主题通用；
+   .deriv-tex 是 KaTeX display 容器，行高与横向滚动都留足。 */
+.deriv-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 12px; }
+.deriv-tab {
+  appearance: none; cursor: pointer;
+  display: inline-flex; align-items: baseline; gap: 7px;
+  font: 600 12.5px var(--font); color: var(--ink-2);
+  background: var(--surface); border: 1px solid var(--line-strong);
+  border-radius: 9px; padding: 5px 13px;
+  transition: background-color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+.deriv-tab:hover { border-color: var(--accent); }
+.deriv-tab.active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-deep); }
+.deriv-tab.done { border-color: color-mix(in srgb, var(--green) 45%, transparent); }
+.deriv-tab .en { font-size: 10.5px; color: var(--ink-3); }
+.deriv-done { font: 800 11px var(--mono); color: var(--green); }
+.deriv-intro { margin: 0 0 4px; font-size: 13.5px; color: var(--ink-2); }
+.deriv-star { color: var(--gold); }
+.deriv-tex {
+  margin: 4px 0 8px; padding: 10px 16px;
+  background: var(--formula-bg); border: 1px solid var(--line); border-radius: 9px;
+  color: var(--ink); text-align: center; line-height: 1.7;
+  overflow-x: auto; overflow-y: hidden;
+}
+.deriv-tex .katex { font-size: 1.05em; }
+.deriv-tex .katex-display { margin: 6px 0; }
+.deriv-why { margin: 2px 0 0; font-size: 13.5px; }
+.deriv-q { margin: 0 0 8px; font-weight: 700; }
+.deriv-opt.right { border-color: var(--green); background: var(--green-soft); }
+.deriv-opt.wrong { border-color: var(--red);   background: var(--red-soft); }
+.deriv-cho-tex .katex { font-size: 1em; }
+.deriv-aid { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 8px; }
+.deriv-hint {
+  margin: 0; padding: 8px 12px; font-size: 13px;
+  background: var(--gold-soft); border: 1px solid color-mix(in srgb, var(--gold) 34%, transparent);
+  border-radius: 8px;
+}
+.deriv-wrong { margin: 0; font-size: 13px; font-weight: 600; color: var(--red); }
+.deriv-solved { margin: 8px 0 0; font: 700 12.5px var(--font); color: var(--green); }
+@media (prefers-reduced-motion: reduce) {
+  .deriv-tab, .deriv-opt { transition: none; }
+}
+
+/* ─────────────── 笔记本入口 NotebookBridge ───────────────
+   静态卡片网格；主按钮深链 /lite/ 子站，颜色只走 token。 */
+.nb-empty {
+  padding: 14px 16px; border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-sm); color: var(--ink-3); font-size: 13.5px;
+}
+.nb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(272px, 1fr)); gap: 13px; }
+.nb-card {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 7px;
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--surface); box-shadow: var(--shadow-1);
+  padding: 14px 16px;
+}
+.nb-card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; width: 100%; }
+.nb-id {
+  font: 800 11px var(--mono); letter-spacing: 1px;
+  color: var(--accent-deep); background: var(--accent-soft);
+  padding: 2px 9px; border-radius: 99px;
+}
+.nb-meta { font: 600 11.5px var(--mono); color: var(--ink-3); }
+.nb-name { margin: 0; font: 700 14.5px var(--font); color: var(--ink); }
+.nb-name .en { display: block; font-size: 11.5px; font-weight: 600; color: var(--ink-3); }
+.nb-goal { margin: 0; font-size: 13px; line-height: 1.6; color: var(--ink-2); }
+.nb-goal .en { display: block; font-size: 12px; color: var(--ink-3); }
+.nb-lec { margin: 0; font: 600 11.5px var(--mono); color: var(--ink-3); }
+.nb-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.nb-actions .btn { text-decoration: none; }
 
 /* ═══════════════════════════════════════════════════════════════
    主题系统 · html[data-theme]

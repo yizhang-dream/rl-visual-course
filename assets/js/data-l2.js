@@ -194,6 +194,7 @@
       { t: 'p', zh: '策略评估是无数算法的内嵌零件（第 4 章策略迭代的内环、第 10 章 Actor-Critic 的评论家……），值得亲手写一遍。下面是两版实现：迭代解（实战版）与闭式解（理论版），都基于作业同款 4×4 网格世界。', en: 'Policy evaluation is an embedded part inside countless algorithms (the inner loop of policy iteration in Chapter 4, the critic of Actor-Critic in Chapter 10…), so it is worth writing by hand. Two implementations follow: the iterative solution (practical) and the closed-form solution (theoretical), both on the assignment\'s 4×4 grid world.' },
       { t: 'widget', component: 'code-lab', props: { source: 'l2' } },
       { t: 'callout', variant: 'warn', zh: '<strong>读代码的三处心眼</strong>：① sweep 必须是"<strong>整轮算完再覆盖</strong>"（先存 v_new 再赋值）——边算边覆盖是另一个算法（与第 7 章的原位更新加速想法相近，但需要重新分析收敛）；② 收敛判据用 max |Δv| < θ 而不是"迭代够多次"——θ 是精度预算；③ 验收技巧：随机抽一个状态，用 v = r + γΣp·v 手算对照——作业报告里放这一段，"key parts of code explained"的分数就稳了。', en: '<strong>Three things to watch when reading the code</strong>: ① a sweep must <strong>compute the whole round before overwriting</strong> (buffer v_new, then assign) — updating in place is a different variant (in-place updates speed things up but need separate convergence analysis); ② use max |Δv| < θ as the stopping rule instead of "iterate enough times" — θ is your accuracy budget; ③ verification trick: pick a random state and hand-check v = r + γΣp·v against the output — include this in the report and the "key parts explained" marks are safe.' },
+      { t: 'widget', component: 'notebook-bridge', props: { nb: 'nb1' } },
     ],
   };
 
@@ -205,6 +206,7 @@
       { t: 'p', zh: '书上一口气放了七个问答，全部直击本章要害。这里挑六张做成卡片，外加一张"常见错误"代码卡。', en: 'The book packs seven Q&As, all hitting vital spots. Six become cards here, plus one bonus card on a common coding mistake.' },
       { t: 'widget', component: 'qa-lab', props: { source: 'l2' } },
       { t: 'widget', component: 'fill-lab', props: { source: 'l2' } },
+      { t: 'widget', component: 'derivation-lab', props: { source: 'l2' } },
     ],
   };
 
@@ -573,6 +575,298 @@ if __name__ == "__main__":
     ],
   };
 
+
+  /* ═══════════════════════════════════════════════════════════
+     L2 · 定理推导（DerivationLab 组件按 derivationSets[source] 渲染：
+     走步模式逐步展开，带 blank 的 ★ 关键步答对才放行；
+     契约校验见 scripts/check_data.js 的 derivationSets 段）
+     ═══════════════════════════════════════════════════════════ */
+  D.derivationSets = D.derivationSets || {};
+  D.derivationSets['l2'] = {
+    title: { zh: '第二讲 · 定理推导', en: 'Lecture 2 · Theorem Derivations' },
+    items: [
+      {
+        // #1 Bellman 方程从回报展开（PLAN 第七轮附录 A 的 14 步链；★ blank 在第 3、9 步）
+        id: 'bellman-expand',
+        name: { zh: 'Bellman 方程：从回报展开', en: 'The Bellman Equation: Expanding the Return' },
+        intro: {
+          zh: '§2.4 用三行就把 Bellman 方程推完了——而三行的每一步都值得你亲手再走一遍。目标：从回报 G<sub>t</sub> 的定义出发，一行不跳地推出 v<sub>π</sub> = r<sub>π</sub> + γP<sub>π</sub>v<sub>π</sub>；途中两处关键步（期望线性怎么拆、矩阵元素是什么）要你自己填对才放行。带上四件旧工具：折叠、期望线性、马尔可夫性、全期望公式。',
+          en: '§2.4 derives the Bellman equation in three moves — and every move deserves your own hand. Goal: starting from the definition of the return G<sub>t</sub>, derive v<sub>π</sub> = r<sub>π</sub> + γP<sub>π</sub>v<sub>π</sub> with no line skipped; two key steps (how linearity splits the expectation, and what the matrix entries are) unlock only when you fill them correctly. Pack four old tools: folding, linearity of expectation, the Markov property, and total expectation.',
+        },
+        steps: [
+          { // 步 1 · 起点：回报定义 + γ<1 的收敛保险
+            tex: String.raw`G_t \;=\; R_{t+1} + \gamma R_{t+2} + \gamma^2 R_{t+3} + \cdots \;=\; \sum_{k=0}^{\infty}\gamma^k R_{t+k+1}, \qquad \htmlClass{fx-gold}{\gamma\in(0,1)}`,
+            why: {
+              zh: '起点：折扣回报的定义（L1）。奖励有界时 |G<sub>t</sub>| ≤ r<sub>max</sub>·Σ<sub>k</sub>γ<sup>k</sup> = r<sub>max</sub>/(1−γ) &lt; ∞——γ &lt; 1 保证无穷级数收敛，这正是 L1 等比级数填空题立功的地方：没有这一条，后面的期望全都无从谈起。',
+              en: 'The start: the definition of the discounted return (L1). With bounded rewards, |G<sub>t</sub>| ≤ r<sub>max</sub>·Σ<sub>k</sub>γ<sup>k</sup> = r<sub>max</sub>/(1−γ) &lt; ∞ — γ &lt; 1 is what makes the infinite series converge, precisely where L1\'s geometric-series exercise earns its keep: without it, none of the expectations ahead could even be written.',
+            },
+          },
+          { // 步 2 · 拆首项：自举结构露头
+            tex: String.raw`G_t \;=\; R_{t+1} + \gamma\big(R_{t+2} + \gamma R_{t+3} + \cdots\big) \;=\; \htmlClass{fx-gold}{R_{t+1} + \gamma\,G_{t+1}}`,
+            why: {
+              zh: '纯代数恒等式：把首项单独拎出，括号里剩下的恰好是"从 t+1 起算的同一种求和"——下一时刻的回报 G<sub>t+1</sub>。这是 L1 的 γ³/(1−γ) 戏法变体，自举结构在此露头：现在的回报 = 即时奖励 + 打折的未来回报。',
+              en: 'A pure algebraic identity: peel off the first term, and what remains in the brackets is exactly the same sum restarted at t+1 — the next return G<sub>t+1</sub>. A variant of L1\'s γ³/(1−γ) manoeuvre; the bootstrapping structure shows its head: today\'s return = immediate reward + discounted future return.',
+            },
+          },
+          { // 步 3 ★ blank：期望线性拆成"即时 + γ×未来"两项
+            tex: String.raw`v_\pi(s) \;\doteq\; \mathbb{E}[G_t \mid S_t=s] \;=\; \mathbb{E}\big[R_{t+1} + \gamma G_{t+1} \mid S_t=s\big] \;=\; \htmlClass{fx-gold}{\text{?}}`,
+            why: {
+              zh: '期望的线性：E[X + γY | s] = E[X|s] + γE[Y|s]，常数 γ 原样提出。两项各有身份——E[R<sub>t+1</sub>|s] 是"这一步平均拿多少"，E[G<sub>t+1</sub>|s] 是"之后的未来平均值多少"：即时与未来的分界线在这里画下。',
+              en: 'Linearity of expectation: E[X + γY | s] = E[X|s] + γE[Y|s], with the constant γ carried along untouched. Each term earns an identity — E[R<sub>t+1</sub>|s] is "what this step pays on average", E[G<sub>t+1</sub>|s] is "what the remaining future is worth on average": the border between immediate and future is drawn right here.',
+            },
+            blank: {
+              q: {
+                zh: '把状态价值的定义代入后，E[R<sub>t+1</sub> + γG<sub>t+1</sub> | S<sub>t</sub>=s] 用期望的线性应该拆成哪两项？',
+                en: 'Having substituted the definition of the state value, how should linearity of expectation split E[R<sub>t+1</sub> + γG<sub>t+1</sub> | S<sub>t</sub>=s]?',
+              },
+              choices: [
+                { tex: String.raw`v_\pi(s) = \mathbb{E}[R_{t+1}\mid S_t=s] + \gamma\,\mathbb{E}[G_{t+1}\mid S_t=s]` },
+                { tex: String.raw`v_\pi(s) = \max_a\,\mathbb{E}\big[R_{t+1}+\gamma G_{t+1}\mid S_t=s,\,A_t=a\big]` },
+                { tex: String.raw`v_\pi(s) = \mathbb{E}[R_{t+1}\mid S_t=s] + \mathbb{E}[G_{t+1}\mid S_t=s]` },
+              ],
+              answer: 0,
+              whyWrong: [
+                { zh: '正确拆法：E[X + γY] = E[X] + γE[Y]，γ 是常数照乘——两项即"即时均值 + 打折的未来均值"。', en: 'The correct split: E[X + γY] = E[X] + γE[Y] with the constant γ kept — mean immediate reward plus the discounted mean future return.' },
+                { zh: 'max<sub>a</sub> 是第 3 章 Bellman 最优方程的算子，描述"挑最好的动作"；这里 π 是给定策略、按概率抽动作，期望里没有 max 的位置。提前放进 max，等于把"评估给定策略"偷换成"找最优策略"。', en: 'max<sub>a</sub> belongs to Chapter 3\'s Bellman optimality operator, which "picks the best action"; here π is a given policy drawing actions by probability — there is no max inside this expectation. Sneaking one in quietly swaps "evaluate the given policy" for "find the optimal policy".' },
+                { zh: '丢掉了 γ：线性拆开时常数必须跟着第二项走，E[R + γG] = E[R] + γE[G]。不打折的"未来"在 γ = 0.9 时被凭空放大 1/0.9 ≈ 1.11 倍，价值整体失真。', en: 'The γ went missing: the constant must travel with the second term, E[R + γG] = E[R] + γE[G]. An undiscounted "future" is inflated by 1/0.9 ≈ 1.11 at γ = 0.9, distorting every value downstream.' },
+              ],
+              hint: { zh: 'E[X + cY] = E[X] + cE[Y]：常数 c 原样提出，两项分别取条件期望。', en: 'E[X + cY] = E[X] + cE[Y]: the constant c comes out untouched; take the conditional expectation of each part.' },
+            },
+          },
+          { // 步 4 · 第一项摊开 → r_π(s)
+            tex: String.raw`\mathbb{E}[R_{t+1}\mid S_t=s] \;=\; \sum_a \pi(a\mid s)\sum_r p(r\mid s,a)\,r \;\;\doteq\;\; \htmlClass{fx-gold}{r_\pi(s)}`,
+            why: {
+              zh: '全期望公式对动作、奖励各摊一次：策略以 π(a|s) 抽 a，模型再以 p(r|s,a) 抽 r，两层概率相乘、对 r 加权求和——这就是"即时奖励的均值" r<sub>π</sub>(s) 的全部来历（§2.4 的金色部分）。',
+              en: 'The law of total expectation unfolds once over actions and once over rewards: the policy draws a with π(a|s), the model then draws r with p(r|s,a); multiply the two layers and weight by r — that is the entire origin of the "mean immediate reward" r<sub>π</sub>(s) (the golden part of §2.4).',
+            },
+          },
+          { // 步 5 · 马尔可夫性放行 v(s′)
+            tex: String.raw`\mathbb{E}\big[G_{t+1}\mid S_{t+1}=s'\big] \;=\; \htmlClass{fx-gold}{v_\pi(s')}`,
+            why: {
+              zh: '马尔可夫性是这一步唯一的通行证：给定 S<sub>t+1</sub> = s′，未来的分布只依赖 s′、不依赖更早的历史——"从 s′ 出发的平均回报"因此就是 v<sub>π</sub>(s′)，与怎么走到 s′ 无关。抽掉马尔可夫性，这一步非法，Bellman 方程根本写不出来。',
+              en: 'The Markov property is this step\'s only permit: given S<sub>t+1</sub> = s′, the future\'s distribution depends on s′ alone and nothing older — so "the average return departing from s′" is exactly v<sub>π</sub>(s′), however s′ was reached. Remove the Markov property and this step becomes illegal; the Bellman equation could not be written at all.',
+            },
+          },
+          { // 步 6 · 全期望对下一状态摊开
+            tex: String.raw`\mathbb{E}[G_{t+1}\mid S_t=s] \;=\; \sum_{s'} p(s'\mid s)\,\mathbb{E}\big[G_{t+1}\mid S_{t+1}=s'\big] \;=\; \sum_{s'} p(s'\mid s)\,v_\pi(s')`,
+            why: {
+              zh: '再来一次全期望公式：下一状态 s′ 按 p(s′|s) 分布（策略与转移合掷的骰子），对它加权平均 v<sub>π</sub>(s′)。第 5 步刚把条件里的 G<sub>t+1</sub> 换成 v<sub>π</sub>(s′)，这一步对 s′ 的求和才能这么干净。',
+              en: 'One more application of total expectation: the next state s′ is distributed by p(s′|s) (policy and transition rolling together), so average v<sub>π</sub>(s′) against it. Step 5 has just swapped the conditioned G<sub>t+1</sub> for v<sub>π</sub>(s′) — which is what lets this sum over s′ stay so clean.',
+            },
+          },
+          { // 步 7 · p(s'|s) 的定义：π 消化进转移
+            tex: String.raw`p(s'\mid s) \;=\; \sum_a \pi(a\mid s)\,p(s'\mid s,a) \;\;\doteq\;\; \htmlClass{fx-gold}{p_\pi(s'\mid s)}`,
+            why: {
+              zh: 's′ 的随机性来自两层：策略抽 a（π(a|s)）、转移抽 s′（p(s′|s,a)）。两层乘开对 a 求和，得"按 π 加权的转移概率" p<sub>π</sub>(s′|s)——策略被消化进转移里，它就是下一步矩阵 P<sub>π</sub> 的元素。',
+              en: 'The randomness of s′ comes from two layers: the policy drawing a (π(a|s)) and the transition drawing s′ (p(s′|s,a)). Multiply through and sum over a to get the "π-weighted transition probability" p<sub>π</sub>(s′|s) — the policy digested into the transition, and exactly the entry of the matrix P<sub>π</sub> in the next step.',
+            },
+          },
+          { // 步 8 · 合并：单状态形式完成
+            tex: String.raw`\htmlClass{fx-gold}{v_\pi(s)} \;=\; \htmlClass{fx-gold}{r_\pi(s)} \;+\; \gamma\sum_{s'} p_\pi(s'\mid s)\,\htmlClass{fx-gold}{v_\pi(s')}`,
+            why: {
+              zh: '组装第 4、6、7 步的产品：第一项 r<sub>π</sub>(s)，第二项 γ×p<sub>π</sub> 加权的 v<sub>π</sub>(s′) 平均——单状态版本的 Bellman 方程完成。注意未知数 v<sub>π</sub> 同时站在等号两边：这是 n 个方程的联立，不是一条已解出的公式。',
+              en: 'Assemble the products of steps 4, 6 and 7: the first term r<sub>π</sub>(s), the second a γ-discounted, p<sub>π</sub>-weighted average of v<sub>π</sub>(s′) — the single-state Bellman equation is complete. Note that the unknown v<sub>π</sub> stands on both sides: this is n simultaneous equations, not a solved formula.',
+            },
+          },
+          { // 步 9 ★ blank：矩阵-向量形式中 P_π 的 (i,j) 元素
+            tex: String.raw`\mathbf{v}_\pi = \mathbf{r}_\pi + \gamma P_\pi\,\mathbf{v}_\pi \qquad\text{with}\qquad [P_\pi]_{ij} = \htmlClass{fx-gold}{\text{?}}`,
+            why: {
+              zh: 'P<sub>π</sub> 的 (i,j) 元 = 从 s<sub>i</sub> 出发（按 π 抽动作、按模型抽去向）落到 s<sub>j</sub> 的总概率——第 7 步的 p<sub>π</sub>(s<sub>j</sub>|s<sub>i</sub>) 逐元素装进矩阵。P<sub>π</sub> ≥ 0 且每行和为 1（P<sub>π</sub>1 = 1，行随机），这两条性质正是下一条推导（可逆性与收敛）的全部原料。',
+              en: 'Entry (i,j) of P<sub>π</sub> = the total probability of landing on s<sub>j</sub> when departing from s<sub>i</sub> (actions drawn by π, destinations drawn by the model) — step 7\'s p<sub>π</sub>(s<sub>j</sub>|s<sub>i</sub>) installed elementwise. P<sub>π</sub> ≥ 0 with every row summing to 1 (P<sub>π</sub>1 = 1, row-stochastic); these two properties are the entire raw material of the next derivation (invertibility and convergence).',
+            },
+            blank: {
+              q: {
+                zh: '把 n 个状态的价值关系摞成矩阵-向量形式 v = r<sub>π</sub> + γP<sub>π</sub>v，P<sub>π</sub> 的第 (i,j) 元素是什么？',
+                en: 'Stacking the n states\' value relations into the matrix-vector form v = r<sub>π</sub> + γP<sub>π</sub>v — what is the (i,j) entry of P<sub>π</sub>?',
+              },
+              choices: [
+                { tex: String.raw`[P_\pi]_{ij} \;=\; p_\pi(s_j\mid s_i) \;=\; \sum_a \pi(a\mid s_i)\,p(s_j\mid s_i,a)` },
+                { tex: String.raw`[P_\pi]_{ij} \;=\; \pi(s_j\mid s_i)` },
+                { tex: String.raw`[P_\pi]_{ij} \;=\; \sum_a \pi(a\mid s_i)\,\mathbf{1}\{\,f(s_i,a)=s_j\,\}` },
+              ],
+              answer: 0,
+              whyWrong: [
+                { zh: '正确：策略权重 π(a|s<sub>i</sub>) 乘模型转移 p(s<sub>j</sub>|s<sub>i</sub>,a)，对 a 求和——两层骰子的总概率，即第 7 步的 p<sub>π</sub>(s<sub>j</sub>|s<sub>i</sub>)。', en: 'Correct: the policy weight π(a|s<sub>i</sub>) times the model transition p(s<sub>j</sub>|s<sub>i</sub>,a), summed over a — the total probability across both dice, i.e. step 7\'s p<sub>π</sub>(s<sub>j</sub>|s<sub>i</sub>).' },
+                { zh: 'π 被放错了边：π(·|s) 的定义域是动作不是状态——它回答"在 s 抽哪个动作"，从不直接说"下一状态是谁"。状态之间的转移必须经模型 p(s′|s,a) 落地；把策略当环境，P<sub>π</sub> 连行和为 1 都未必成立。', en: 'π is on the wrong side: π(·|s) is defined over actions, not states — it answers "which action at s" and never "which state next". State-to-state transitions must land through the model p(s′|s,a); mistaking the policy for the environment, P<sub>π</sub> is not even guaranteed row sums of 1.' },
+                { zh: '指示函数版本只在确定性转移下成立（每个 (s,a) 唯一去向 f(s,a)）；一般环境里 p(s<sub>j</sub>|s<sub>i</sub>,a) 是分布，同一个 (s,a) 可通向多个 s<sub>j</sub>。通用形式必须保留转移概率本身。', en: 'The indicator version holds only under deterministic transitions (each (s,a) with a unique destination f(s,a)); in general p(s<sub>j</sub>|s<sub>i</sub>,a) is a distribution and one (s,a) may lead to several s<sub>j</sub>. The general form must keep the transition probability itself.' },
+              ],
+              hint: { zh: '第 7 步刚定义的"按 π 加权的转移概率"——把它装进第 i 行第 j 列。', en: 'Step 7 just defined the "π-weighted transition probability" — install it at row i, column j.' },
+            },
+          },
+          { // 步 10 · 自举悖论：这不是"解出来了"
+            tex: String.raw`\mathbf{v}_\pi = \mathbf{r}_\pi + \gamma P_\pi\mathbf{v}_\pi \qquad\Longleftarrow\qquad \htmlClass{fx-gold}{\mathbf{v}_\pi\ \text{出现在等号两边}}`,
+            why: {
+              zh: '别急着庆祝：这不是"解出来了"，只是"方程立起来了"——§2.2 自举悖论在矩阵视角下的真身（v<sub>1</sub> 依赖 v<sub>2</sub>……v<sub>4</sub> 又绕回 v<sub>1</sub>）。"先有鸡还是先有蛋"的观点在这里失效，线性代数的观点生效：n 个方程 n 个未知数，联立求解才是正路。',
+              en: 'Hold the confetti: this is not "solved", merely "set up" — the bootstrapping paradox of §2.2 in its matrix-form true body (v<sub>1</sub> leaning on v<sub>2</sub>… and v<sub>4</sub> looping back to v<sub>1</sub>). The chicken-and-egg viewpoint fails here and the linear-algebra viewpoint prevails: n equations, n unknowns — solve them jointly.',
+            },
+          },
+          { // 步 11 · 移项成标准形（钩子：可逆性留给下一条推导）
+            tex: String.raw`(I - \gamma P_\pi)\,\mathbf{v}_\pi \;=\; \mathbf{r}_\pi`,
+            why: {
+              zh: '一行移项把方程摆成标准线性系统 Ax = b 的形状：只要 I − γP<sub>π</sub> 可逆，v<sub>π</sub> = (I − γP<sub>π</sub>)⁻¹r<sub>π</sub> 一步到位。但"可逆"凭什么成立？这正是本讲下一条推导要亲手证的事——不引用判据，直接把逆构造出来给你看。',
+              en: 'One rearrangement sets the equation into the standard linear-system shape Ax = b: provided I − γP<sub>π</sub> is invertible, v<sub>π</sub> = (I − γP<sub>π</sub>)⁻¹r<sub>π</sub> lands in one step. But why "invertible"? That is exactly what this lecture\'s next derivation proves by hand — not by citing a criterion, but by constructing the inverse in front of you.',
+            },
+          },
+          { // 步 12 · 迭代视角（L4 压缩映射的伏笔）
+            tex: String.raw`\mathbf{v}_{k+1} \;=\; \mathbf{r}_\pi + \gamma P_\pi\,\mathbf{v}_k`,
+            why: {
+              zh: '不求逆的另一条路：随便猜 v<sub>0</sub>，反复执行 Bellman 右端。误差 δ<sub>k+1</sub> = γP<sub>π</sub>δ<sub>k</sub> 每轮整体乘一次 γ，γ &lt; 1 把它压到 0——收敛的全部理由仍是第 1 步那一条。这个"映射不动点"的视角是第 4 章压缩映射与值迭代的地基。',
+              en: 'The other road, avoiding inversion: guess any v<sub>0</sub> and repeatedly apply the Bellman right-hand side. The error δ<sub>k+1</sub> = γP<sub>π</sub>δ<sub>k</sub> gets multiplied by γ once per sweep, and γ &lt; 1 crushes it to zero — the entire reason for convergence is still step 1\'s. This "fixed point of a map" view is the foundation of Chapter 4\'s contraction mapping and value iteration.',
+            },
+          },
+          { // 步 13 · 数值验证钩子：NB1 将组装第 9 步的矩阵跑代码
+            tex: String.raw`v(s_4) = 1 + \gamma\,v(s_4) \;\Longrightarrow\; v(s_4) = \frac{1}{1-\gamma} = \htmlClass{fx-green}{10}\quad(\gamma=0.9)`,
+            why: {
+              zh: '数值验证的入口：2×2 世界的目标格 s4 原地领 +1，自举方程 v = 1 + γv 手解即得 1/(1−γ) = 10（§2.5 同款数字）。NB1（本讲代码节尾的笔记本入口卡）会让你先手算一轮 Bellman 迭代、再用代码组装第 9 步的 P<sub>π</sub> 跑到底——矩阵形式对不对，机器当场裁决。',
+              en: 'The entry point for numerical verification: the target cell s4 of the 2×2 world collects +1 per step in place, and its bootstrapped equation v = 1 + γv solves by hand to 1/(1−γ) = 10 (the same §2.5 numbers). NB1 (the notebook entry card at the end of this lecture\'s code section) will have you hand-compute one Bellman sweep, then assemble step 9\'s P<sub>π</sub> in code and run it to the end — the machine adjudicates the matrix form on the spot.',
+            },
+          },
+          { // 步 14 · 闭合卡：逐环清点这条链
+            tex: String.raw`\boxed{\;v_\pi(s) = \sum_a \pi(a\mid s)\Big[\sum_r p(r\mid s,a)\,r + \gamma\sum_{s'} p(s'\mid s,a)\,v_\pi(s')\Big]\;}`,
+            why: {
+              zh: '链条闭合，逐环清点：γ &lt; 1 保证回报收敛（步 1）→ 拆首项得自举结构（步 2）→ 期望线性分成即时/未来（步 3）→ 全期望摊开双层骰子（步 4、6）→ 马尔可夫性放行 v(s′)（步 5）→ π 消化进转移（步 7）→ 联立成矩阵（步 8–9）。抽掉任何一环，这条 (2.7) 都写不出来——而这一遍是你亲手走完的。',
+              en: 'The chain closes; audit it link by link: γ &lt; 1 secures convergence of the return (step 1) → peeling the first term yields bootstrapping (step 2) → linearity splits immediate from future (step 3) → total expectation unfolds both dice (steps 4, 6) → the Markov property admits v(s′) (step 5) → π is digested into the transition (step 7) → everything files into a matrix (steps 8–9). Remove any link and Eq. (2.7) cannot be written — and this time you walked every link yourself.',
+            },
+          },
+        ],
+      },
+      {
+        // #2 闭式解与 Neumann 级数（12 步；★ blank 在第 5、10 步）
+        id: 'closed-form-neumann',
+        name: { zh: '闭式解与 Neumann 级数', en: 'The Closed Form and the Neumann Series' },
+        intro: {
+          zh: '上一条推导把方程立起来了：v<sub>π</sub> = r<sub>π</sub> + γP<sub>π</sub>v<sub>π</sub>。这一条回答"凭什么敢写 (I−γP<sub>π</sub>)⁻¹"——不引用可逆判据，而是把逆直接构造出来：一个矩阵版的几何级数（Neumann 级数）。错位相加与范数收缩两处关键步要你亲手填，γ = 0.9 的数值账一并算清。',
+          en: 'The previous derivation set the equation up: v<sub>π</sub> = r<sub>π</sub> + γP<sub>π</sub>v<sub>π</sub>. This one answers "what licenses writing (I−γP<sub>π</sub>)⁻¹" — not by citing an invertibility criterion, but by constructing the inverse outright: a matrix version of the geometric series (the Neumann series). Two key steps (the shifted addition and the norm contraction) are yours to fill, with γ = 0.9\'s numeric ledger thrown in.',
+        },
+        steps: [
+          { // 步 1 · 起点：移项成标准形
+            tex: String.raw`\mathbf{v}_\pi = \mathbf{r}_\pi + \gamma P_\pi\mathbf{v}_\pi \qquad\Longrightarrow\qquad \htmlClass{fx-gold}{(I-\gamma P_\pi)\,\mathbf{v}_\pi = \mathbf{r}_\pi}`,
+            why: {
+              zh: '上条推导的终点是这条的起点：含 v<sub>π</sub> 的项全部移到左边，方程摆成标准形 Ax = b。整条推导只有一个目标——证明 I − γP<sub>π</sub> 可逆，并看清这个逆长什么样。',
+              en: 'The previous derivation\'s terminus is this one\'s origin: move everything containing v<sub>π</sub> to the left and the equation takes the standard shape Ax = b. The whole derivation has one goal — prove I − γP<sub>π</sub> invertible and see exactly what the inverse looks like.',
+            },
+          },
+          { // 步 2 · 闭式解目标；本条走"构造逆"这条路
+            tex: String.raw`\mathbf{v}_\pi = (I-\gamma P_\pi)^{-1}\,\mathbf{r}_\pi`,
+            why: {
+              zh: '若可逆，闭式解一行写完（§2.7）。书用 Gershgorin 圆盘证可逆（每个特征值的圆盘都不含原点）；这里走另一条路——更有用的一条：直接把逆构造出来，构造成功即证明存在，还白送一个级数表达式。',
+              en: 'Given invertibility, the closed form finishes in one line (§2.7). The book proves it with Gershgorin discs (no eigenvalue\'s disc touches the origin); we take another road — the more useful one: construct the inverse explicitly. A successful construction proves existence and throws in a series expression for free.',
+            },
+          },
+          { // 步 3 · 猜想：几何级数的矩阵版
+            tex: String.raw`\frac{1}{1-x} = 1+x+x^2+\cdots\;\;(|x|<1) \qquad\Longrightarrow\qquad \mathbf{v}_\pi \;\stackrel{?}{=}\; \sum_{k=0}^{\infty}\gamma^kP_\pi^k\,\mathbf{r}_\pi = \mathbf{r}_\pi + \gamma P_\pi\mathbf{r}_\pi + \gamma^2P_\pi^2\,\mathbf{r}_\pi + \cdots`,
+            why: {
+              zh: '灵感来自标量几何级数：把 x 换成 γP<sub>π</sub>、右端配上 r<sub>π</sub>，猜出级数解。此刻它只是猜想——两件事都没证：级数收敛吗？它真是解吗？验证的办法朴素而有力：代回方程。',
+              en: 'The inspiration is the scalar geometric series: replace x by γP<sub>π</sub>, append r<sub>π</sub> to the right, and guess a series solution. For now it is only a guess — two things unproven: does the series converge? Is it actually a solution? The verification is plain but forceful: substitute it back.',
+            },
+          },
+          { // 步 4 · 验证计划：代回 Bellman 右端
+            tex: String.raw`\mathbf{r}_\pi + \gamma P_\pi\Big(\sum_{k=0}^{\infty}\gamma^kP_\pi^k\,\mathbf{r}_\pi\Big) \;\stackrel{?}{=}\; \sum_{k=0}^{\infty}\gamma^kP_\pi^k\,\mathbf{r}_\pi`,
+            why: {
+              zh: '验证只看一步：把级数代回 Bellman 方程 v = r<sub>π</sub> + γP<sub>π</sub>v 的右端，若能还原级数自己，它就是解。r<sub>π</sub> 已在原地待命；硬骨头是 γP<sub>π</sub> 乘上整个级数等于什么——下一步亲手填。',
+              en: 'Verification takes one look: substitute the series into the right-hand side of v = r<sub>π</sub> + γP<sub>π</sub>v; if the series itself comes back out, it is the solution. The r<sub>π</sub> is already standing by; the hard part is what γP<sub>π</sub> times the whole series equals — that blank is yours to fill on the next step.',
+            },
+          },
+          { // 步 5 ★ blank：错位相加 γP_π·Σ = Σ_{k=1}
+            tex: String.raw`\gamma P_\pi\sum_{k=0}^{\infty}\gamma^kP_\pi^k\,\mathbf{r}_\pi \;=\; \sum_{k=0}^{\infty}\gamma^{k+1}P_\pi^{k+1}\,\mathbf{r}_\pi \;=\; \htmlClass{fx-gold}{\text{?}}`,
+            why: {
+              zh: 'γP<sub>π</sub> 从左边乘进级数：γ 与 γ<sup>k</sup> 合并、P<sub>π</sub> 与 P<sub>π</sub><sup>k</sup> 合并，两个指数同步抬一级，得 Σγ<sup>k+1</sup>P<sub>π</sub><sup>k+1</sup>r<sub>π</sub>。再换个名字计数（新 k = 旧 k+1），级数改从 k = 1 起头——与原级数恰好错开一位，"错位相加"因此得名。',
+              en: 'γP<sub>π</sub> multiplies into the series from the left: γ merges with γ<sup>k</sup> and P<sub>π</sub> with P<sub>π</sub><sup>k</sup> — both exponents climb one rung together, giving Σγ<sup>k+1</sup>P<sub>π</sub><sup>k+1</sup>r<sub>π</sub>. Re-indexing (new k = old k+1) restarts the series at k = 1 — offset from the original by exactly one slot, hence "shifted addition".',
+            },
+            blank: {
+              q: {
+                zh: '把末端 Σ<sub>k=0</sub><sup>∞</sup>γ<sup>k+1</sup>P<sub>π</sub><sup>k+1</sup>r<sub>π</sub> 重新编号（令新 k = 旧 k+1）后，它等于哪个级数？注意 γ 的幂与 P<sub>π</sub> 的幂必须一起移位。',
+                en: 'Re-index the tail Σ<sub>k=0</sub><sup>∞</sup>γ<sup>k+1</sup>P<sub>π</sub><sup>k+1</sup>r<sub>π</sub> (new k = old k+1): which series does it equal? The powers of γ and of P<sub>π</sub> must shift together.',
+              },
+              choices: [
+                { tex: String.raw`\sum_{k=1}^{\infty}\gamma^{k}P_\pi^{k}\,\mathbf{r}_\pi` },
+                { tex: String.raw`\sum_{k=1}^{\infty}\gamma^{k-1}P_\pi^{k}\,\mathbf{r}_\pi` },
+                { tex: String.raw`\sum_{k=0}^{\infty}\gamma^{k+1}P_\pi^{k}\,\mathbf{r}_\pi` },
+                { tex: String.raw`\sum_{k=1}^{\infty}\gamma^{k}P_\pi^{k-1}\,\mathbf{r}_\pi` },
+              ],
+              answer: 0,
+              whyWrong: [
+                { zh: '正确：换元 j = k+1 后 γ<sup>j</sup>P<sub>π</sub><sup>j</sup>r<sub>π</sub> 从 j = 1 起跑——恰是原级数去掉 k = 0 那项（I·r<sub>π</sub>）之后的全部。', en: 'Correct: with j = k+1, γ<sup>j</sup>P<sub>π</sub><sup>j</sup>r<sub>π</sub> starts at j = 1 — exactly the original series minus its k = 0 term (I·r<sub>π</sub>).' },
+                { zh: 'γ 移过头了：这个级数的第一项是 γ<sup>0</sup>P<sub>π</sub><sup>1</sup>r<sub>π</sub> = P<sub>π</sub>r<sub>π</sub>，γ 平白少乘一次，整条级数被放大 1/γ 倍。', en: 'γ overshot: this series opens with γ<sup>0</sup>P<sub>π</sub><sup>1</sup>r<sub>π</sub> = P<sub>π</sub>r<sub>π</sub> — one factor of γ missing, inflating the whole series by 1/γ.' },
+                { zh: '只有 γ 在移位、P<sub>π</sub> 原地不动：第一项 γ<sup>1</sup>P<sub>π</sub><sup>0</sup>r<sub>π</sub> = γr<sub>π</sub>，对不上应有的 γP<sub>π</sub>r<sub>π</sub>。两个指数必须同步 +1。', en: 'Only γ shifted while P<sub>π</sub> stood still: the first term is γ<sup>1</sup>P<sub>π</sub><sup>0</sup>r<sub>π</sub> = γr<sub>π</sub>, not the required γP<sub>π</sub>r<sub>π</sub>. Both exponents must climb together.' },
+                { zh: '这次是 P<sub>π</sub> 落后一格：第一项同样是 γ<sup>1</sup>P<sub>π</sub><sup>0</sup>r<sub>π</sub> = γr<sub>π</sub>，仍不是 γP<sub>π</sub>r<sub>π</sub>。口诀：左乘一次 γP<sub>π</sub>，所有幂同步抬一级。', en: 'Now P<sub>π</sub> lags one rung: the first term is again γ<sup>1</sup>P<sub>π</sub><sup>0</sup>r<sub>π</sub> = γr<sub>π</sub>, still not γP<sub>π</sub>r<sub>π</sub>. Mnemonic: one left-multiplication by γP<sub>π</sub> lifts every power by exactly one.' },
+              ],
+              hint: { zh: '令 j = k+1：γ 的指数和 P 的指数一起变 j，起点从 0 变 1。', en: 'Set j = k+1: γ\'s exponent and P\'s exponent both become j; the starting index moves from 0 to 1.' },
+            },
+          },
+          { // 步 6 · telescoping：r + Σ_{k≥1} = Σ_{k≥0}
+            tex: String.raw`\mathbf{r}_\pi + \sum_{k=1}^{\infty}\gamma^kP_\pi^k\,\mathbf{r}_\pi \;=\; \sum_{k=0}^{\infty}\gamma^kP_\pi^k\,\mathbf{r}_\pi`,
+            why: {
+              zh: '逐项对齐相消（telescoping）：新级数 {γ¹P¹, γ²P², …} 恰是原级数 {γ⁰P⁰, γ¹P¹, γ²P², …} 去掉第一项 γ⁰P⁰r<sub>π</sub> = r<sub>π</sub>。所以 r<sub>π</sub> + 新级数 = 原级数——代回验证通过：级数满足 Bellman 方程，它就是解。',
+              en: 'Align and cancel term by term (telescoping): the shifted series {γ¹P¹, γ²P², …} is exactly the original {γ⁰P⁰, γ¹P¹, γ²P², …} without its first term γ⁰P⁰r<sub>π</sub> = r<sub>π</sub>. Hence r<sub>π</sub> + shifted series = original series — the substitution verifies: the series satisfies the Bellman equation and is the solution.',
+            },
+          },
+          { // 步 7 · 矩阵层面：部分和恒等式
+            tex: String.raw`(I-\gamma P_\pi)\big(I+\gamma P_\pi+\cdots+\gamma^NP_\pi^N\big) \;=\; I - \gamma^{N+1}P_\pi^{N+1}`,
+            why: {
+              zh: '把同样的错位相消升到矩阵层面：部分和左乘 (I−γP<sub>π</sub>)，中间项两两相消，只剩 I 与尾巴 −γ<sup>N+1</sup>P<sub>π</sub><sup>N+1</sup>（N = 0、1 亲手乘一遍即见）。只要尾巴 → 0，右边 → I——逆就被亲手构造出来了。',
+              en: 'Lift the same shifted cancellation to matrix level: multiply the partial sum from the left by (I−γP<sub>π</sub>); interior terms annihilate pairwise, leaving I and the tail −γ<sup>N+1</sup>P<sub>π</sub><sup>N+1</sup> (try N = 0, 1 by hand). Provided the tail → 0, the right side → I — the inverse has been constructed by hand.',
+            },
+          },
+          { // 步 8 · 结论：Neumann 级数
+            tex: String.raw`\htmlClass{fx-gold}{(I-\gamma P_\pi)^{-1} \;=\; \sum_{k=0}^{\infty}\gamma^kP_\pi^k} \;=\; I+\gamma P_\pi+\gamma^2P_\pi^2+\cdots`,
+            why: {
+              zh: '矩阵版几何级数——Neumann 级数，§2.6 预告的底牌在此兑现。它一箭双雕：证明 I − γP<sub>π</sub> 可逆（逆已显式构造），并给出闭式解 v<sub>π</sub> = (I + γP<sub>π</sub> + γ²P<sub>π</sub>² + …)r<sub>π</sub>。前提只剩一个：尾巴 γ<sup>k</sup>P<sub>π</sub><sup>k</sup> 必须趋于 0——接下来两步就证。',
+              en: 'The matrix geometric series — the Neumann series; the card §2.6 tipped off is now cashed. It kills two birds: proving I − γP<sub>π</sub> invertible (the inverse is explicitly built) and delivering the closed form v<sub>π</sub> = (I + γP<sub>π</sub> + γ²P<sub>π</sub>² + …)r<sub>π</sub>. One premise remains: the tail γ<sup>k</sup>P<sub>π</sub><sup>k</sup> must vanish — the next two steps deliver that.',
+            },
+          },
+          { // 步 9 · P_π 行随机 ⇒ ‖P_π^k‖_∞ = 1
+            tex: String.raw`P_\pi\ge 0,\;\; P_\pi\mathbf{1}=\mathbf{1} \;\Longrightarrow\; P_\pi^k\mathbf{1}=\mathbf{1} \;\Longrightarrow\; \big\|P_\pi^k\big\|_\infty = 1`,
+            why: {
+              zh: 'P<sub>π</sub> 的两条性质（§2.6）：非负、每行和为 1（行随机）。行随机的乘积仍行随机——每行 Σ<sub>j</sub>[PQ]<sub>ij</sub> = Σ<sub>l</sub>P<sub>il</sub>·(Σ<sub>j</sub>Q<sub>lj</sub>) = Σ<sub>l</sub>P<sub>il</sub>·1 = 1——所以 P<sub>π</sub><sup>k</sup> 的每行和仍是 1，矩阵 ∞-范数（最大行和）恒为 1：无论自乘多少次，概率总量不膨胀。',
+              en: 'P<sub>π</sub>\'s two properties (§2.6): nonnegative, every row summing to 1 (row-stochastic). Products of row-stochastic matrices stay row-stochastic — per row, Σ<sub>j</sub>[PQ]<sub>ij</sub> = Σ<sub>l</sub>P<sub>il</sub>·(Σ<sub>j</sub>Q<sub>lj</sub>) = Σ<sub>l</sub>P<sub>il</sub>·1 = 1 — so every row of P<sub>π</sub><sup>k</sup> still sums to 1 and the matrix ∞-norm (max row sum) stays exactly 1: however many self-multiplications, the probability mass never inflates.',
+            },
+          },
+          { // 步 10 ★ blank：范数收缩 γ^k‖r_π‖ → 0
+            tex: String.raw`\big\|\gamma^kP_\pi^k\,\mathbf{r}_\pi\big\|_\infty \;\le\; \gamma^k\underbrace{\big\|P_\pi^k\big\|_\infty}_{=\,1}\big\|\mathbf{r}_\pi\big\|_\infty \;=\; \htmlClass{fx-gold}{\text{?}} \;\xrightarrow{\,k\to\infty\,}\; 0`,
+            why: {
+              zh: '范数的次乘性 ‖AB‖<sub>∞</sub> ≤ ‖A‖<sub>∞</sub>‖B‖<sub>∞</sub> 拆开，代入上一步的 ‖P<sub>π</sub><sup>k</sup>‖<sub>∞</sub> = 1：第 k 项的范数 ≤ γ<sup>k</sup>‖r<sub>π</sub>‖<sub>∞</sub>，被一条收敛的几何序列控制——级数绝对收敛，第 7 步的尾巴 γ<sup>N+1</sup>P<sub>π</sub><sup>N+1</sup> 同理趋于 0，Neumann 级数的合法性全部落地。',
+              en: 'Sub-multiplicativity ‖AB‖<sub>∞</sub> ≤ ‖A‖<sub>∞</sub>‖B‖<sub>∞</sub> unpacks the term, and last step\'s ‖P<sub>π</sub><sup>k</sup>‖<sub>∞</sub> = 1 enters: the k-th term is bounded by γ<sup>k</sup>‖r<sub>π</sub>‖<sub>∞</sub>, dominated by a converging geometric sequence — the series converges absolutely, the step-7 tail γ<sup>N+1</sup>P<sub>π</sub><sup>N+1</sup> vanishes likewise, and the Neumann series is fully legalised.',
+            },
+            blank: {
+              q: {
+                zh: 'γ<sup>k</sup>、‖P<sub>π</sub><sup>k</sup>‖<sub>∞</sub> = 1、‖r<sub>π</sub>‖<sub>∞</sub> 三件原料在手：第 k 项 γ<sup>k</sup>P<sub>π</sub><sup>k</sup>r<sub>π</sub> 的范数上界是多少——它必须随 k → ∞ 趋于 0，收敛论证才成立？',
+                en: 'With γ<sup>k</sup>, ‖P<sub>π</sub><sup>k</sup>‖<sub>∞</sub> = 1 and ‖r<sub>π</sub>‖<sub>∞</sub> in hand: what is the norm bound on the k-th term γ<sup>k</sup>P<sub>π</sub><sup>k</sup>r<sub>π</sub> — one that → 0 as k → ∞, as the convergence argument demands?',
+              },
+              choices: [
+                { tex: String.raw`\gamma^k\,\|\mathbf{r}_\pi\|_\infty \;\longrightarrow\; 0` },
+                { tex: String.raw`\frac{\gamma^k}{1-\gamma}\,\|\mathbf{r}_\pi\|_\infty` },
+                { tex: String.raw`\|\mathbf{r}_\pi\|_\infty` },
+                { zh: '给不出与 P<sub>π</sub> 具体数值无关的界——必须先数值算出 P<sub>π</sub><sup>k</sup> 才能谈收敛', en: 'No bound independent of the actual entries of P<sub>π</sub> exists — one must compute P<sub>π</sub><sup>k</sup> numerically before any convergence claim' },
+              ],
+              answer: 0,
+              whyWrong: [
+                { zh: '正确：γ<sup>k</sup>·1·‖r<sub>π</sub>‖<sub>∞</sub>。γ &lt; 1 ⇒ γ<sup>k</sup> → 0，几何衰减把每一项（连同第 7 步的尾巴）压到 0，级数收敛。', en: 'Correct: γ<sup>k</sup>·1·‖r<sub>π</sub>‖<sub>∞</sub>. With γ &lt; 1, γ<sup>k</sup> → 0: geometric decay crushes every term (and the step-7 tail) to zero, so the series converges.' },
+                { zh: '1/(1−γ) 出现在"余项"的界里：Σ<sub>j&gt;k</sub>γ<sup>j</sup>‖r‖ = γ<sup>k+1</sup>/(1−γ)·‖r‖——那是截断后剩余尾巴的账，不是"第 k 项"本身的界；第 k 项的界就是 γ<sup>k</sup>‖r<sub>π</sub>‖<sub>∞</sub>。', en: '1/(1−γ) belongs to the remainder bound: Σ<sub>j&gt;k</sub>γ<sup>j</sup>‖r‖ = γ<sup>k+1</sup>/(1−γ)·‖r‖ — the bill for the leftover tail after truncation, not the bound on the k-th term itself; the k-th term is bounded by γ<sup>k</sup>‖r<sub>π</sub>‖<sub>∞</sub>.' },
+                { zh: '把 ‖P<sub>π</sub><sup>k</sup>‖ ≤ 1 用满就停：这个界有界但不随 k 变化、不趋于 0——收敛论证到这里就卡死了。必须让 γ<sup>k</sup> 上场，几何衰减才是压尾巴的那只手。', en: 'Stopping once ‖P<sub>π</sub><sup>k</sup>‖ ≤ 1 is spent: this bound is finite but constant in k and never tends to 0 — the convergence argument stalls right there. γ<sup>k</sup> must take the stage; geometric decay is the hand that crushes the tail.' },
+                { zh: '行随机本身就是足够的：‖P<sub>π</sub><sup>k</sup>‖<sub>∞</sub> ≤ 1 对任何行随机矩阵、任何 k 成立，与具体数值无关。正因如此，这条收敛论证对一切 MDP 一次成立——不用逐个环境重证。', en: 'Row-stochasticity alone suffices: ‖P<sub>π</sub><sup>k</sup>‖<sub>∞</sub> ≤ 1 holds for any row-stochastic matrix and any k, regardless of entries. That is exactly why the argument covers all MDPs at once — no per-environment re-proof needed.' },
+              ],
+              hint: { zh: '用次乘性拆成三因子，中间那个上一步刚算出是 1。', en: 'Unpack by sub-multiplicativity into three factors; the middle one was just shown to be 1.' },
+            },
+          },
+          { // 步 11 · 数值账本：γ = 0.9 的衰减与有效项数
+            tex: String.raw`\gamma=0.9:\quad\sum_{k=0}^{\infty}0.9^k=\frac{1}{1-0.9}=\htmlClass{fx-green}{10},\quad 0.9^{22}\approx0.098,\quad 0.9^{44}\approx0.010,\quad 0.9^{132}\approx10^{-6}`,
+            why: {
+              zh: '数值账本（γ = 0.9，node 实算核对）：第 22 项权重 ≈ 0.098，第 44 项 ≈ 0.010——每 22 项缩到十分之一；第 132 项 ≈ 1e−6，已到迭代解的默认精度预算。直觉：总权重 1/(1−γ) = 10，"有效项数"就是十项量级——这条无穷级数在算术上近乎"有限项"，闭式解与迭代解天然对得上。',
+              en: 'The numeric ledger (γ = 0.9, re-verified in node): the 22nd term weighs ≈ 0.098, the 44th ≈ 0.010 — one decimal place shed every 22 terms; the 132nd ≈ 1e−6, already at the iterative solver\'s default accuracy budget. Intuition: total weight 1/(1−γ) = 10, so the "effective number of terms" is of order ten — arithmetically this infinite series is nearly finite, which is why closed form and iteration must agree.',
+            },
+          },
+          { // 步 12 · 收尾钩子：闭式 = 迭代极限，NB1 编程对账
+            tex: String.raw`\mathbf{v}_0=\mathbf{0}:\qquad \mathbf{v}_k=\sum_{j=0}^{k-1}\gamma^jP_\pi^j\,\mathbf{r}_\pi \;\xrightarrow{\;k\to\infty\;}\; \mathbf{v}_\pi=(I-\gamma P_\pi)^{-1}\mathbf{r}_\pi`,
+            why: {
+              zh: '闭式解的另一张脸：迭代解跑到底的极限。从 v₀ = 0 出发，第 k 轮恰好收进级数的前 k 项（v₁ = r<sub>π</sub>，v₂ = r<sub>π</sub> + γP<sub>π</sub>r<sub>π</sub>，数学归纳即得）。NB1（代码节尾的笔记本入口卡）会让你亲手把两版实现跑在一起：闭式解 vs 迭代解，差值压进 1e−6 才算毕业——本条推导的全部结论，最后会变成你终端里的两行数字。',
+              en: 'The closed form\'s other face: the iterative solution run to its limit. Starting from v₀ = 0, sweep k collects exactly the first k terms of the series (v₁ = r<sub>π</sub>, v₂ = r<sub>π</sub> + γP<sub>π</sub>r<sub>π</sub>, and induction finishes). NB1 (the notebook entry card at the end of the code section) will have you run both implementations side by side: closed form vs iteration, the gap squeezed under 1e−6 to graduate — every claim of this derivation ends up as two lines of numbers in your terminal.',
+            },
+          },
+        ],
+      },
+    ],
+  };
 
   /* 导航组注册已提升至 data.js 的 NAV（按讲懒加载后，冷启动侧栏也要完整） */
   const l2 = D.otherLectures.find(l => l.no === 2);

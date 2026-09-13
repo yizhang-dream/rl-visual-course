@@ -1,7 +1,15 @@
 # RL 可视化课堂 · RL Visual Classroom
 
 《Mathematical Foundation of Reinforcement Learning》(Shiyu Zhao) **全书十讲**的双语交互式可视化教程。
-**L1–L10 全部完成**，共 88 个小节、72 个交互实验台（含十讲知识填空自测）、45 个 Vue 组件。
+**L1–L10 全部完成**，共 88 个小节、81 个交互实验台（含十讲知识填空自测与 12 条定理交互推导）、47 个 Vue 组件。
+
+## 定理推导实验室 DerivationLab
+
+每讲 qa 节（fill-lab 之后）挂**走步式定理推导**：全书 12 条承重推导（L2 Bellman 展开与闭式可逆、L3 最优方程、L4 压缩映射与误差界、L5 MC 无偏性、L6 Robbins-Monro、L7 Dvoretzky×Q-learning 收敛、L8 半梯度与 DQN 梯度流向、L9 策略梯度定理 20 步全链、L10 baseline 与 Actor-Critic 替换）。
+
+- 每步公式（KaTeX）+「凭什么是它」理由行；**关键步是选择题，答对才放行**，错选即讲错在哪
+- 数据在各 `data-lX.js` 的 `D.derivationSets['lX']`；契约校验在 `scripts/check_data.js`（含 tex 严格渲染门禁）
+- 完成进度存 `localStorage('rl-viz-deriv-<讲>')`
 
 ## 链接与包容性
 
@@ -22,6 +30,16 @@
 - 五主题 / 双语适配，与主站共享主题与语言记忆
 - 数据再生成：改了任一 `data-lX.js` 后跑 `node scripts/build_graph3d.js`（输出 `assets/js/graph3d-data.js`）
 - vendor：`assets/vendor/graph3d/`（npm devDependency `3d-force-graph` 的 dist 拷贝）
+
+## 笔记本实验室 lite.html + /lite/
+
+浏览器内的真 Jupyter（**JupyterLite + Pyodide**，零安装、纯静态、离线可用）：
+
+- 入口：`lite.html`（hub 页：NB 卡片清单，深链直达 `/lite/lab/index.html?path=notebooks/<file>.ipynb`）
+- 带宽说明：**首次启动需下载 ~16MB 内核**，之后浏览器缓存；NB0/NB1 纯 numpy，NB2–NB6 首次画图再下载 matplotlib（~8MB）
+- 已知限制：**浏览器刷新丢 kernel 状态**（变量需重跑）；笔记本改动存浏览器 IndexedDB，清缓存即丢；**锁外包（numpy/matplotlib 之外）在线可拉、离线不可用**（设计取舍，见 build.md）
+- NB 清单数据源：`assets/js/nb-manifest.js`（`window.NB_MANIFEST`；未加载时 hub 页用页内 fallback）
+- 源笔记本在 `notebooks/`（git 管内容）；构建产物 `lite/` 不入库——重建方式、体积实测与已知限制见 `lite-build/build.md`（uv 独立 Python 3.13 环境；**瘦身构建 ~52MB**：pyodide core + numpy/matplotlib 锁内 wheel 本地化，零 CDN 依赖）
 
 ## 打开方式
 

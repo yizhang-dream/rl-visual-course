@@ -893,6 +893,309 @@
     </div>`,
   };
 
+  /* ═════════════ 定理推导 DerivationLab ═════════════ */
+  // 走步式定理推导（ReasoningLab 的走步模式 + FillLab 的 choice 判分）。
+  // 数据契约（scripts/check_data.js checkDerivations 校验，缺失讲跳过）：
+  //   D.derivationSets[source] = { title?: {zh,en}, items: [
+  //     { id, name: {zh,en}, intro: {zh,en}, steps: [
+  //       { tex, why: {zh,en}, blank?: {
+  //           q?: {zh,en}|string,            // 题干（缺省用组件默认提示）
+  //           choices: ['文本'|{zh,en}|{tex}], // tex 型选项行内 KaTeX 渲染
+  //           answer,                         // 正确下标（judgeBlank 比对）
+  //           hint?: {zh,en}|string, whyWrong?: [...]   // 可选降级
+  //       } }] }] }
+  // 带 blank 的步骤在走步模式下答对才放行"下一步"；完成落 localStorage
+  // 'rl-viz-deriv-<source>'（已完成 item id 数组）。全文模式为复习视图不设门。
+  const DerivationLab = {
+    name: 'DerivationLab',
+    props: { source: { type: String, default: 'l1' } },
+    // ans[i] = 第 i 步作答 { pick, ok }（null 未答）；hintOn[i] = 提示已展开
+    data: () => ({ cur: 0, shown: 1, essay: false, ans: [], hintOn: [], doneIds: [] }),
+    computed: {
+      // 整讲缺失 → bank 为 null → v-if 不渲染（优雅降级，同 FillLab）
+      bank() { return (D.derivationSets && D.derivationSets[this.source]) || null; },
+      items() { return this.bank && Array.isArray(this.bank.items) ? this.bank.items : []; },
+      item() { return this.items[this.cur] || null; },
+      steps() { return (this.item && this.item.steps) || []; },
+      storeKey() { return 'rl-viz-deriv-' + this.source; },
+      doneCount() { return this.items.filter((it) => this.doneIds.indexOf(it.id) >= 0).length; },
+      titleHTML() {
+        return this.bank && this.bank.title
+          ? bi(this.bank.title.zh, this.bank.title.en)
+          : bi('定理推导实验室', 'Derivation lab');
+      },
+    },
+    watch: {
+      source: { immediate: true, handler() { this.loadDone(); this.openItem(this.firstUnDone()); } },
+      items() { this.openItem(this.firstUnDone()); },   // 题库可能随讲数据懒加载注入
+      shown() { this.$nextTick(() => this.renderTex()); },
+      essay() { this.$nextTick(() => this.renderTex()); },
+      cur() { this.$nextTick(() => this.renderTex()); },
+    },
+    mounted() { this.$nextTick(() => this.renderTex()); },
+    setup() { return { bi }; },
+    methods: {
+      /* ── 状态 ── */
+      firstUnDone() {
+        const i = this.items.findIndex((it) => this.doneIds.indexOf(it.id) < 0);
+        return i >= 0 ? i : 0;
+      },
+      openItem(i) {
+        const n = this.items.length;
+        this.cur = n ? Math.min(Math.max(i || 0, 0), n - 1) : 0;
+        this.shown = 1;
+        this.essay = false;
+        this.ans = this.steps.map(() => null);
+        this.hintOn = this.steps.map(() => false);
+        this.$nextTick(() => this.renderTex());
+      },
+      /* ── 走步（同 ReasoningLab；blank 步答对才放行） ── */
+      stepCleared(i) {
+        const bl = this.steps[i] && this.steps[i].blank;
+        return !bl || !!(this.ans[i] && this.ans[i].ok);
+      },
+      canNext() { return this.stepCleared(this.shown - 1); },
+      next() {
+        if (this.essay || this.shown >= this.steps.length || !this.canNext()) return;
+        this.shown++;
+        this.markDoneIfWalked();
+        this.scrollStep(this.shown - 1);
+      },
+      all() { this.essay = true; this.shown = this.steps.length; },
+      stepMode() { this.essay = false; },
+      restart() { this.openItem(this.cur); },
+      scrollStep(i) {
+        this.$nextTick(() => {
+          const el = this.$refs['step' + i];
+          if (el && el[0]) el[0].scrollIntoView({ behavior: 'instant', block: 'center' });
+        });
+      },
+      /* ── 填空判分（judgeBlank 比下标；错选标红 + whyWrong，可重选） ── */
+      pick(i, ci) {
+        const bl = this.steps[i] && this.steps[i].blank;
+        if (!bl || (this.ans[i] && this.ans[i].ok)) return;   // 答对后锁定
+        this.ans[i] = { pick: ci, ok: judgeBlank(ci, bl) };
+        this.markDoneIfWalked();
+      },
+      /* ── 完成持久化：走完最后一步且沿途 blank 全对 → 记 item id ── */
+      markDoneIfWalked() {
+        if (this.essay || this.shown < this.steps.length) return;
+        if (!this.steps.every((st, i) => this.stepCleared(i))) return;
+        const it = this.item;
+        if (!it || this.doneIds.indexOf(it.id) >= 0) return;
+        this.doneIds = this.doneIds.concat([it.id]);
+        try { localStorage.setItem(this.storeKey, JSON.stringify(this.doneIds)); } catch { /* 写不进（隐私模式）就不记 */ }
+      },
+      loadDone() {
+        let arr;
+        try { arr = JSON.parse(localStorage.getItem(this.storeKey) || 'null'); } catch { arr = null; }
+        this.doneIds = Array.isArray(arr) ? arr.filter((x) => typeof x === 'string') : [];
+      },
+      /* ── 文案辅助（hint/q/whyWrong 兼容 string | {zh,en}） ── */
+      biHTML(o) {
+        if (o == null) return '';
+        return typeof o === 'string' ? o : bi(String(o.zh || ''), String(o.en || ''));
+      },
+      qHTML(bl) {
+        return bl.q ? this.biHTML(bl.q)
+          : bi('关键一步：选出正确的下一步依据', 'The key move: pick what justifies the next line');
+      },
+      whyWrongHTML(bl, pick) {
+        const w = bl && Array.isArray(bl.whyWrong) ? bl.whyWrong[pick] : null;
+        return this.biHTML(w);
+      },
+      optsAria() {
+        const en = this.$root && this.$root.lang === 'en';
+        return en ? 'Options for the key step' : '关键步选项';
+      },
+      choiceIsTex(c) { return !!c && typeof c === 'object' && c.tex != null; },
+      /* ── KaTeX：tex 字段与 {tex} 型选项逐个渲染（幂等，复用 app.js 套路） ── */
+      async renderTex() {
+        const jobs = [];
+        for (let i = 0; i < this.steps.length; i++) {
+          if (!(this.essay || i < this.shown)) continue;
+          const st = this.steps[i];
+          const r = this.$refs['tex' + i];
+          const el = Array.isArray(r) ? r[0] : r;
+          if (el && !el.querySelector('.katex')) jobs.push({ el, tex: st.tex, inline: false });
+          const bl = st.blank;
+          if (bl && Array.isArray(bl.choices) && !this.essay) {
+            bl.choices.forEach((c, ci) => {
+              if (!this.choiceIsTex(c)) return;
+              const rc = this.$refs['cho' + i + '-' + ci];
+              const cel = Array.isArray(rc) ? rc[0] : rc;
+              if (cel && !cel.querySelector('.katex')) jobs.push({ el: cel, tex: String(c.tex), inline: true });
+            });
+          }
+        }
+        if (!jobs.length) return;
+        let katex = null;
+        try { katex = await window.RLVLoader.ensureKatex(); }
+        catch (e) { console.error('[deriv] KaTeX 加载失败，公式回退为源码', e); }
+        jobs.forEach((j) => {
+          if (!katex) { j.el.textContent = j.tex; return; }
+          try {
+            katex.render(j.tex, j.el, {
+              displayMode: !j.inline, throwOnError: false,
+              trust: true, strict: 'ignore',
+            });
+          } catch { j.el.textContent = j.tex; }
+        });
+      },
+    },
+    template: `
+    <div v-if="bank" class="lab deriv-lab">
+      <div class="lab-head">
+        <span class="lab-title"><span v-html="titleHTML"></span></span>
+        <span class="fill-sub"><span v-html="bi('亲手走完证明链——带 ★ 的关键步答对才放行','Walk the proof yourself — ★ key steps unlock only when answered right')"></span></span>
+        <span class="fill-score">{{ doneCount }} / {{ items.length }} ✓</span>
+      </div>
+
+      <div v-if="items.length > 1" class="deriv-tabs" role="tablist">
+        <button v-for="(it, i) in items" :key="it.id" type="button" class="deriv-tab"
+                :class="{ active: cur === i, done: doneIds.indexOf(it.id) >= 0 }"
+                role="tab" :aria-selected="cur === i ? 'true' : 'false'" @click="openItem(i)">
+          <span class="zh">{{ it.name.zh }}</span><span class="en">{{ it.name.en }}</span>
+          <span v-if="doneIds.indexOf(it.id) >= 0" class="deriv-done" aria-hidden="true">✓</span>
+        </button>
+      </div>
+
+      <p v-if="item" class="bi duo deriv-intro" v-html="bi(item.intro.zh, item.intro.en)"></p>
+
+      <div class="reason-ctl" ref="top">
+        <button class="btn primary" type="button" @click="next"
+                :disabled="essay || shown >= steps.length || !canNext()">
+          ⏭ <span v-html="bi('下一步推导','Next step')"></span></button>
+        <button class="btn" type="button" @click="all" v-if="!essay">📜 <span v-html="bi('连贯全文模式','Essay mode')"></span></button>
+        <button class="btn ghost" type="button" @click="stepMode" v-if="essay">🧩 <span v-html="bi('返回逐步模式','Back to step mode')"></span></button>
+        <button class="btn ghost" type="button" @click="restart">↺ <span v-html="bi('重来','Restart')"></span></button>
+        <span class="reason-progress">{{ shown }} / {{ steps.length }}</span>
+      </div>
+
+      <div class="reason-wrap">
+        <div v-for="(st, i) in steps" :key="cur + '-' + i" :ref="'step' + i"
+             class="reason-step deriv-step" :class="{ shown: essay || i < shown, now: (i === shown - 1 && !essay) }">
+          <span class="rs-no">{{ i + 1 }}</span>
+          <span v-if="st.blank" class="rs-link deriv-star"><span class="zh">★ 关键步 · 答对放行</span><span class="en">★ key step · answer to unlock</span></span>
+          <div class="deriv-tex" :ref="'tex' + i"></div>
+          <p v-if="essay || !st.blank || (ans[i] && ans[i].ok)" class="bi duo deriv-why" v-html="bi(st.why.zh, st.why.en)"></p>
+
+          <div v-if="st.blank && !essay && i < shown" class="deriv-blank">
+            <p class="deriv-q bi duo" v-html="qHTML(st.blank)"></p>
+            <div class="fill-opts" role="group" :aria-label="optsAria()">
+              <button v-for="(c, ci) in st.blank.choices" :key="ci" type="button"
+                      class="fill-opt deriv-opt"
+                      :class="{ picked: ans[i] && ans[i].pick === ci,
+                                right: ans[i] && ans[i].pick === ci && ans[i].ok,
+                                wrong: ans[i] && ans[i].pick === ci && !ans[i].ok }"
+                      :aria-pressed="ans[i] && ans[i].pick === ci ? 'true' : 'false'"
+                      :disabled="ans[i] && ans[i].ok"
+                      :aria-label="choiceIsTex(c) ? String(c.tex) : null"
+                      @click="pick(i, ci)">
+                <span v-if="choiceIsTex(c)" :ref="'cho' + i + '-' + ci" class="deriv-cho-tex"></span>
+                <template v-else-if="c && c.zh != null"><span class="zh">{{ c.zh }}</span><span class="en">{{ c.en }}</span></template>
+                <span v-else>{{ c }}</span>
+              </button>
+            </div>
+            <div v-if="!(ans[i] && ans[i].ok)" class="deriv-aid">
+              <button v-if="st.blank.hint != null && !hintOn[i]" type="button" class="btn ghost sm" @click="hintOn[i] = true">
+                💡 <span v-html="bi('看提示','Show hint')"></span>
+              </button>
+              <p v-if="hintOn[i]" class="deriv-hint bi duo" v-html="biHTML(st.blank.hint)"></p>
+              <p v-if="ans[i] && !ans[i].ok && whyWrongHTML(st.blank, ans[i].pick)"
+                 class="deriv-wrong bi duo" aria-live="polite" v-html="whyWrongHTML(st.blank, ans[i].pick)"></p>
+            </div>
+            <p v-else class="deriv-solved" aria-live="polite"><span v-html="bi('✓ 答对，链条可以继续','✓ correct — the chain may continue')"></span></p>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="shown >= steps.length || essay" class="callout done">
+        <div class="callout-icon">{{ essay ? '📜' : '🎓' }}</div>
+        <div class="callout-body"><p class="bi duo" v-html="bi(
+          '推导链闭合：每一环谁也少不了谁——而且这一遍是你自己推出来的。',
+          'The chain is closed — every link indispensable, and this time you derived it yourself.')"></p></div>
+      </div>
+    </div>`,
+  };
+
+  /* ═════════════ 笔记本入口 NotebookBridge ═════════════ */
+  // 静态卡片：把讲内小节桥接到 /lite/ JupyterLite 子站。卡片数据来自
+  // assets/js/nb-manifest.js 的 window.NB_MANIFEST（单一事实源，lite.html hub 页共用）；
+  // manifest 缺失时渲染占位提示，不报错（lite 构建是发版时本地步骤）。
+  // props.nb：'nb1' 或 ['nb1','nb2']（id 数组，按 manifest 顺序渲染）。
+  const NotebookBridge = {
+    name: 'NotebookBridge',
+    props: { nb: { type: [String, Array], default: () => [] } },
+    computed: {
+      cards() {
+        const m = window.NB_MANIFEST;
+        if (!Array.isArray(m)) return [];
+        const ids = Array.isArray(this.nb) ? this.nb : [this.nb];
+        const want = new Set(ids.filter((x) => typeof x === 'string' && x));
+        return m.filter((e) => e && e.id && want.has(e.id));
+      },
+      tourHref() {
+        const m = window.NB_MANIFEST;
+        const nb0 = Array.isArray(m) ? m.find((e) => e && e.id === 'nb0') : null;
+        return nb0 ? this.hrefOf(nb0) : '';
+      },
+    },
+    setup() { return { bi }; },
+    methods: {
+      hrefOf(e) { return 'lite/lab/index.html?path=notebooks/' + e.file; },
+      levelText(lv) {
+        const en = this.$root && this.$root.lang === 'en';
+        if (lv >= 3) return en ? 'challenge' : '挑战';
+        if (lv === 2) return en ? 'intermediate' : '进阶';
+        return en ? 'beginner' : '入门';
+      },
+      lecturesText(e) {
+        const en = this.$root && this.$root.lang === 'en';
+        const s = (e.lectures || []).map((l) => 'L' + l).join('/');
+        if (!s) return en ? 'site-wide tour' : '全站导览';
+        return (en ? 'lectures ' : '对应讲 ') + s;
+      },
+      minsText(e) {
+        const en = this.$root && this.$root.lang === 'en';
+        return e.minutes + (en ? ' min' : ' 分钟');
+      },
+    },
+    template: `
+    <div class="lab nb-bridge">
+      <div class="lab-head">
+        <span class="lab-title"><span v-html="bi('笔记本实验室 · 在浏览器里亲手跑','Notebook lab · run it yourself, in the browser')"></span></span>
+        <span class="fill-sub"><span v-html="bi('JupyterLite + Pyodide 内核，numpy 开箱即用，无需安装','JupyterLite + Pyodide kernel — numpy included, nothing to install')"></span></span>
+      </div>
+
+      <div v-if="!cards.length" class="nb-empty">
+        <p class="bi duo" v-html="bi(
+          '笔记本清单尚未就绪（window.NB_MANIFEST 缺失）——入口就位后这里会列出可运行的笔记本。',
+          'The notebook manifest is not ready yet (window.NB_MANIFEST missing) — cards will appear here once it ships.')"></p>
+      </div>
+
+      <div v-else class="nb-grid">
+        <div v-for="c in cards" :key="c.id" class="nb-card">
+          <div class="nb-card-head">
+            <span class="nb-id">{{ c.id.toUpperCase() }}</span>
+            <span class="nb-meta">{{ levelText(c.level) }} · {{ minsText(c) }}</span>
+          </div>
+          <p class="nb-name"><span class="zh">{{ c.zh.name }}</span><span class="en">{{ c.en.name }}</span></p>
+          <p class="nb-goal"><span class="zh">{{ c.zh.goal }}</span><span class="en">{{ c.en.goal }}</span></p>
+          <p class="nb-lec">{{ lecturesText(c) }}</p>
+          <div class="nb-actions">
+            <a class="btn primary sm" :href="hrefOf(c)" target="_blank" rel="noopener">
+              📓 <span v-html="bi('在 Jupyter 中打开','Open in Jupyter')"></span>
+            </a>
+            <a v-if="c.id !== 'nb0' && tourHref" class="btn ghost sm" :href="tourHref" target="_blank" rel="noopener">
+              🧭 <span v-html="bi('首次使用？先跑 NB0 导览','First time? Run the NB0 tour')"></span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>`,
+  };
+
   /* ═════════════ 首页 ═════════════ */
   const HomeHero = {
     name: 'HomeHero',
@@ -955,6 +1258,7 @@
         <button class="btn" style="padding:11px 20px" @click="$emit('go','l2-bellman')">🧮 <span v-html="bi('直达 Bellman 方程','Bellman equation')"></span></button>
         <button class="btn" style="padding:11px 20px" @click="$emit('go','l7-td0')">⚖️ <span v-html="bi('直达 Q-learning','Q-learning')"></span></button>
         <a class="btn ghost" style="padding:11px 20px; text-decoration:none" href="graph3d.html">🌌 <span v-html="bi('知识星图','Knowledge Map')"></span></a>
+        <a class="btn ghost" style="padding:11px 20px; text-decoration:none" href="lite.html">📓 <span v-html="bi('笔记本实验室','Notebook Lab')"></span></a>
       </div>
       <div class="hero-stats">
         <div class="hero-stat"><b>{{ stats.sections }}</b><span v-html="bi('个小节双语精讲','sections, bilingual')"></span></div>
@@ -1115,6 +1419,8 @@
     'reasoning-lab': ReasoningLab,
     'qa-lab': QaLab,
     'fill-lab': FillLab,
+    'derivation-lab': DerivationLab,
+    'notebook-bridge': NotebookBridge,
     'home-hero': HomeHero,
     'lecture-index': LectureIndex,
     'course-map': CourseMap,

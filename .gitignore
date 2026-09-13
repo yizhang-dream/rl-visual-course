@@ -1,3 +1,13 @@
 node_modules/
 shots/
 *.log
+lite/
+lite-build/.venv/
+lite-build/.cache/
+lite-build/stage/
+.cache/
+.jupyterlite.doit.db
+
+lite-build/pyodide-core-*.tar.bz2
+lite-build/pyodide-wheels/
+_output/

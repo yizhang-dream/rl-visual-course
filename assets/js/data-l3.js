@@ -180,6 +180,7 @@
       { t: 'p', zh: '定理 3.3 的迭代式翻译成代码短得惊人。下面是在 4×4 作业同款世界上的完整值迭代 + 贪心提取——跑完直接得到最优策略和最优价值。它和 L2 策略评估代码只差一个 <code class="inline">max</code>：评估是"给定 π 求平均"，迭代是"每格先挑最好的动作再更新"。', en: 'Theorem 3.3\'s iteration translates into shockingly short code. Below is complete value iteration + greedy extraction on the assignment\'s 4×4 world — run it and you hold the optimal policy and values. It differs from L2\'s policy-evaluation code by a single <code class="inline">max</code>: evaluation averages a given π, iteration first picks each cell\'s best action, then updates.' },
       { t: 'widget', component: 'code-lab', props: { source: 'l3' } },
       { t: 'callout', variant: 'key', zh: '<strong>与 L2 的对照记忆法</strong>：策略评估 v<sub>k+1</sub> = r<sub>π</sub> + γP<sub>π</sub>v<sub>k</sub> 是"沿着给定策略走"，值迭代 v<sub>k+1</sub> = max<sub>a</sub>(r + γv) 是"每步都踩最优"。两者都是压缩映射、都指数收敛；前者解线性方程，后者解非线性方程。这个对照就是第 4 章"广义策略迭代"框架的雏形。', en: '<strong>A mnemonic against L2</strong>: policy evaluation v<sub>k+1</sub> = r<sub>π</sub> + γP<sub>π</sub>v<sub>k</sub> "walks a given policy", value iteration v<sub>k+1</sub> = max<sub>a</sub>(r + γv) "steps on the best every time". Both are contraction mappings converging exponentially; the former solves a linear system, the latter a nonlinear one. This contrast is the embryo of Chapter 4\'s generalised policy iteration.' },
+      { t: 'widget', component: 'notebook-bridge', props: { nb: 'nb1' } },
     ],
   };
 
@@ -191,6 +192,7 @@
       { t: 'p', zh: '书上的十个问答把本章钉得死死的，这里精选六张卡片 + 一张"旋钮速查"。', en: 'The book\'s ten Q&As nail this chapter shut; six selected cards plus one knob cheat-sheet follow.' },
       { t: 'widget', component: 'qa-lab', props: { source: 'l3' } },
       { t: 'widget', component: 'fill-lab', props: { source: 'l3' } },
+      { t: 'widget', component: 'derivation-lab', props: { source: 'l3' } },
     ],
   };
 
@@ -453,6 +455,110 @@ if __name__ == "__main__":
     ],
   };
 
+
+  /* ═══ L3 定理推导 ═══ */
+  D.derivationSets = D.derivationSets || {};
+  D.derivationSets['l3'] = {
+    title: { zh: '第三讲 · 定理推导', en: 'Lecture 3 · Theorem Derivations' },
+    items: [
+      {
+        id: 'bellman-optimality',
+        name: { zh: 'Bellman 最优方程', en: 'The Bellman Optimality Equation' },
+        intro: {
+          zh: '从"所有策略的上确界"出发，亲手把最优性写进方程：为什么允许逐状态取 max、一步展开后 BOE 长什么样、max 为什么挡住闭式解、不动点与贪心如何把 v* 与 π* 一起交到你手上。',
+          en: 'Starting from the supremum over all policies, write optimality into an equation with your own hands: why the per-state max is legal, what the BOE looks like after the one-step expansion, why the max blocks any closed form, and how the fixed-point view plus greed hand you both v* and π*.',
+        },
+        steps: [
+          { // 1 回顾：回报与状态值
+            tex: String.raw`\begin{gathered} G_t = R_{t+1} + \gamma R_{t+2} + \gamma^2 R_{t+3} + \cdots \\[4pt] v_\pi(s) = \mathbb{E}_\pi\!\left[\, G_t \mid S_t = s \,\right] \end{gathered}`,
+            why: { zh: '照抄 L2 的起点：回报是逐打 γ 折的奖励流之和（γ < 1 保证收敛），状态值是策略 π 下的条件期望。最优性要比较的正是这一张张 v_π 表。', en: 'L2\'s starting point verbatim: the return is the reward stream discounted step by step (γ < 1 keeps it convergent), and the state value is its conditional expectation under a policy π. Optimality is precisely a comparison among these v_π tables.' },
+          },
+          { // 2 v* 的定义：上确界
+            tex: String.raw`v^*(s) \;\triangleq\; \htmlClass{fx-gold}{\sup_{\pi}\, v_\pi(s)} \;=\; \sup_{\pi}\; \mathbb{E}_\pi\!\left[\, G_t \mid S_t = s \,\right]`,
+            why: { zh: '最优状态值的定义：固定状态 s，对<strong>所有</strong>（含随机）策略的状态值取上确界——逐状态取上界，不是把全表加总再比。有限 MDP 里这个上确界取得到（最优策略存在），sup 实为 max；存在性在第 12 步由不动点定理正式兑现。', en: 'The definition of optimal state values: at a fixed state s, take the supremum over <strong>all</strong> (including stochastic) policies\' state values — per state, never a total over the table. In a finite MDP the supremum is attained (an optimal policy exists), so the sup is in fact a max; existence is cashed formally by the fixed-point theorem at step 12.' },
+          },
+          { // 3 首步分解
+            tex: String.raw`v_\pi(s) = \sum_{a\in\mathcal{A}(s)} \pi(a\mid s)\; q_\pi(s,a) \qquad\quad q_\pi(s,a) = \mathbb{E}_\pi\!\left[\, G_t \mid S_t = s,\ A_t = a \,\right]`,
+            why: { zh: 'L2 的首步分解（式 2.13）：π 在 s 处以概率 π(a|s) 选动作，q_π(s,a) 是"先执行 a、其后遵循 π"的期望回报。这把"对整条策略取 sup"拆成了"对第一步动作的选择"——最优化的自由度全部集中在这一步。', en: 'L2\'s first-step decomposition (Eq. 2.13): π picks action a at s with probability π(a|s), and q_π(s,a) is the expected return of "take a first, then follow π". This splits the "sup over whole policies" into "the choice of the first action" — all the optimisation freedom concentrates on this single move.' },
+          },
+          { // 4 q* 的定义
+            tex: String.raw`q^*(s,a) \;\triangleq\; \sup_{\pi}\; q_\pi(s,a)`,
+            why: { zh: '动作值版本的最优：在 s 先固定执行 a，对"其后的一切策略"取上确界——sup 只作用于 a 之后的策略，a 已被写进条件。v* 与 q* 是同一枚硬币的两面：q* 是"先做 a 再最优"，v* 连第一步也选到最好。', en: 'The action-value version of optimality: fix executing a at s first, then take the supremum over "every policy thereafter" — the sup acts only on the policies after a, which already sits in the condition. v* and q* are two faces of one coin: q* is "act a, then optimal"; v* additionally chooses the first move optimally.' },
+          },
+          { // 5 ★ blank：逐状态取 max 的合法性
+            tex: String.raw`v^*(s) = \htmlClass{fx-gold}{\max_{a\in\mathcal{A}(s)}\; \text{?}}`,
+            why: { zh: '凭什么是 max：马尔可夫性允许<strong>逐状态重组</strong>策略——在 s 选哪个动作不影响其他状态怎么做才是最优（未来只通过下一状态的 v* 进入当前账本），于是"整条策略的 sup"落成"首动作的 max"。例 3.2 的全押论证（约束 Σπ = 1 下最大化加权平均 ⟹ 概率 1 押最大 q）给出同一结论——这正是"策略可以逐格贪心"的合法性来源。', en: 'Why a max is legal: the Markov property lets us <strong>reassemble policies state by state</strong> — which action s takes does not affect what is optimal elsewhere (the future enters today\'s ledger only through v* of the next state), so the "sup over whole policies" lands as a "max over first actions". Example 3.2\'s all-in argument (maximising a weighted average under Σπ = 1 puts probability 1 on the greatest q) says the same — this is exactly why per-state greed is legitimate.' },
+            blank: {
+              q: { zh: '关键步：sup<sub>π</sub> v<sub>π</sub>(s) 为什么能换成对动作的 max？选出正确的等式。', en: 'Key step: why can sup<sub>π</sub> v<sub>π</sub>(s) become a max over actions? Pick the correct identity.' },
+              choices: [
+                { tex: String.raw`v^*(s) = \sum_{a\in\mathcal{A}(s)} \pi(a\mid s)\; q^*(s,a)` },
+                { tex: String.raw`v^*(s) = \max_{a\in\mathcal{A}(s)}\; q^*(s,a)` },
+                { tex: String.raw`v^*(s) = \max_{a\in\mathcal{A}(s)}\; r(s,a)` },
+              ],
+              answer: 1,
+              whyWrong: [
+                { zh: '这是 L2 的老习惯——"对给定的选择做加权平均"。任何 π 的加权平均都不超过 max<sub>a</sub> q*(s,a)，只有把概率 1 全押在最大 q 上才恰好取到（例 3.2 的全押论证）。平均是评估，挑选才是寻优。', en: 'This is L2\'s old habit — "averaging given choices". Any π-weighted average never exceeds max<sub>a</sub> q*(s,a); only probability 1 on the greatest q attains it (Example 3.2\'s all-in argument). Averaging evaluates; choosing optimises.' },
+                { zh: '正确：马尔可夫性允许逐状态重组——一个状态选什么动作不影响其他状态的最优性，"对策略的 sup"于是落成"对首动作的 max"。', en: 'Correct: the Markov property allows per-state reassembly — what one state plays does not affect what is optimal elsewhere, so the "sup over policies" lands as a "max over first actions".' },
+                { zh: '只对即时奖励贪心，丢掉了折扣未来 γ Σ<sub>s′</sub> p(s′|s,a) v*(s′)。§3.5 的迷你世界里即时 0.4 的"留"恰是陷阱，远处每步 +1 才是金山——最优看的是"即时 + 折扣未来"的整体。', en: 'Greedy on the immediate reward alone drops the discounted future γ Σ<sub>s′</sub> p(s′|s,a) v*(s′). In §3.5\'s miniature the fatter immediate 0.4 of "stay" is exactly the trap while the +1-per-step future is the gold mine — optimality weighs "immediate + discounted future" as a whole.' },
+              ],
+              hint: { zh: '想想"对整条策略的 sup"和"第一步选哪个动作"的关系——未来经由哪个量进入当前这一步？', en: 'How does "sup over whole policies" relate to "which first action"? Through which quantity does the future enter this step?' },
+            },
+          },
+          { // 6 q* 拆一步
+            tex: String.raw`q^*(s,a) = \mathbb{E}\!\left[\, R_{t+1} + \gamma\, v^*(S_{t+1}) \;\middle|\; S_t = s,\ A_t = a \,\right]`,
+            why: { zh: '拆一步（L2 同款手法，对象换成最优）：先吃即时奖励 R<sub>t+1</sub>，抵达 S<sub>t+1</sub> 后"从那里出发的最优期望回报"按定义就是 v*(S<sub>t+1</sub>)。第 5 步的逐状态重组在这里再次使用：到达哪个状态就在哪个状态最优，无需预先承诺一条完整策略。', en: 'Peel off one step (L2\'s move, now applied to the optimal): collect R<sub>t+1</sub> first, and upon arriving at S<sub>t+1</sub> "the optimal expected return from there" is by definition v*(S<sub>t+1</sub>). Step 5\'s per-state reassembly is used again: be optimal wherever you arrive — no need to pre-commit to a whole policy.' },
+          },
+          { // 7 ★ blank：一步转移展开
+            tex: String.raw`q^*(s,a) = \htmlClass{fx-gold}{\sum_r p(r\mid s,a)\, r \;+\; \gamma \sum_{s'} p(s'\mid s,a)\, \text{?}}`,
+            why: { zh: '全期望公式按模型展开：R<sub>t+1</sub> 的条件期望按 p(r|s,a) 加权，S<sub>t+1</sub> 的分布按 p(s′|s,a) 加权——与 L2 推导的同款展开完全同构，只是 v<sub>π</sub> 换成 v*。注意每个 v*(s′) 里各自藏着 max——下一状态的动作选择发生在下一状态。', en: 'The law of total expectation unfolds through the model: R<sub>t+1</sub>\'s conditional mean is weighted by p(r|s,a), S<sub>t+1</sub>\'s distribution by p(s′|s,a) — exactly isomorphic to the same expansion in the L2 derivation, with v<sub>π</sub> swapped for v*. Note that each v*(s′) hides its own max inside — the next state\'s action choice happens in the next state.' },
+            blank: {
+              q: { zh: '关键步：把条件期望按模型 p 展开，选出正确的一步转移形式。', en: 'Key step: unfold the conditional expectation through the model p; pick the correct one-step expansion.' },
+              choices: [
+                { tex: String.raw`q^*(s,a) = \sum_r p(r\mid s,a)\, r + \sum_{s'} p(s'\mid s,a)\, v^*(s')` },
+                { tex: String.raw`q^*(s,a) = \sum_r p(r\mid s,a)\, r + \gamma \sum_{s'} p(s'\mid s,a)\, q^*(s', a)` },
+                { tex: String.raw`q^*(s,a) = \sum_r p(r\mid s,a)\, r + \gamma \sum_{s'} p(s'\mid s,a)\, v^*(s')` },
+              ],
+              answer: 2,
+              whyWrong: [
+                { zh: '漏了 γ：每多走一步，未来要多打一次折。γ < 1 不仅让回报收敛，更是后面"压缩系数恰为 γ"的来源——漏掉它，收敛分析整个塌掉。', en: 'γ is missing: every extra step discounts the future once more. γ < 1 not only keeps returns convergent but is exactly the source of the "contraction factor γ" to come — drop it and the whole convergence analysis collapses.' },
+                { zh: '动作沿用了当前的 a：到了 s′ 该重新选动作——v*(s′) = max<sub>a′</sub> q*(s′,a′) 里的 a′ 是"到那时再挑"，把今天的 a 带过去等于放弃抵达后重新决策的权利。', en: 'The current action a is carried over: upon arriving at s′ the choice must be made anew — inside v*(s′) = max<sub>a′</sub> q*(s′,a′) the a′ is "chosen then"; carrying today\'s a over forfeits the right to re-decide upon arrival.' },
+                { zh: '正确：即时项按 p(r|s,a) 加权、未来按 p(s′|s,a) 加权再打一次 γ 折——与 L2 的展开同构，v<sub>π</sub> 换成 v*。', en: 'Correct: the immediate term weighted by p(r|s,a), the future weighted by p(s′|s,a) and discounted once by γ — isomorphic to L2\'s expansion with v<sub>π</sub> replaced by v*.' },
+              ],
+              hint: { zh: '两项结构：即时奖励的均值 + γ × 下一状态价值的均值。下一状态该用 v*(s′) 还是沿用当前动作的 q*(s′, a)？', en: 'Two-part structure: the mean immediate reward + γ × the mean next-state value. For the next state, v*(s′), or today\'s action carried over as q*(s′, a)?' },
+            },
+          },
+          { // 8 合并：BOE 逐状态形式
+            tex: String.raw`v^*(s) = \max_{a\in\mathcal{A}(s)} \Big[\, \htmlClass{fx-gold}{\sum_r p(r\mid s,a)\, r + \gamma \sum_{s'} p(s'\mid s,a)\, v^*(s')} \,\Big]`,
+            why: { zh: '把第 5 步的 max 与第 7 步的展开拼装，得到 <strong>Bellman 最优方程（BOE）</strong>的逐状态形式。注意方程里已经没有 π：max 就是"选最好"的数学化身，π 被消元（例 3.2：最优局部策略把概率 1 押在最大 q 上）——所以解 BOE 不需要预先知道 π*。', en: 'Assembling step 5\'s max with step 7\'s expansion yields the <strong>Bellman optimality equation (BOE)</strong> in per-state form. Note that π no longer appears: the max is "choose the best" made mathematical, and π is eliminated (Example 3.2: the optimal local policy puts probability 1 on the greatest q) — so solving the BOE presumes no knowledge of π*.' },
+          },
+          { // 9 矩阵形式
+            tex: String.raw`\mathbf{v}^* = \htmlClass{fx-gold}{\max_{\pi}} \big(\, \mathbf{r}_\pi + \gamma\, \mathbf{P}_\pi\, \mathbf{v}^* \,\big)`,
+            why: { zh: '矩阵形式：max 逐分量作用（每个状态各自挑最优）。与 L2 的 v<sub>π</sub> = r<sub>π</sub> + γP<sub>π</sub>v<sub>π</sub> 并排对照，结构只差一个 max——"平均给定的选择"升级为"挑选最好的选择"。这一个记号的差别，改写了整个求解理论。', en: 'Matrix form: the max acts component-wise (each state picks its own best). Side by side with L2\'s v<sub>π</sub> = r<sub>π</sub> + γP<sub>π</sub>v<sub>π</sub>, the structure differs by a single max — "averaging given choices" upgraded to "choosing the best". That one symbol rewrites the entire solution theory.' },
+          },
+          { // 10 与 L2 对比：max 挡住闭式解
+            tex: String.raw`\begin{gathered} \text{L2 (linear):}\quad \mathbf{v}_\pi = \mathbf{r}_\pi + \gamma\mathbf{P}_\pi\mathbf{v}_\pi \;\Longrightarrow\; \mathbf{v}_\pi = (I-\gamma\mathbf{P}_\pi)^{-1}\mathbf{r}_\pi \\[6pt] \text{BOE (nonlinear):}\quad \mathbf{v}^* = \max_\pi\big(\mathbf{r}_\pi + \gamma\mathbf{P}_\pi\mathbf{v}^*\big) \;\;\htmlClass{fx-red}{\cancel{\Longrightarrow}}\;\; \mathbf{v}^* = (I-\gamma\mathbf{P}_{\pi^*})^{-1}\mathbf{r}_{\pi^*} \end{gathered}`,
+            why: { zh: 'L2 能闭式解，靠的是线性：v 在两边出现不要紧，移项成 (I − γP<sub>π</sub>)v<sub>π</sub> = r<sub>π</sub> 再求逆——I − γP<sub>π</sub> 可逆由 L2 推导 #2 的 Neumann 级数证好。BOE 里 max 挡在中间：它对 v 非线性，"移项"从第一步就不存在；而且该用哪个 P<sub>π</sub> 取决于 max 选出的动作（π* 又依赖 v*），循环依赖。闭式解出局，只能迭代——这正是引入不动点视角的直接动机。', en: 'L2\'s closed form leans on linearity: v on both sides is fine — transpose to (I − γP<sub>π</sub>)v<sub>π</sub> = r<sub>π</sub> and invert, with invertibility proved in L2 derivation #2 via the Neumann series. In the BOE the max blocks the way: it is nonlinear in v, so "transposing" never gets started; and which P<sub>π</sub> applies depends on the action the max selects (π* itself depends on v*) — a circular dependence. The closed form is out, iteration is in — precisely the motivation for the fixed-point view.' },
+          },
+          { // 11 max 与期望不可交换
+            tex: String.raw`\mathbb{E}_{S'}\!\Big[\max_{a'} q^*(S',a')\Big] = 1 \qquad\neq\qquad \max_{a'}\, \mathbb{E}_{S'}\!\big[q^*(S',a')\big] = \tfrac{1}{2}`,
+            why: { zh: 'max 与期望不可交换（非线性的微观来源）。书中两状态反例：S′ 各以 0.5 落 A 或 B，q(A,a₁)=1、q(A,a₂)=0、q(B,a₁)=0、q(B,a₂)=1。先看牌再选：0.5×1 + 0.5×1 = 1；先锁死动作再看牌：max(0.5, 0.5) = 0.5。max 提到期望外等于放弃"抵达后重新决策"的权利——所以 BOE 里当前的 max（对 a）可以放最外层，S′ 处的 max 必须待在 Σ<sub>s′</sub> 之内。', en: 'max and expectation do not commute (the microscopic source of nonlinearity). The book\'s two-state counterexample: S′ lands on A or B with probability 0.5 each, with q(A,a₁)=1, q(A,a₂)=0, q(B,a₁)=0, q(B,a₂)=1. Look then choose: 0.5×1 + 0.5×1 = 1; choose then look: max(0.5, 0.5) = 0.5. Hoisting the max outside the expectation forfeits the right to re-decide upon arrival — hence in the BOE the current max (over a) may sit outermost, while the max at S′ must stay inside the Σ<sub>s′</sub>.' },
+          },
+          { // 12 不动点视角：Bellman 最优算子
+            tex: String.raw`(T^* v)(s) \;\triangleq\; \max_{a\in\mathcal{A}(s)}\Big[\, \sum_r p(r\mid s,a)\, r + \gamma \sum_{s'} p(s'\mid s,a)\, v(s') \,\Big] \qquad\Longrightarrow\qquad \htmlClass{fx-gold}{T^* v^* = v^*}`,
+            why: { zh: '不动点视角：把 BOE 右端定义成 <strong>Bellman 最优算子 T*</strong>——输入任意价值表 v，输出"对 v 贪心一步"的新表。第 8 步的 BOE 即 v* = T*v*：<strong>v* 是 T* 的不动点</strong>。线性代数谢幕，接力棒交给不动点理论：本章定理 3.2 证得 T* 是 ∞-范数下系数恰为 γ 的压缩映射，于是解存在、唯一、可迭代——完整证明是 L4 推导的主角，这里先把视角立起来。', en: 'The fixed-point view: define the BOE\'s right side as the <strong>Bellman optimality operator T*</strong> — feed in any value table v, get back the table "one greedy step against v". Step 8\'s BOE is exactly v* = T*v*: <strong>v* is a fixed point of T*</strong>. Linear algebra exits, fixed-point theory takes the baton: Theorem 3.2 of this chapter proves T* is a contraction of factor exactly γ in the ∞-norm, so the solution exists, is unique, and is iterable — the full proof stars in L4\'s derivation; here we set up the viewpoint.' },
+          },
+          { // 13 greedy 策略
+            tex: String.raw`\pi^*(s) = \htmlClass{fx-gold}{\arg\max_{a\in\mathcal{A}(s)}\; q^*(s,a)} \qquad\Longrightarrow\qquad v_{\pi^*} = v^* \;\geq\; v_\pi \quad \forall\,\pi`,
+            why: { zh: '贪心构造：解出 v* 后，逐状态选 q*(s,a) 最大的动作即得 π*（定理 3.5；平局时任选或平分概率——π* 可以不唯一，但必有确定性最优）。代回 BOE 得 v* = r<sub>π*</sub> + γP<sub>π*</sub>v*，BOE 正是"对应最优策略的特殊 Bellman 方程"；定理 3.4 认证 v<sub>π*</sub> = v* ≥ v<sub>π</sub> 对一切 π。max 是分析工具，argmax 是构造工具——从值迭代到 Q-learning 的贪心步用的都是它。', en: 'The greedy construction: once v* is solved, pick per state the action with the greatest q*(s,a) — that is π* (Theorem 3.5; ties may be broken arbitrarily or split — π* need not be unique, yet a deterministic optimum always exists). Substituting back gives v* = r<sub>π*</sub> + γP<sub>π*</sub>v*, i.e. the BOE is exactly "the special Bellman equation of the optimal policy", and Theorem 3.4 certifies v<sub>π*</sub> = v* ≥ v<sub>π</sub> for every π. max is the analysis tool; argmax is the construction tool — from value iteration to Q-learning\'s greedy step, it is the argmax that builds policies.' },
+          },
+          { // 14 闭合卡
+            tex: String.raw`\begin{gathered} \sup_\pi v_\pi(s) \;\to\; \max_a q^*(s,a) \;\to\; \text{BOE:}\; v^*(s) = \max_a\Big[\textstyle\sum_r p(r\mid s,a)\,r + \gamma\sum_{s'} p(s'\mid s,a)\,v^*(s')\Big] \\[4pt] \longrightarrow\; T^* v^* = v^* \;\longrightarrow\; \pi^*(s) = \arg\max_a\, q^*(s,a) \end{gathered}`,
+            why: { zh: '闭合卡：上确界定义（1–2）→ 马尔可夫性允许逐状态重组（3–5）→ 一步展开（6–8）→ 非线性挡住闭式解、max 与期望不可交换（9–11）→ 不动点视角（12）→ argmax 构造 π*（13）。每一环都承重：去掉马尔可夫性，max 不合法；去掉 γ，压缩性消失；把 max 挪出期望，最优性蒸发。下一站 L4：T* 的 γ-压缩性 ⟹ 值迭代从任意起点指数收敛；本讲的 NB1 笔记本把这条迭代跑给你看。', en: 'Closing card: supremum definition (1–2) → Markov per-state reassembly (3–5) → one-step expansion (6–8) → nonlinearity blocking the closed form and the non-commuting max (9–11) → the fixed-point view (12) → the argmax construction of π* (13). Every link carries load: drop the Markov property and the max is illegal; drop γ and contraction evaporates; hoist the max out of the expectation and optimality vanishes. Next stop L4: T*\'s γ-contraction ⟹ value iteration converges exponentially from any start; this lecture\'s NB1 notebook runs that iteration for you.' },
+          },
+        ],
+      },
+    ],
+  };
 
   /* 导航组注册已提升至 data.js 的 NAV（按讲懒加载后，冷启动侧栏也要完整） */
   const l3 = D.otherLectures.find(l => l.no === 3);

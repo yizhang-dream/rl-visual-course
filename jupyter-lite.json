@@ -1,0 +1,16 @@
+{
+  "jupyter-lite-schema-version": 0,
+  "jupyter-config-data": {
+    "contentsStorageDrivers": ["asyncStorage"],
+    "contentsStorageName": "rl-viz-lite-contents",
+    "settingsStorageDrivers": ["asyncStorage"],
+    "settingsStorageName": "rl-viz-lite-settings",
+    "workspacesStorageDrivers": ["asyncStorage"],
+    "workspacesStorageName": "rl-viz-lite-workspaces",
+    "litePluginSettings": {
+      "@jupyterlite/pyodide-kernel-extension:kernel": {
+        "disablePyPIFallback": true
+      }
+    }
+  }
+}
