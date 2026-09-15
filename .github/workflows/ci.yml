@@ -79,7 +79,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: pip
+          # 不开 cache: pip —— 仓库无 requirements.txt/pyproject.toml，setup-python 的缓存解析会直接报错
       - name: Install nbconvert + kernel + notebook deps
         run: pip install nbconvert ipykernel numpy matplotlib
       - name: Execute all notebooks into /tmp (repo files untouched)
