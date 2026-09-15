@@ -181,8 +181,8 @@ window.ROOT_TEMPLATE = `
           <span>Built on all ten chapters of "Mathematical Foundation of Reinforcement Learning" and the IUSLab grid-world code, Westlake University · For study only</span>
         </p>
         <p class="bi-footer" style="margin-top:5px">
-          <span><a class="footer-link" href="graph3d.html">知识星图 · 3D 全书知识网络</a> · <a class="footer-link" href="lite.html">笔记本实验室 · 浏览器里跑 Jupyter</a> · <a class="footer-link" href="resources.html">资料索引 · 官方视频与全书资源</a></span>
-          <span><a class="footer-link" href="graph3d.html">Knowledge Constellation</a> · <a class="footer-link" href="lite.html">Notebook Lab</a> · <a class="footer-link" href="resources.html">Resources</a></span>
+          <span><a class="footer-link" href="graph3d.html">知识星图 · 3D 全书知识网络</a> · <a class="footer-link" href="lite.html">笔记本实验室 · 浏览器里跑 Jupyter</a> · <a class="footer-link" href="resources.html">资料索引 · 官方视频与全书资源</a> · <a class="footer-link" href="https://github.com/yizhang-dream/rl-visual-course/blob/main/NOTICE.md" target="_blank" rel="noopener">开源协议</a></span>
+          <span><a class="footer-link" href="graph3d.html">Knowledge Constellation</a> · <a class="footer-link" href="lite.html">Notebook Lab</a> · <a class="footer-link" href="resources.html">Resources</a> · <a class="footer-link" href="https://github.com/yizhang-dream/rl-visual-course/blob/main/NOTICE.md" target="_blank" rel="noopener">License</a></span>
         </p>
       </footer>
     </main>

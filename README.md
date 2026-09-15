@@ -146,3 +146,9 @@ rl-viz/
 | 第八轮 | 2026-09-15 | 见 git log | 官方资源贯通：每讲官方视频索引卡（官方 54 集清单与十讲分集对照，B 站 `?p=N` 与 YouTube `index=N` 同号，逐集中英双链 + 总览入口）+ `resources.html` 全书资料索引页（≥20 张资料卡：官方入口/教材勘误/社区实现/中文笔记/外部课程 + 合规提醒）+ 主站 hero/页脚入口；组件 47→48、verify_site 扩到 57 断言 |
 
 **质量门禁**：`npm test`（模板编译 + 数据完整性）与 `npm run lint` 本地必过；`node verify_site.js` 57 条冒烟断言 + 零 console 错误；推送后 GitHub Actions 自动跑 check + smoke 两个 job。
+
+## 开源协议
+
+- 本站采用**双许可**分层：站点代码（HTML/JS/CSS、`scripts/` 与构建/校验脚本等工程实现）按 `LICENSE`（**Apache-2.0**）；讲解内容层（`data-lX.js` 中的中英讲解文字、题库、推导步骤、图表与可视化设计）按 `LICENSE-CONTENT.md`（**CC BY 4.0**）
+- 分层细则、原书《Mathematical Foundation of Reinforcement Learning》与第三方材料的归属边界、复用署名提示，见 [NOTICE.md](NOTICE.md)
+- 复用代码请保留 Apache-2.0 声明；复用讲解内容请依 CC BY 4.0 署名并链接本站；引用原书内容请自行确认授权

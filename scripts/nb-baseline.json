@@ -1,0 +1,10 @@
+{
+  "_comment": " notebooks 基线执法：每本的值 = 该正本学员练习 TODO 占位（assert None / raise NotImplementedError）执行时的固有错误 cell 数（含 error output 的 cell 数）。CI 用它比对 allow_errors 执行后的实际错误 cell 数，任一偏离即失败。改动 notebook 的 TODO 数量时，必须在同一 PR 更新本文件；否则（依赖漂移新增报错 / 基线未同步）CI 会拦截。",
+  "nb0-tour.ipynb": 0,
+  "nb1-bellman.ipynb": 6,
+  "nb2-vi-pi.ipynb": 8,
+  "nb3-mc-rm.ipynb": 8,
+  "nb4-qlearning.ipynb": 11,
+  "nb5-td-linear.ipynb": 5,
+  "nb6-reinforce.ipynb": 8
+}

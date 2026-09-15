@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  schedule:
+    # 每周一 20:17 UTC = 周二凌晨 4:17 北京时间
+    - cron: '17 20 * * 1'
+  workflow_dispatch:
 
 jobs:
   check:
@@ -23,6 +27,10 @@ jobs:
         run: npm run lint
       - name: Data integrity (88 sections / 44 components / 57 formulas)
         run: node scripts/check_data.js
+      # informational：脚本自身永远退出 0，漂移只打印不拦截
+      - name: Vendor version drift (informational)
+        continue-on-error: false
+        run: node scripts/check_vendor_versions.mjs
 
   smoke:
     name: headless Edge smoke
@@ -58,3 +66,69 @@ jobs:
       - name: Stop server
         if: always()
         run: kill "$(cat server.pid)" 2>/dev/null || true
+
+  # 防腐：定时把 notebooks 全部跑一遍，感知 numpy/matplotlib 等依赖漂移。
+  # nb1-nb6 正本保留学员 TODO（顶层 assert None / raise NotImplementedError），未填写时执行必报错；
+  # 因此用 allow_errors 让内核跑完全部 cell，再与 scripts/nb-baseline.json 的逐本错误 cell 数基线比对：
+  # 任一偏离即拦截 —— 要么依赖漂移破坏了笔记本，要么改动练习占位后忘了在同一 PR 更新基线。
+  notebooks:
+    name: notebook execution (anti-rot)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install nbconvert + kernel + notebook deps
+        run: pip install nbconvert ipykernel numpy matplotlib
+      - name: Execute all notebooks into /tmp (repo files untouched)
+        run: |
+          mkdir -p /tmp/nbexec
+          jupyter nbconvert --to notebook --execute \
+            --ExecutePreprocessor.timeout=300 \
+            --ExecutePreprocessor.allow_errors=True \
+            --output-dir=/tmp/nbexec \
+            notebooks/*.ipynb
+      - name: Enforce per-notebook cell-error baseline (scripts/nb-baseline.json)
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import glob, json, os, sys
+
+          BASELINE = 'scripts/nb-baseline.json'
+          with open(BASELINE, encoding='utf-8') as fh:
+              baseline = {k: v for k, v in json.load(fh).items() if not k.startswith('_')}
+
+          actual = {}
+          for f in glob.glob('/tmp/nbexec/*.ipynb'):
+              with open(f, encoding='utf-8') as fh:
+                  nb = json.load(fh)
+              n = sum(1 for c in nb.get('cells', []) if c.get('cell_type') == 'code'
+                      and any(o.get('output_type') == 'error' for o in c.get('outputs', [])))
+              actual[os.path.basename(f)] = n
+
+          failures = []
+          for name in sorted(baseline):
+              expected = baseline[name]
+              if name not in actual:
+                  failures.append(f'  {name}: expected {expected} error cell(s), actual MISSING (output not found in /tmp/nbexec)')
+              else:
+                  failures.append(f'  {name}: expected {expected} error cell(s), actual {actual[name]}')
+          for name in sorted(set(actual) - set(baseline)):
+              failures.append(f'  {name}: NOT in baseline, actual {actual[name]} error cell(s) (add it to scripts/nb-baseline.json)')
+
+          if all(actual.get(name) == expected for name, expected in baseline.items()) \
+                  and set(actual) == set(baseline):
+              print(f'OK: {len(baseline)}/{len(baseline)} notebooks match baseline '
+                    f'({sum(baseline.values())} expected error cell(s) = student TODO placeholders)')
+              sys.exit(0)
+
+          print('Notebook cell-error baseline check FAILED:')
+          print('\n'.join(failures))
+          print()
+          print('Possible causes:')
+          print('  1. Dependency drift (numpy/matplotlib/ipykernel updates) broke a notebook beyond its intended student-exercise errors;')
+          print('  2. Exercise TODO placeholders were added/removed/fixed — update scripts/nb-baseline.json in the same PR.')
+          sys.exit(1)
+          PY
