@@ -870,7 +870,7 @@ if __name__ == "__main__":
 
   /* 导航组注册已提升至 data.js 的 NAV（按讲懒加载后，冷启动侧栏也要完整） */
   const l2 = D.otherLectures.find(l => l.no === 2);
-  if (l2) l2.done = true;
+  if (l2) l2.live = true;
 })();
 
 /* ===== L2 官方视频索引 · official video index（第 8 轮新增）=====

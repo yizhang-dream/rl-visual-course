@@ -1287,12 +1287,14 @@
     <div class="course-map-card">
       <h3 class="sub" style="margin-top:0"><span v-html="bi('课程索引：逐讲进入','Lecture index: enter any lesson')"></span></h3>
       <div class="lx-grid">
-        <button v-for="l in lectures" :key="l.no" class="lx-card reveal-item" :class="l.done ? 'done' : 'pending'"
+        <!-- l.live = 该讲已上线（发布态，源 data.js LECTURES），不是学习进度；
+             学习进度只在侧栏小节的已读圆点（rl-viz-visited），首页不渲染任何"已完成" -->
+        <button v-for="l in lectures" :key="l.no" class="lx-card reveal-item" :class="l.live ? '' : 'pending'"
                 @click="$emit('go', firstId[l.no])">
-          <span class="lx-no">LESSON {{ l.no }} {{ l.done ? '· ✓ 已完成 done' : '· Soon' }}</span>
+          <span class="lx-no">LESSON {{ l.no }}{{ l.live ? '' : ' · Soon' }}</span>
           <span class="lx-zh">{{ l.zh }}</span>
           <span class="lx-en">{{ l.en }}</span>
-          <span class="lx-go" v-if="l.done" v-html="bi('进入本讲 →','Enter →')"></span>
+          <span class="lx-go" v-if="l.live" v-html="bi('进入本讲 →','Enter →')"></span>
         </button>
       </div>
     </div>`,
@@ -1491,10 +1493,86 @@
     </div>`,
   };
 
+  /* ═════════════ 实验台锚点 + 分享按钮（全站通用注入） ═════════════
+     app.js 在小节渲染后调用 window.RLV.enhanceLabs(容器)：
+     1) 给容器内每个 .lab 赋稳定 id「lab-<sectionId>」，同节多台按文档序后缀 -2/-3…
+        —— 文档序是数据的确定函数：各讲数据经 ensureLecture 注入后才渲染，
+        Vue 按 blocks 数组顺序同步出 DOM，不存在异步乱序，故命名可复现；
+        已有 id / 已注入过的 .lab（data-lab-anchor 标记）一律跳过，幂等。
+     2) 每台右上角注入一枚分享按钮：点击把「页面绝对 URL + #lab-锚点」写剪贴板
+        （navigator.clipboard 优先，execCommand 降级兜 file://），
+        同时 history.replaceState 静默把地址栏 hash 指到该台；
+        反馈「已复制 / Copied」用 .zh/.en du-line 双语行，语言模式由 body[data-lang] 接管。
+     不碰各实验台组件内部状态，45+ 个组件零改动。 */
+  function labAnchorOf(lab, sec) {
+    const secId = sec.id.replace(/^sec-/, '');
+    const siblings = Array.prototype.slice.call(sec.querySelectorAll('.lab'));
+    const idx = siblings.indexOf(lab);            // 0-based，文档序 = 数据块序
+    return 'lab-' + secId + (idx > 0 ? '-' + (idx + 1) : '');
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text);
+    }
+    // 降级：file:// / 旧浏览器 / 剪贴板权限被拒时走隐藏 textarea + execCommand
+    return new Promise((resolve, reject) => {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      let okFlag;
+      try { okFlag = document.execCommand('copy'); } catch { okFlag = false; }
+      document.body.removeChild(ta);
+      if (okFlag) resolve(); else reject(new Error('execCommand copy failed'));
+    });
+  }
+
+  function injectShareButton(lab) {
+    if (lab.querySelector(':scope > .lab-share')) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'lab-share';
+    btn.setAttribute('aria-label', '复制本实验台链接 / Copy link to this lab');
+    btn.setAttribute('title', '复制本实验台链接 / Copy link to this lab');
+    btn.innerHTML =
+      '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>'
+      + '<span class="lab-share-tip" role="status" aria-live="polite">'
+      + bi('已复制', 'Copied') + '</span>';
+    btn.addEventListener('click', () => {
+      const url = location.href.split('#')[0] + '#' + lab.id;   // file:// 下 origin 为 "null"，用 href 兜底
+      try { history.replaceState(null, '', '#' + lab.id); } catch { /* 历史栈不可用就只写剪贴板 */ }
+      copyText(url).then(() => {
+        btn.classList.add('copied');
+        clearTimeout(btn.__labTipTimer);
+        btn.__labTipTimer = setTimeout(() => btn.classList.remove('copied'), 1600);
+      }).catch((e) => console.error('[lab-share] 剪贴板写入失败', e));
+    });
+    lab.appendChild(btn);
+  }
+
+  function enhanceLabs(scope) {
+    const root = scope || document;
+    if (!root || !root.querySelectorAll) return;
+    const labs = Array.prototype.slice.call(root.querySelectorAll('.lab'));
+    if (root.classList && root.classList.contains('lab')) labs.push(root);
+    labs.forEach((lab) => {
+      if (lab.dataset.labAnchor) return;              // 已注入过：幂等跳过
+      const sec = lab.closest('.lesson-section');
+      if (!sec || !sec.id) return;                    // 首页等非小节场景不注入
+      if (!lab.id) lab.id = labAnchorOf(lab, sec);    // 不覆盖已有 id
+      lab.dataset.labAnchor = lab.id;
+      injectShareButton(lab);
+    });
+  }
+
   /* ═════════════ 注册 ═════════════ */
   // 共享助手：后续 per-lecture 组件文件通过 window.RLV 复用
   window.RLV = { stepOnce, s2rc, rc2s, center, bi, TYPE_LABEL, hlPy, CELL, PAD, STAR, rng,
-    parseBlanks, parseNum, judgeBlank };
+    parseBlanks, parseNum, judgeBlank, enhanceLabs };
 
   window.COMPONENTS = {
     GridBoard,

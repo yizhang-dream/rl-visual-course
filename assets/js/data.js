@@ -797,17 +797,21 @@ if __name__ == "__main__":
   ];
 
   // widgets = 本讲交互实验台数（widget 块数不含 concept-chain 复盘链与 notebook-bridge 入口卡；L2-L10 各含 1 个 derivation-lab），须与数据实际一致
+  // live = 该讲已上线可进入（内容发布态）。不是用户学习进度——进度只来自
+  // localStorage['rl-viz-visited']（按真实激活小节累积），新访客必须为零。
+  // （历史坑：这里曾叫 done 且恒为 true，首页索引/侧栏把它渲染成"✓ 已完成"，
+  //   新访客开局即"全书完成"——bug「进度默认全打勾」的根因，已改名切断。）
   const LECTURES = [
-    { no: 1, zh: '基本概念', en: 'Basic concepts', done: true, widgets: 13 },
-    { no: 2, zh: '状态价值与 Bellman 方程', en: 'Bellman equation', done: true, widgets: 10 },
-    { no: 3, zh: 'Bellman 最优方程', en: 'Bellman optimality', done: true, widgets: 9 },
-    { no: 4, zh: '值迭代与策略迭代', en: 'VI & PI', done: true, widgets: 8 },
-    { no: 5, zh: '蒙特卡洛方法', en: 'Monte Carlo', done: true, widgets: 8 },
-    { no: 6, zh: '随机近似', en: 'Stochastic approx.', done: true, widgets: 8 },
-    { no: 7, zh: '时序差分方法', en: 'Temporal-difference', done: true, widgets: 7 },
-    { no: 8, zh: '值函数近似', en: 'Value function approx.', done: true, widgets: 6 },
-    { no: 9, zh: '策略梯度方法', en: 'Policy gradient', done: true, widgets: 6 },
-    { no: 10, zh: 'Actor-Critic', en: 'Actor-Critic', done: true, widgets: 6 },
+    { no: 1, zh: '基本概念', en: 'Basic concepts', live: true, widgets: 13 },
+    { no: 2, zh: '状态价值与 Bellman 方程', en: 'Bellman equation', live: true, widgets: 10 },
+    { no: 3, zh: 'Bellman 最优方程', en: 'Bellman optimality', live: true, widgets: 9 },
+    { no: 4, zh: '值迭代与策略迭代', en: 'VI & PI', live: true, widgets: 8 },
+    { no: 5, zh: '蒙特卡洛方法', en: 'Monte Carlo', live: true, widgets: 8 },
+    { no: 6, zh: '随机近似', en: 'Stochastic approx.', live: true, widgets: 8 },
+    { no: 7, zh: '时序差分方法', en: 'Temporal-difference', live: true, widgets: 7 },
+    { no: 8, zh: '值函数近似', en: 'Value function approx.', live: true, widgets: 6 },
+    { no: 9, zh: '策略梯度方法', en: 'Policy gradient', live: true, widgets: 6 },
+    { no: 10, zh: 'Actor-Critic', en: 'Actor-Critic', live: true, widgets: 6 },
   ];
 
   return {

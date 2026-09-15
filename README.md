@@ -145,7 +145,7 @@ rl-viz/
 | 第七轮 | 2026-09-14 | 见 git log | 充分理论推导 + 亲手跑代码：DerivationLab 走步式定理推导（L2–L10 共 12 条承重推导，关键步答对才放行，check_data 新增 derivationSets 契约 + KaTeX 严格渲染门禁）+ JupyterLite 笔记本实验室（hub 页 lite.html + NB0–NB6 七本 assert 自检笔记本 + 讲内 NotebookBridge 深链，瘦身子站 ~52MB）；实验台口径 72→81、组件 45→47、verify_site 扩到 50 断言 |
 | 第八轮 | 2026-09-15 | 见 git log | 官方资源贯通：每讲官方视频索引卡（官方 54 集清单与十讲分集对照，B 站 `?p=N` 与 YouTube `index=N` 同号，逐集中英双链 + 总览入口）+ `resources.html` 全书资料索引页（≥20 张资料卡：官方入口/教材勘误/社区实现/中文笔记/外部课程 + 合规提醒）+ 主站 hero/页脚入口；组件 47→48、verify_site 扩到 57 断言 |
 
-**质量门禁**：`npm test`（模板编译 + 数据完整性）与 `npm run lint` 本地必过；`node verify_site.js` 57 条冒烟断言 + 零 console 错误；推送后 GitHub Actions 自动跑 check + smoke 两个 job。
+**质量门禁**：`npm test`（模板编译 + 数据完整性）与 `npm run lint` 本地必过；`node verify_site.js` 79 条冒烟断言（含新访客零进度 / 老访客进度保留回归门 / 实验台锚点深链与分享）+ 零 console 错误；推送后 GitHub Actions 自动跑 check + smoke 两个 job。
 
 ## 开源协议
 

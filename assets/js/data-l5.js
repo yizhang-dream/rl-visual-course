@@ -462,7 +462,7 @@ def mc_basic(env, n_episodes=50, gamma=0.9, max_outer=20, max_steps=200):
 
   /* 导航组注册已提升至 data.js 的 NAV（按讲懒加载后，冷启动侧栏也要完整） */
   const l5 = D.otherLectures.find(l => l.no === 5);
-  if (l5) l5.done = true;
+  if (l5) l5.live = true;
 })();
 
 /* ===== L5 官方视频索引 · official video index（第 8 轮新增）=====

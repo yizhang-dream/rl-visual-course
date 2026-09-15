@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>术语索引 · Concordance — RL 可视化课堂</title>
+<meta name="description" content="全书关键术语反向索引：46 条中英双语术语 → 十讲 88 小节中的全部出现位置。点击术语展开出现小节列表，逐条深链进课堂对应小节；支持按术语名或讲号过滤。">
+<script>
+// 主题防闪烁：在样式表生效前定好 data-theme（与 index.html / resources.html 同款机制）
+try { document.documentElement.dataset.theme = localStorage.getItem('rl-viz-theme') || 'chalk'; } catch (e) {}
+// 静态资源版本戳：与站点一致，靠它穿透浏览器长缓存
+window.RLV_VERSION = '20260916b';
+</script>
+<link rel="stylesheet" href="assets/css/main.css?v=20260916b">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   术语索引（concordance）· 独立静态页（resources.html 同款骨架）
+   只写布局；颜色全部走 main.css 的 token（五主题自动成立），不写死色值
+   双语显隐靠 main.css 全局规则 + span.zh / span.en，页内不写语言规则
+   ═══════════════════════════════════════════════════════════════ */
+
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font);
+  color: var(--ink);
+  background: var(--bg);
+}
+
+/* ── 顶栏（res-topbar 同款手法） ── */
+.cc-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  height: 56px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  background: var(--topbar-bg);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+}
+.cc-nav { display: flex; gap: 4px; flex: none; }
+.cc-nav a {
+  color: var(--ink-2);
+  text-decoration: none;
+  font: 600 13px var(--font);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  white-space: nowrap;
+  transition: all var(--t-fast) var(--ease);
+}
+.cc-nav a:hover { color: var(--ink); background: var(--bg-soft); border-color: var(--line); }
+.cc-heading {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  font: 700 16px var(--display);
+  color: var(--ink);
+  overflow: hidden;
+  white-space: nowrap;
+}
+.cc-heading .en { font: 500 12.5px var(--font); color: var(--ink-3); letter-spacing: .4px; }
+.cc-tools { flex: none; display: flex; align-items: center; gap: 10px; }
+
+.cc-lang {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-radius: 99px;
+}
+.cc-lang-btn {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: 600 12px var(--font);
+  color: var(--ink-2);
+  padding: 4px 11px;
+  border-radius: 99px;
+  transition: all var(--t-fast) var(--ease);
+}
+.cc-lang-btn:hover { color: var(--ink); }
+.cc-lang-btn.is-active { background: var(--surface); color: var(--accent-deep); box-shadow: var(--shadow-1); }
+
+.cc-themes {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 6px;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-radius: 99px;
+}
+.cc-theme-btn {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 99px;
+  background: transparent;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: transform var(--t-fast) var(--ease);
+}
+.cc-theme-btn:hover { transform: scale(1.14); }
+.cc-theme-btn.is-active { box-shadow: 0 0 0 2px var(--bg-soft), 0 0 0 4px var(--ink-3); }
+.cc-theme-dot {
+  display: block;
+  width: 13px;
+  height: 13px;
+  border-radius: 99px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 16%, transparent);
+}
+.dot-theme-chalk { background: var(--gold); }
+.dot-theme-swiss { background: var(--accent); }
+.dot-theme-quant { background: var(--cyan); }
+.dot-theme-forest { background: var(--green); }
+.dot-theme-classic { background: var(--violet); }
+
+/* ── 主体 ── */
+.cc-main { flex: 1; width: 100%; max-width: 1100px; margin: 0 auto; padding: 40px 20px 64px; }
+
+.cc-hero { margin-bottom: 26px; }
+.cc-kicker {
+  margin: 0;
+  font: 700 11px var(--font);
+  color: var(--ink-3);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+.cc-title {
+  margin: 8px 0 10px;
+  font: 700 clamp(24px, 4vw, 34px) / 1.2 var(--display);
+  color: var(--ink);
+}
+.cc-lead { margin: 0 0 18px; max-width: 76ch; font: 400 15px / 1.75 var(--font); color: var(--ink-2); }
+
+.cc-stats {
+  display: flex;
+  align-items: center;
+  gap: 6px 18px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  max-width: 82ch;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-1);
+  font: 600 13px var(--font);
+  color: var(--ink-2);
+}
+.cc-stats b { color: var(--accent-deep); font: 700 14px var(--mono); }
+
+/* ── 工具行：过滤 + 排序 + 可见计数 ── */
+.cc-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 26px 0 14px;
+}
+.cc-search {
+  flex: 1;
+  min-width: 200px;
+  max-width: 380px;
+  padding: 9px 14px;
+  font: 500 13.5px var(--font);
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease);
+}
+.cc-search::placeholder { color: var(--ink-3); }
+.cc-search:focus { border-color: var(--accent); box-shadow: var(--shadow-1); }
+.cc-sort {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-radius: 99px;
+}
+.cc-sort-btn {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: 600 12px var(--font);
+  color: var(--ink-2);
+  padding: 5px 12px;
+  border-radius: 99px;
+  transition: all var(--t-fast) var(--ease);
+}
+.cc-sort-btn:hover { color: var(--ink); }
+.cc-sort-btn.is-active { background: var(--surface); color: var(--accent-deep); box-shadow: var(--shadow-1); }
+.cc-count { margin-left: auto; font: 600 12px var(--mono); color: var(--ink-3); white-space: nowrap; }
+
+/* ── 术语网格 ── */
+.cc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+.cc-term {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-1);
+  overflow: hidden;
+  transition: box-shadow var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+.cc-term:hover { box-shadow: var(--shadow-2); border-color: var(--line-strong); }
+.cc-term-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font);
+  color: var(--ink);
+}
+.cc-term-name { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.cc-term-name .zh { font: 700 15px / 1.3 var(--display); color: var(--ink); overflow-wrap: anywhere; }
+.cc-term-name .en { font: 500 11.5px var(--mono); color: var(--ink-3); letter-spacing: .2px; overflow-wrap: anywhere; }
+.cc-term-alias {
+  flex: none;
+  max-width: 34%;
+  font: 500 10.5px / 1.4 var(--mono);
+  color: var(--ink-3);
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.cc-term-count {
+  flex: none;
+  min-width: 34px;
+  padding: 3px 8px;
+  border-radius: 99px;
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+  font: 700 12px var(--mono);
+  text-align: center;
+}
+.cc-chevron { flex: none; color: var(--ink-3); transition: transform var(--t-fast) var(--ease); }
+.cc-term.open .cc-chevron { transform: rotate(180deg); }
+.cc-term-body {
+  border-top: 1px solid var(--line);
+  padding: 8px 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.cc-hit {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  transition: background var(--t-fast) var(--ease);
+}
+.cc-hit:hover { background: var(--bg-soft); }
+.cc-hit-no {
+  flex: none;
+  font: 700 11px var(--mono);
+  color: var(--accent-deep);
+  white-space: nowrap;
+}
+.cc-hit-title { font: 400 12.5px / 1.55 var(--font); color: var(--ink-2); overflow-wrap: anywhere; }
+.cc-hit:hover .cc-hit-title { color: var(--ink); }
+.cc-empty {
+  padding: 34px 16px;
+  text-align: center;
+  font: 400 13.5px var(--font);
+  color: var(--ink-3);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+}
+
+/* ── 页脚 ── */
+.cc-foot {
+  flex: none;
+  padding: 18px 20px 26px;
+  text-align: center;
+  font: 400 12px var(--font);
+  color: var(--ink-3);
+  border-top: 1px solid var(--line);
+}
+.cc-foot a { color: var(--ink-2); text-decoration: none; border-bottom: 1px dotted var(--line-strong); }
+.cc-foot a:hover { color: var(--accent-deep); }
+
+@media (max-width: 720px) {
+  .cc-topbar { flex-wrap: wrap; height: auto; min-height: 56px; padding: 8px 10px; gap: 8px; }
+  .cc-heading { order: 3; flex-basis: 100%; font-size: 14px; }
+  .cc-main { padding: 26px 14px 48px; }
+  .cc-term-alias { display: none; }
+}
+</style>
+</head>
+
+<body data-lang="both">
+
+<header class="cc-topbar">
+  <nav class="cc-nav" aria-label="站点导航 / Site navigation">
+    <a href="index.html"><span class="zh">← 返回课堂</span><span class="en">← Classroom</span></a>
+    <a href="graph3d.html"><span class="zh">星图</span><span class="en">Graph</span></a>
+    <a href="lite.html"><span class="zh">笔记本</span><span class="en">Notebooks</span></a>
+    <a href="resources.html"><span class="zh">资料</span><span class="en">Resources</span></a>
+  </nav>
+  <h1 class="cc-heading"><span class="zh">术语索引 · 全书反查</span><span class="en">Concordance</span></h1>
+  <div class="cc-tools">
+    <div class="cc-lang" role="group" aria-label="Language / 语言">
+      <button type="button" class="cc-lang-btn" data-lang="both"><span class="zh">双语</span><span class="en">Both</span></button>
+      <button type="button" class="cc-lang-btn" data-lang="zh">中</button>
+      <button type="button" class="cc-lang-btn" data-lang="en">EN</button>
+    </div>
+    <div class="cc-themes" role="group" aria-label="Theme / 主题">
+      <button type="button" class="cc-theme-btn" data-theme="chalk" title="墨板 Chalkboard" aria-label="chalk"><span class="cc-theme-dot dot-theme-chalk"></span></button>
+      <button type="button" class="cc-theme-btn" data-theme="swiss" title="讲义 Swiss Notes" aria-label="swiss"><span class="cc-theme-dot dot-theme-swiss"></span></button>
+      <button type="button" class="cc-theme-btn" data-theme="quant" title="深空 Quant Dark" aria-label="quant"><span class="cc-theme-dot dot-theme-quant"></span></button>
+      <button type="button" class="cc-theme-btn" data-theme="forest" title="教科书 Forest" aria-label="forest"><span class="cc-theme-dot dot-theme-forest"></span></button>
+      <button type="button" class="cc-theme-btn" data-theme="classic" title="经典 Classic" aria-label="classic"><span class="cc-theme-dot dot-theme-classic"></span></button>
+    </div>
+  </div>
+</header>
+
+<main class="cc-main">
+
+  <section class="cc-hero">
+    <p class="cc-kicker">Mathematics of RL · Term Concordance</p>
+    <h2 class="cc-title"><span class="zh">一个术语，全书哪里讲过？</span><span class="en">One term, every section that teaches it</span></h2>
+    <p class="cc-lead">
+      <span class="zh">关键术语的反向索引：每个术语列出全书十讲中它出现过的所有小节，逐条深链直达课堂对应位置。术语表由脚本对全书小节文本构建期扫描生成（ <code>npm run build:concordance</code> ），匹配中文名、英文名与站点行文的别名写法。</span>
+      <span class="en">A reverse index of key terms: each term lists every section of the ten lectures where it appears, with deep links into the classroom. The table is generated at build time by scanning section text (<code>npm run build:concordance</code>), matching Chinese names, English names and the site's own wording.</span>
+    </p>
+    <div id="cc-stats" class="cc-stats" aria-live="polite"></div>
+  </section>
+
+  <div class="cc-toolbar">
+    <input id="cc-filter" class="cc-search" type="search" autocomplete="off" spellcheck="false"
+           placeholder="过滤：术语名 / 别名 / 讲号（如 L7）… "
+           aria-label="过滤术语 / Filter terms">
+    <div class="cc-sort" role="group" aria-label="排序 / Sort">
+      <button type="button" class="cc-sort-btn is-active" data-sort="hot"><span class="zh">按出现数</span><span class="en">By count</span></button>
+      <button type="button" class="cc-sort-btn" data-sort="name"><span class="zh">按名称</span><span class="en">By name</span></button>
+    </div>
+    <span id="cc-count" class="cc-count"></span>
+  </div>
+
+  <div id="cc-grid" class="cc-grid"></div>
+  <div id="cc-empty" class="cc-empty" hidden><span class="zh">没有匹配的术语——试试别的关键词或讲号。</span><span class="en">No matching term — try another keyword or lecture number.</span></div>
+
+</main>
+
+<footer class="cc-foot">
+  <span class="zh">术语索引 · 随全书内容构建 · 返回<a href="index.html">课堂</a>、<a href="graph3d.html">知识星图</a>或<a href="resources.html">资料索引</a></span>
+  <span class="en">Concordance · built from the whole book · back to the <a href="index.html">classroom</a>, the <a href="graph3d.html">constellation</a> or <a href="resources.html">resources</a></span>
+</footer>
+
+<script src="assets/js/concordance-data.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var THEME_KEY = 'rl-viz-theme';
+  var LANG_KEY = 'rl-viz-lang';
+
+  function lsGet(key) {
+    try { return localStorage.getItem(key); } catch (err) { return null; } // 隐私模式下用默认值
+  }
+  function lsSet(key, val) {
+    try { localStorage.setItem(key, val); } catch (err) { /* 隐私模式下静默 */ }
+  }
+
+  /* ── 主题 / 语言（照 resources.html 同款机制，读写共享 localStorage 键） ── */
+  function setTheme(key) {
+    if (!key) return;
+    document.documentElement.dataset.theme = key;
+    lsSet(THEME_KEY, key);
+    document.querySelectorAll('.cc-theme-btn').forEach(function (b) {
+      var on = b.dataset.theme === key;
+      b.classList.toggle('is-active', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+  function setLang(key) {
+    var k = (key === 'zh' || key === 'en') ? key : 'both';
+    document.body.dataset.lang = k;
+    lsSet(LANG_KEY, k);
+    document.documentElement.lang = k === 'en' ? 'en' : 'zh-CN';
+    document.querySelectorAll('.cc-lang-btn').forEach(function (b) {
+      var on = b.dataset.lang === k;
+      b.classList.toggle('is-active', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+
+  /* ── 渲染术语网格 ── */
+  var DATA = window.CONCORDANCE || null;
+  var grid = document.getElementById('cc-grid');
+  var emptyBox = document.getElementById('cc-empty');
+  var countBox = document.getElementById('cc-count');
+  var filterBox = document.getElementById('cc-filter');
+  var sortMode = 'hot';
+
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function hitHtml(s) {
+    return '<a class="cc-hit" href="index.html#sec-' + esc(s.id) + '" target="_blank" rel="noopener">'
+      + '<span class="cc-hit-no">L' + s.no + ' · §' + s.sec + '</span>'
+      + '<span class="cc-hit-title">' + esc(s.titleZh) + '</span>'
+      + '</a>';
+  }
+
+  function cardHtml(t) {
+    var lecs = [];
+    t.sections.forEach(function (s) { if (lecs.indexOf(s.no) < 0) lecs.push(s.no); });
+    var alias = t.alias.filter(function (a) { return a && a.indexOf('\\b') < 0; }).slice(0, 2).join(' · ');
+    var search = (t.zh + ' ' + t.en + ' ' + t.alias.join(' ')).toLowerCase();
+    return '<article class="cc-term" data-zh="' + esc(t.zh) + '" data-lecs="' + lecs.join(' ') + '"'
+      + ' data-search="' + esc(search) + '">'
+      + '<button type="button" class="cc-term-head" aria-expanded="false"'
+      + ' aria-label="' + esc(t.zh) + ' / ' + esc(t.en) + '，' + t.count + ' 个小节，点击展开">'
+      + '<span class="cc-term-name"><span class="zh">' + esc(t.zh) + '</span><span class="en">' + esc(t.en) + '</span></span>'
+      + (alias ? '<span class="cc-term-alias">' + esc(alias) + '</span>' : '')
+      + '<span class="cc-term-count">' + t.count + '</span>'
+      + '<svg class="cc-chevron" viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg>'
+      + '</button>'
+      + '<div class="cc-term-body" hidden>' + t.sections.map(hitHtml).join('') + '</div>'
+      + '</article>';
+  }
+
+  /* 过滤：术语名 / 别名子串，或讲号（7 / l7 → 该讲出现过的术语） */
+  function termMatches(card, q) {
+    if (!q) return true;
+    var lec = /^l?(\d{1,2})$/.exec(q);
+    if (lec) return (' ' + card.dataset.lecs + ' ').indexOf(' ' + lec[1] + ' ') >= 0;
+    return card.dataset.search.indexOf(q) >= 0;
+  }
+
+  function applyView() {
+    if (!DATA) return;
+    var q = (filterBox.value || '').trim().toLowerCase();
+    var cards = Array.prototype.slice.call(grid.querySelectorAll('.cc-term'));
+    cards.sort(function (a, b) {
+      if (sortMode === 'name') return a.dataset.zh.localeCompare(b.dataset.zh, 'zh-Hans-CN');
+      return parseInt(b.querySelector('.cc-term-count').textContent, 10)
+        - parseInt(a.querySelector('.cc-term-count').textContent, 10);
+    });
+    var visible = 0;
+    cards.forEach(function (card) {
+      var on = termMatches(card, q);
+      card.hidden = !on;
+      if (on) visible++;
+      grid.appendChild(card);   // 按 sortMode 重排（appendChild 移动节点）
+    });
+    emptyBox.hidden = visible !== 0;
+    countBox.textContent = visible + ' / ' + cards.length;
+  }
+
+  function renderStats() {
+    var box = document.getElementById('cc-stats');
+    if (!DATA) {
+      box.textContent = 'CONCORDANCE data missing — run: npm run build:concordance';
+      return;
+    }
+    var zh = '<span class="zh"><b>' + DATA.terms.length + '</b> 条术语 · 覆盖 <b>' + DATA.sectionsCovered
+      + '</b> / ' + DATA.sectionsTotal + ' 个小节 · 十讲全书反查 · 构建于 ' + DATA.generatedAt + '</span>';
+    var en = '<span class="en"><b>' + DATA.terms.length + '</b> terms · <b>' + DATA.sectionsCovered
+      + '</b> / ' + DATA.sectionsTotal + ' sections covered · whole-book reverse index · built ' + DATA.generatedAt + '</span>';
+    box.innerHTML = zh + en;
+  }
+
+  function init() {
+    var theme = lsGet(THEME_KEY) || 'chalk';
+    var lang = lsGet(LANG_KEY) || 'both';
+
+    document.querySelectorAll('.cc-theme-btn').forEach(function (b) {
+      b.addEventListener('click', function () { setTheme(b.dataset.theme); });
+    });
+    document.querySelectorAll('.cc-lang-btn').forEach(function (b) {
+      b.addEventListener('click', function () { setLang(b.dataset.lang); });
+    });
+    document.querySelectorAll('.cc-sort-btn').forEach(function (b) {
+      b.addEventListener('click', function () {
+        sortMode = b.dataset.sort === 'name' ? 'name' : 'hot';
+        document.querySelectorAll('.cc-sort-btn').forEach(function (x) {
+          x.classList.toggle('is-active', x === b);
+        });
+        applyView();
+      });
+    });
+    filterBox.addEventListener('input', applyView);
+
+    // 展开 / 收起（事件委托：新标签打开深链不受影响）
+    grid.addEventListener('click', function (ev) {
+      var head = ev.target.closest ? ev.target.closest('.cc-term-head') : null;
+      if (!head || !grid.contains(head)) return;
+      var card = head.parentElement;
+      var body = card.querySelector('.cc-term-body');
+      var open = card.classList.toggle('open');
+      body.hidden = !open;
+      head.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+
+    renderStats();
+    if (DATA) {
+      grid.innerHTML = DATA.terms.map(cardHtml).join('');
+      applyView();
+    } else {
+      emptyBox.hidden = false;
+    }
+
+    setTheme(theme);
+    setLang(lang);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+</body>
+</html>

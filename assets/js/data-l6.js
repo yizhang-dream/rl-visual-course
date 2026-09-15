@@ -477,7 +477,7 @@ def sgd_mean(samples, alpha=0.1, w0=0.0):
 
   /* 导航组注册已提升至 data.js 的 NAV（按讲懒加载后，冷启动侧栏也要完整） */
   const l6 = D.otherLectures.find(l => l.no === 6);
-  if (l6) l6.done = true;
+  if (l6) l6.live = true;
 })();
 
 /* ===== L6 官方视频索引 · official video index（第 8 轮新增）=====

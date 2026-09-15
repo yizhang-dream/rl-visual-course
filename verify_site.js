@@ -2,7 +2,15 @@
 // 断言计数：40 条基础冒烟 + 2 条 derivation-lab L2 冒烟（走步放行 + KaTeX 渲染）+ 2 条 L9 长链冒烟
 //   + 1 条 DATA 全量挂载扫描（L2–L10 qa 节 derivation-lab / code 节 notebook-bridge）
 //   + 2 条 notebook-bridge 冒烟（.nb-card 渲染 + 深链格式）+ 3 条 lite 冒烟（200 / 卡片数 / lab 可达）
-//   + 7 条 resources 冒烟（resources 页 200 / #res-stats 含 54 / .res-card ≥ 20 + L2 官方视频卡 3 条 + L7 抽查 1 条）。
+//   + 7 条 resources 冒烟（resources 页 200 / #res-stats 含 54 / .res-card ≥ 20 + L2 官方视频卡 3 条 + L7 抽查 1 条）
+//   + 5 条 concordance 冒烟（200 / 标题 / 术语数 ≥ 30 / 统计行口径 / 随机术语深链格式）
+//   + 6 条新访客零进度（progress-fresh：冷启动 rl-viz-visited 为空，侧栏已读圆点 / 讲筛选 chip /
+//     全部课程徽章 / 首页课程索引全部无"已完成"打勾——bug「进度默认全打勾」回归门，
+//     断言位于任何会触发小节激活的导航之前）+ 3 条老访客进度保留（progress-old：独立上下文
+//     预置 rl-viz-visited，冷启动原样读回、已读圆点点亮、localStorage 不被清写）。
+//   + 8 条实验台锚点/分享（smoke-lab-link/share：#lab- 深链后 hash 保持 / L7 chip 激活 /
+//     侧栏 active 落在 l7-td0 / 锚点存在 / 实验台在视口内，随机台点分享后 hash 变 #lab-… /
+//     「已复制 Copied」反馈态，另含 1 条零 pageerror 守卫）。
 // 门控规则：derivation-lab 两处——window.DATA.derivationSets 注册表全空 → SKIP（内容未落，计通过）；
 //   注册表非空而 #sec-l2-qa 无 .deriv-lab → FAIL（接线错，reviewer note N2）。
 //   lite/lab/index.html 可达性——lite/ 未构建时 SKIP 并提示（PLAN 第七轮坑 7 模式）。
@@ -28,6 +36,34 @@ fs.mkdirSync(OUT, { recursive: true });
   // 冒烟断言集中计数：ok(条件, 失败文案) —— 失败文案进 errors，计数进汇总行
   let assertTotal = 0, assertFail = 0;
   const ok = (cond, failMsg) => { assertTotal++; if (!cond) { assertFail++; errors.push(failMsg); } return cond; };
+
+  // 0p. 新访客零进度回归门（bug「进度默认全打勾」）：全新上下文首次加载首页，
+  //     在任何会触发小节激活的导航之前断言——学习进度唯一来源是 localStorage['rl-viz-visited']
+  //     （此刻为空），因此侧栏已读圆点、讲筛选 chip、全部课程徽章、首页课程索引
+  //     都不允许出现任何"已完成"式打勾。
+  try {
+    await page.goto('http://localhost:8642/', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(900);
+    const fresh = await page.evaluate(() => ({
+      visited: localStorage.getItem('rl-viz-visited'),
+      navDone: document.querySelectorAll('.side-nav .nav-item.done').length,
+      chipDone: document.querySelectorAll('.lecture-filter .lf-chip.done').length,
+      badgeDone: document.querySelectorAll('.coming-badge.done').length,
+      lxDone: document.querySelectorAll('.lx-card.done').length,
+      lxText: ((document.querySelector('.lx-grid') || {}).textContent || '').replace(/\s+/g, ' '),
+    }));
+    ok(fresh.visited == null || fresh.visited === '[]',
+      '[progress-fresh] cold home rl-viz-visited = ' + fresh.visited + ' (expect null/[] on first visit)');
+    ok(fresh.navDone === 0, '[progress-fresh] .side-nav .nav-item.done = ' + fresh.navDone + ' (expect 0)');
+    ok(fresh.chipDone === 0, '[progress-fresh] .lecture-filter .lf-chip.done = ' + fresh.chipDone + ' (expect 0)');
+    ok(fresh.badgeDone === 0, '[progress-fresh] .coming-badge.done = ' + fresh.badgeDone + ' (expect 0)');
+    ok(fresh.lxDone === 0, '[progress-fresh] .lx-card.done = ' + fresh.lxDone + ' (expect 0)');
+    ok(fresh.lxText.indexOf('已完成') < 0,
+      '[progress-fresh] homepage lecture index shows 已完成 for fresh visitor: "' + fresh.lxText.slice(0, 80) + '"');
+    console.log('progress-fresh assert: visited=' + fresh.visited + ' navDone=' + fresh.navDone
+      + ' chipDone=' + fresh.chipDone + ' badgeDone=' + fresh.badgeDone
+      + ' lxDone=' + fresh.lxDone + ' indexHasDoneText=' + (fresh.lxText.indexOf('已完成') >= 0));
+  } catch (e) { errors.push('[progress-fresh] ' + e.message); }
 
   // 0. 懒加载冒烟：冷启动首页不注入任何讲脚本；深链进入 L7 后注入 data-l7 而 data-l8 仍缺席
   try {
@@ -78,6 +114,85 @@ fs.mkdirSync(OUT, { recursive: true });
     ok(backTop != null && backTop <= 220, '[smoke-back] section top after goBack = ' + backTop);
     await page.screenshot({ path: path.join(OUT, 'smoke-back-nav.png') });
   } catch (e) { errors.push('[smoke-deeplink/back] ' + e.message); }
+
+  // 0c. 实验台锚点深链：全新上下文直开 #lab-l7-td0 → 对应小节已激活（L7 单讲视图 +
+  //     侧栏 active 落在 l7-td0）且该 .lab 锚点存在并落在视口内（boundingBox 相交）。
+  // 0d. 分享按钮：同页随机抽 1 个 .lab 的 .lab-share 点击 → 地址栏 hash 变为 #lab-…
+  //     且按钮出现「已复制 Copied」双语反馈态（.copied）。
+  try {
+    const pLab = await browser.newPage({ viewport: { width: 1440, height: 950 } });
+    const errsLab = [];
+    pLab.on('pageerror', (e) => errsLab.push(e.message));
+    await pLab.goto('http://localhost:8642/#lab-l7-td0', { waitUntil: 'networkidle' });
+    await pLab.waitForTimeout(1800);   // 懒加载注入 data-l7/components-l7 + 350ms 二次校准
+    const labState = await pLab.evaluate(() => {
+      const chip = document.querySelector('.lecture-filter .lf-chip.active');
+      const navActive = document.querySelector('.side-nav .nav-item.active .nav-zh');
+      const lab = document.getElementById('lab-l7-td0');
+      let inView = false;
+      if (lab) {
+        const r = lab.getBoundingClientRect();
+        inView = r.height > 0 && r.bottom > 0 && r.top < window.innerHeight
+          && r.right > 0 && r.left < window.innerWidth;
+      }
+      return {
+        hash: location.hash,
+        chip: chip ? chip.textContent.trim() : null,
+        navActive: navActive ? navActive.textContent.trim() : null,
+        labFound: !!lab,
+        inView,
+        labTop: lab ? Math.round(lab.getBoundingClientRect().top) : null,
+      };
+    });
+    ok(labState.hash === '#lab-l7-td0', '[smoke-lab-link] hash = ' + labState.hash
+      + " (expect '#lab-l7-td0' kept after deep-link landing)");
+    ok(/L7/.test(labState.chip || ''), '[smoke-lab-link] active chip = ' + labState.chip
+      + ' (expect L7 lecture view)');
+    ok(/TD/.test(labState.navActive || ''), '[smoke-lab-link] active nav item = '
+      + labState.navActive + " (expect l7-td0 'TD 学习…')");
+    ok(labState.labFound, '[smoke-lab-link] #lab-l7-td0 anchor not found in DOM');
+    ok(labState.inView, '[smoke-lab-link] #lab-l7-td0 not in viewport (top=' + labState.labTop + ')');
+    await pLab.screenshot({ path: path.join(OUT, 'smoke-lab-deeplink.png') });
+
+    // 剪贴板权限尽早授予（无头环境差异仅影响 clipboard 内容读取，不判分）
+    let clipTxt = '(not read)';
+    try {
+      await pLab.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+    } catch (e) { clipTxt = '(grant failed: ' + e.message.split('\n')[0] + ')'; }
+
+    // 0d. 随机抽 1 个实验台点分享 → hash 变 #lab-… + 反馈态
+    const sharePick = await pLab.evaluate(() => {
+      const btns = Array.from(document.querySelectorAll('.lab .lab-share'));
+      if (!btns.length) return null;
+      const btn = btns[Math.floor(Math.random() * btns.length)];
+      const lab = btn.closest('.lab');
+      btn.click();
+      return { total: btns.length, anchor: lab ? lab.id : null };
+    });
+    await pLab.waitForTimeout(400);
+    const shareHash = await pLab.evaluate(() => location.hash);
+    const copiedOn = await pLab.evaluate(() => {
+      const b = document.querySelector('.lab-share.copied');
+      return b ? ((b.closest('.lab') || {}).id || '(lab without id)') : null;
+    });
+    ok(!!sharePick && /^#lab-/.test(shareHash) && shareHash === '#' + (sharePick || {}).anchor,
+      '[smoke-lab-share] after click hash = ' + shareHash + ' (picked '
+      + (sharePick ? sharePick.anchor : 'none') + ' of ' + (sharePick ? sharePick.total : 0) + ' labs)');
+    ok(copiedOn === (sharePick ? sharePick.anchor : null) && copiedOn !== null,
+      '[smoke-lab-share] .lab-share.copied feedback not shown on picked lab (got ' + copiedOn + ')');
+    // 剪贴板内容仅记录不判分：hash/反馈态已是行为证据
+    try {
+      clipTxt = await pLab.evaluate(() => navigator.clipboard.readText());
+    } catch (e) { clipTxt += ' (read failed: ' + e.message.split('\n')[0] + ')'; }
+    ok(errsLab.length === 0, '[smoke-lab-link] pageerrors: ' + errsLab.join(' | '));
+    await pLab.screenshot({ path: path.join(OUT, 'smoke-lab-share.png') });
+    await pLab.close();
+    console.log('lab-link assert: hash=' + labState.hash + ' chip=' + labState.chip
+      + ' nav=' + labState.navActive + ' inView=' + labState.inView + ' top=' + labState.labTop);
+    console.log('lab-share assert: labs=' + (sharePick ? sharePick.total : 0)
+      + ' picked=' + (sharePick ? sharePick.anchor : 'none') + ' hash=' + shareHash
+      + ' copied=' + copiedOn + ' clipboard=' + clipTxt);
+  } catch (e) { errors.push('[smoke-lab-link/share] ' + e.message); }
 
   await page.goto('http://localhost:8642/', { waitUntil: 'networkidle' });
   await page.waitForTimeout(900);
@@ -651,6 +766,39 @@ fs.mkdirSync(OUT, { recursive: true });
       + ' l2Eps=' + l2Eps + ' l2CnHref=' + cnHrefs[0] + ' l7Eps=' + l7Eps);
   } catch (e) { errors.push('[smoke-resources] ' + e.message); }
 
+  // ── concordance 冒烟：术语索引页 200 + 标题 + 术语规模 ≥ 30 + 统计行口径 + 随机术语深链格式合法 ──
+  try {
+    const ccResp = await page.goto('http://localhost:8642/concordance.html', { waitUntil: 'networkidle' });
+    ok(!!ccResp && ccResp.status() === 200, '[smoke-concordance] concordance.html status = '
+      + (ccResp ? ccResp.status() : 'no-response'));
+    await page.waitForTimeout(500);   // 卡片在 DOMContentLoaded 后由 concordance-data.js 渲染
+    const ccTitle = await page.title();
+    ok(/术语索引/.test(ccTitle) && /Concordance/.test(ccTitle),
+      '[smoke-concordance] page title = ' + ccTitle + ' (expect 术语索引 + Concordance)');
+    const ccTerms = await page.locator('.cc-term').count();
+    ok(ccTerms >= 30, '[smoke-concordance] .cc-term count = ' + ccTerms + ' (expect >= 30)');
+    const ccStats = (await page.textContent('#cc-stats')) || '';
+    ok(ccStats.includes(String(ccTerms)) && ccStats.includes('/ 88'),
+      '[smoke-concordance] #cc-stats = "' + ccStats.trim().slice(0, 90)
+      + '" (expect term count ' + ccTerms + ' + / 88 coverage)');
+    // 随机抽 1 个术语：展开 → 首条深链 href 必须是 index.html#sec-<小节id> 格式
+    const ccPick = await page.evaluate((i) => {
+      const cards = Array.from(document.querySelectorAll('.cc-term'));
+      const card = cards[i];
+      if (!card) return { zh: '(no .cc-term rendered)', href: null };
+      card.querySelector('.cc-term-head').click();
+      const a = card.querySelector('.cc-term-body a.cc-hit');
+      return { zh: card.dataset.zh, href: a ? a.getAttribute('href') : null };
+    }, Math.floor(Math.random() * ccTerms));
+    ok(/^index\.html#sec-[a-z0-9-]+$/.test(ccPick.href || ''),
+      '[smoke-concordance] random term "' + ccPick.zh + '" deep-link href = ' + ccPick.href
+      + ' (expect index.html#sec-<id>)');
+    await page.screenshot({ path: path.join(OUT, 'concordance.png'), fullPage: true });
+    console.log('concordance assert: status=' + (ccResp && ccResp.status())
+      + ' title=' + ccTitle.slice(0, 30) + ' terms=' + ccTerms
+      + ' sample="' + ccPick.zh + '" href=' + ccPick.href);
+  } catch (e) { errors.push('[smoke-concordance] ' + e.message); }
+
   // ── file:// 双击可用冒烟：KaTeX 相对路径 css/字体在 file 协议下可加载、公式可渲染 ──
   try {
     const fileUrl = 'file:///' + encodeURI(__dirname.replace(/\\/g, '/')) + '/index.html#sec-l2-matrix';
@@ -672,6 +820,35 @@ fs.mkdirSync(OUT, { recursive: true });
     console.log('file:// assert: .katex=' + fKatex + ' mathml=' + (fMathml ? 'PRESENT' : 'null')
       + ' mtable=' + (fTable ? 'PRESENT' : 'null') + ' consoleErrors=' + errs2.length);
   } catch (e) { errors.push('[smoke-file] ' + e.message); }
+
+  // ── 老访客进度保留：独立上下文预置 rl-viz-visited（模拟历史进度），冷启动首页应原样
+  //   读回——已读小节圆点照常点亮、localStorage 不被清写损坏；讲级徽章仍无"已完成"打勾
+  //   （讲级 live/上线态不是用户进度）。回归门：修复不得破坏已有 visited 语义。
+  try {
+    const p3 = await browser.newPage({ viewport: { width: 1440, height: 950 } });
+    const seeded = JSON.stringify(['grid-world', 'l7-td0']);
+    await p3.addInitScript((v) => {
+      try { localStorage.setItem('rl-viz-visited', v); } catch { /* 隐私模式忽略 */ }
+    }, seeded);
+    await p3.goto('http://localhost:8642/', { waitUntil: 'networkidle' });
+    await p3.waitForTimeout(1200);
+    const oldv = await p3.evaluate(() => ({
+      stored: localStorage.getItem('rl-viz-visited'),
+      navDone: document.querySelectorAll('.side-nav .nav-item.done').length,
+      navTotal: document.querySelectorAll('.side-nav .nav-item').length,
+      chipDone: document.querySelectorAll('.lecture-filter .lf-chip.done').length,
+    }));
+    ok(oldv.stored === seeded, '[progress-old] rl-viz-visited after reload = ' + oldv.stored
+      + ' (expect unchanged ' + seeded + ')');
+    ok(oldv.navDone === 2, '[progress-old] .nav-item.done = ' + oldv.navDone
+      + ' (expect 2: grid-world + l7-td0 of ' + oldv.navTotal + ')');
+    ok(oldv.chipDone === 0, '[progress-old] .lf-chip.done = ' + oldv.chipDone
+      + ' (expect 0 — 讲级上线徽章不是进度)');
+    await p3.screenshot({ path: path.join(OUT, 'progress-old-sidebar.png') });
+    await p3.close();
+    console.log('progress-old assert: stored=' + oldv.stored + ' navDone=' + oldv.navDone
+      + '/' + oldv.navTotal + ' chipDone=' + oldv.chipDone);
+  } catch (e) { errors.push('[progress-old] ' + e.message); }
 
   await browser.close();
 

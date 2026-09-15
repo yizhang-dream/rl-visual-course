@@ -528,7 +528,7 @@ def q_learning(env, episodes=5000, gamma=0.9, alpha=0.1, eps=0.1, max_steps=200)
 
   /* 导航组注册已提升至 data.js 的 NAV（按讲懒加载后，冷启动侧栏也要完整） */
   const l7 = D.otherLectures.find(l => l.no === 7);
-  if (l7) l7.done = true;
+  if (l7) l7.live = true;
 })();
 
 /* ===== L7 官方视频索引 · official video index（第 8 轮新增）=====

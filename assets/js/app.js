@@ -141,10 +141,26 @@
       // 单一路径保证点击 / 后退前进 / 手改 URL / 刷新恢复行为一致。
       // 懒加载后，路由先 await ensureLecture(目标讲) 再渲染：
       // 侧栏点击 / 上一节下一节跨讲 / 深链冷启动全部汇聚于此，无需各改。
+      // 实验台深链 #lab-<sectionId>[-n][;params]：反解所属小节 → 走 #sec- 同款
+      // 激活流程 → 渲染后滚到该台并 2s 高亮（锚点由 RLV.enhanceLabs 统一赋予）。
       hashOf(id) { return id === 'home' ? '' : '#sec-' + id; },
       lectureOf(id) {
         const g = D.navGroups.find(g => g.items.some(it => it.id === id));
         return g ? g.lecture : 0;
+      },
+      // #lab-xxx → { section, anchor }；; 后为预留参数位（实验台参数编码尚未启用，
+      // 先容错忽略，不炸路由）。锚点反解只依赖 data.js 的 section id 集合：
+      // 精确 lab-<id> 优先，其余按 lab-<id>-<n> 唯一命中（导航 id 无 -数字 结尾，无歧义）。
+      labTargetFromHash(h) {
+        const m = /^#(lab-[a-z0-9-]+?)(?:;|$)/i.exec(h || '');
+        if (!m) return null;
+        const anchor = m[1];
+        const ids = this.allNavItems.map(n => n.id);
+        if (ids.some(id => 'lab-' + id === anchor)) return { section: anchor.slice(4), anchor };
+        const hit = ids
+          .map(id => ({ id, m: new RegExp('^lab-' + id + '-(\\d+)$').exec(anchor) }))
+          .filter(x => x.m);
+        return hit.length === 1 ? { section: hit[0].id, anchor } : null;
       },
       go(id) {
         const want = this.hashOf(id);
@@ -153,7 +169,11 @@
       },
       async syncFromHash(smooth) {
         const m = /^#sec-(.+)$/.exec(location.hash);
-        const id = (m && this.allNavItems.some(n => n.id === m[1])) ? m[1] : 'home';
+        const labTarget = m ? null : this.labTargetFromHash(location.hash);
+        const known = (id) => this.allNavItems.some(n => n.id === id);
+        const id = (m && known(m[1])) ? m[1]
+          : (labTarget && known(labTarget.section)) ? labTarget.section
+          : 'home';
         if (id === 'home') { this.applyRoute('home', smooth); return; }
         const lec = this.lectureOf(id);
         if (!lec) return;
@@ -164,9 +184,9 @@
         catch (e) { console.error('[route] L' + lec + ' 讲内容加载失败，仍尝试渲染导航骨架', e); }
         if (seq !== this._routeSeq) return;    // 等待期间用户又导航了：让最新一次接管
         this.loadingLec = 0;
-        this.applyRoute(id, smooth);
+        this.applyRoute(id, smooth, labTarget && labTarget.anchor);
       },
-      applyRoute(id, smooth) {
+      applyRoute(id, smooth, labAnchor) {
         this.sidebarOpen = false;
         if (id === 'home') {
           this.section = 'home';
@@ -193,10 +213,18 @@
         }
         this.$nextTick(() => {
           const el = document.getElementById('sec-' + id);
+          // 实验台锚点/分享按钮统一注入（幂等；锚点就位后深链才有所指）
+          if (window.RLV && window.RLV.enhanceLabs) window.RLV.enhanceLabs(this.$refs.content);
           this.renderFormulas();   // 当前视图含 .formula 块时懒加载 KaTeX 并渲染
           // 深链/刷新恢复（smooth=false）：目标节 reveal 直达终态，不播 stagger
           this.setupReveal(smooth ? null : el);
-          if (el) this.scrollToSec(el, smooth);
+          const labEl = labAnchor ? document.getElementById(labAnchor) : null;
+          if (labEl) {
+            this.scrollToLab(labEl);   // 实验台深链：滚到该台而非节头
+            this.flashLab(labEl);
+          } else if (el) {
+            this.scrollToSec(el, smooth);
+          }
         });
       },
       // 滚动到某节：点击导航走平滑动画；初始恢复走瞬时定位 + 延迟二次校准
@@ -214,6 +242,31 @@
         setTimeout(() => {
           if (this.section === 'lesson' && this.activeId === el.id.replace('sec-', '')) jump();
         }, 350);
+      },
+      // 滚动到某个实验台（#lab- 深链落位）：与 scrollToSec 瞬时分支同套路——
+      // .content 是 scroll-behavior:smooth，必须 behavior:'instant' + 延迟二次校准；
+      // 目标台已完整在视口内时不打扰（分享回跳 / 已在眼前的台不再跳动）
+      scrollToLab(el) {
+        const root = this.$refs.content;
+        if (!root) return;
+        const fullyVisible = () => {
+          const r = el.getBoundingClientRect(), rr = root.getBoundingClientRect();
+          return r.top >= rr.top && r.bottom <= rr.bottom && r.height > 0;
+        };
+        if (fullyVisible()) return;
+        const jump = () => {
+          const off = el.getBoundingClientRect().top - root.getBoundingClientRect().top - 8;
+          root.scrollTo({ top: root.scrollTop + off, behavior: 'instant' });
+        };
+        jump();
+        setTimeout(() => { if (document.contains(el)) jump(); }, 350);
+      },
+      // 实验台 2 秒高亮：.lab-flash 只动 border/box-shadow（颜色过渡，无位移），
+      // prefers-reduced-motion 下由 main.css 全局 .01ms 时长退化为直出
+      flashLab(el) {
+        el.classList.add('lab-flash');
+        clearTimeout(this._labFlashTimer);
+        this._labFlashTimer = setTimeout(() => el.classList.remove('lab-flash'), 2000);
       },
       onHashChange() { this.syncFromHash(true); },
       // 已读标记：只记真实到达的节，落 localStorage 跨会话保留
@@ -319,12 +372,30 @@
       this._filterSeq = 0;  // 讲筛选竞态序号
       this._route = () => this.syncFromHash(true);
       window.addEventListener('hashchange', this._route);
+      // 实验台注入兜底：懒加载组件晚挂载 / 组件内部 v-if 展开出的 .lab
+      // （fill/deriv 题库异步就位等）也补上锚点与分享按钮；微任务去抖等一批变更落定
+      this.$nextTick(() => {
+        const root = this.$refs.content;
+        if (!root || !('MutationObserver' in window)) return;
+        let queued = false;
+        this._labObs = new MutationObserver(() => {
+          if (queued) return;
+          queued = true;
+          setTimeout(() => {
+            queued = false;
+            if (window.RLV && window.RLV.enhanceLabs) window.RLV.enhanceLabs(root);
+          }, 0);
+        });
+        this._labObs.observe(root, { childList: true, subtree: true });
+      });
       this.syncFromHash(false);   // 初始化：读 hash 恢复位置（深链/刷新保位，直达终态；
                                   //   深链落在未加载讲时先 await ensureLecture 再渲染）
     },
     beforeUnmount() {
       window.removeEventListener('hashchange', this._route);
       if (this._observer) this._observer.disconnect();
+      if (this._labObs) this._labObs.disconnect();
+      clearTimeout(this._labFlashTimer);
     },
   });
 

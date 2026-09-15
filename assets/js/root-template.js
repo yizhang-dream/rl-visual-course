@@ -43,9 +43,11 @@ window.ROOT_TEMPLATE = `
     <aside class="sidebar" :class="{open: sidebarOpen}">
       <div class="lecture-filter">
         <button class="lf-chip" :class="{active: lectureFilter===0}" @click="lectureFilter=0">全部</button>
+        <!-- 讲筛选 chip 不渲染任何上线/完成标记：l.live 是发布态不是学习进度
+             （回归门 verify_site progress-fresh/old 断言 .lf-chip.done 恒为 0） -->
         <button v-for="l in lectureChips" :key="l.no" class="lf-chip"
-                :class="{active: lectureFilter===l.no, done: l.done}" @click="filterLecture(l.no)">
-          L{{ l.no }}<i v-if="l.done">✓</i>
+                :class="{active: lectureFilter===l.no}" @click="filterLecture(l.no)">
+          L{{ l.no }}
         </button>
       </div>
       <nav class="side-nav">
@@ -89,7 +91,9 @@ window.ROOT_TEMPLATE = `
                 <span class="nav-zh">{{ c.zh }}</span>
                 <span class="nav-en">{{ c.en }}</span>
               </span>
-              <span class="coming-badge" :class="{done: c.done}">{{ c.done ? '✓' : 'Soon' }}</span>
+              <!-- c.live = 该讲已上线（data.js LECTURES 发布态，不是学习进度）：
+                   已上线不渲染任何状态徽章，未上线才显示 Soon -->
+              <span v-if="!c.live" class="coming-badge">Soon</span>
             </div>
           </div>
         </div>
@@ -181,8 +185,8 @@ window.ROOT_TEMPLATE = `
           <span>Built on all ten chapters of "Mathematical Foundation of Reinforcement Learning" and the IUSLab grid-world code, Westlake University · For study only</span>
         </p>
         <p class="bi-footer" style="margin-top:5px">
-          <span><a class="footer-link" href="graph3d.html">知识星图 · 3D 全书知识网络</a> · <a class="footer-link" href="lite.html">笔记本实验室 · 浏览器里跑 Jupyter</a> · <a class="footer-link" href="resources.html">资料索引 · 官方视频与全书资源</a> · <a class="footer-link" href="https://github.com/yizhang-dream/rl-visual-course/blob/main/NOTICE.md" target="_blank" rel="noopener">开源协议</a></span>
-          <span><a class="footer-link" href="graph3d.html">Knowledge Constellation</a> · <a class="footer-link" href="lite.html">Notebook Lab</a> · <a class="footer-link" href="resources.html">Resources</a> · <a class="footer-link" href="https://github.com/yizhang-dream/rl-visual-course/blob/main/NOTICE.md" target="_blank" rel="noopener">License</a></span>
+          <span><a class="footer-link" href="graph3d.html">知识星图 · 3D 全书知识网络</a> · <a class="footer-link" href="lite.html">笔记本实验室 · 浏览器里跑 Jupyter</a> · <a class="footer-link" href="resources.html">资料索引 · 官方视频与全书资源</a> · <a class="footer-link" href="concordance.html">术语索引 · 全书反查</a> · <a class="footer-link" href="https://github.com/yizhang-dream/rl-visual-course/blob/main/NOTICE.md" target="_blank" rel="noopener">开源协议</a></span>
+          <span><a class="footer-link" href="graph3d.html">Knowledge Constellation</a> · <a class="footer-link" href="lite.html">Notebook Lab</a> · <a class="footer-link" href="resources.html">Resources</a> · <a class="footer-link" href="concordance.html">Concordance</a> · <a class="footer-link" href="https://github.com/yizhang-dream/rl-visual-course/blob/main/NOTICE.md" target="_blank" rel="noopener">License</a></span>
         </p>
       </footer>
     </main>

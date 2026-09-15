@@ -9,9 +9,9 @@
 // 主题防闪烁：在样式表生效前定好 data-theme（与 index.html 同款机制）
 try { document.documentElement.dataset.theme = localStorage.getItem('rl-viz-theme') || 'chalk'; } catch (e) {}
 // 静态资源版本戳：与站点一致，靠它穿透浏览器长缓存
-window.RLV_VERSION = '20260916a';
+window.RLV_VERSION = '20260916b';
 </script>
-<link rel="stylesheet" href="assets/css/main.css?v=20260916a">
+<link rel="stylesheet" href="assets/css/main.css?v=20260916b">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📓</text></svg>">
 <style>
 /* ═══════════════════════════════════════════════════════════════
@@ -350,7 +350,7 @@ body {
 </footer>
 
 <!-- NB 清单数据源：由 assets/js/nb-manifest.js 提供（window.NB_MANIFEST）；未加载时回退到下方页内 fallback 常量 -->
-<script src="assets/js/nb-manifest.js?v=20260916a" onerror="window.__NB_MANIFEST_MISS = true"></script>
+<script src="assets/js/nb-manifest.js?v=20260916b" onerror="window.__NB_MANIFEST_MISS = true"></script>
 <script>
 (function () {
   'use strict';
