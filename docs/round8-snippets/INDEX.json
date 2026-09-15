@@ -1,0 +1,82 @@
+[
+  {
+    "lecture": "l1",
+    "file": "data.js",
+    "section": "grid-world",
+    "min": 2,
+    "max": 3,
+    "episodes": 2
+  },
+  {
+    "lecture": "l2",
+    "file": "data-l2.js",
+    "section": "l2-why",
+    "min": 4,
+    "max": 8,
+    "episodes": 5
+  },
+  {
+    "lecture": "l3",
+    "file": "data-l3.js",
+    "section": "l3-improve",
+    "min": 9,
+    "max": 12,
+    "episodes": 4
+  },
+  {
+    "lecture": "l4",
+    "file": "data-l4.js",
+    "section": "l4-vi",
+    "min": 13,
+    "max": 15,
+    "episodes": 3
+  },
+  {
+    "lecture": "l5",
+    "file": "data-l5.js",
+    "section": "l5-mean",
+    "min": 16,
+    "max": 21,
+    "episodes": 6
+  },
+  {
+    "lecture": "l6",
+    "file": "data-l6.js",
+    "section": "l6-incremental",
+    "min": 22,
+    "max": 28,
+    "episodes": 7
+  },
+  {
+    "lecture": "l7",
+    "file": "data-l7.js",
+    "section": "l7-td0",
+    "min": 29,
+    "max": 36,
+    "episodes": 8
+  },
+  {
+    "lecture": "l8",
+    "file": "data-l8.js",
+    "section": "l8-representation",
+    "min": 37,
+    "max": 44,
+    "episodes": 8
+  },
+  {
+    "lecture": "l9",
+    "file": "data-l9.js",
+    "section": "l9-representation",
+    "min": 45,
+    "max": 49,
+    "episodes": 5
+  },
+  {
+    "lecture": "l10",
+    "file": "data-l10.js",
+    "section": "l10-qac",
+    "min": 50,
+    "max": 54,
+    "episodes": 5
+  }
+]

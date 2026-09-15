@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>资料索引 · Resources — RL 可视化课堂</title>
+<meta name="description" content="《强化学习的数学原理》官方资料一站索引：官方入口、中英文视频课程（54 集）与十讲分集对照表、教材与勘误、社区代码实现、中文笔记精读、查漏补缺的外部课程，附作业合规提醒。">
+<script>
+// 主题防闪烁：在样式表生效前定好 data-theme（与 index.html 同款机制）
+try { document.documentElement.dataset.theme = localStorage.getItem('rl-viz-theme') || 'chalk'; } catch (e) {}
+// 静态资源版本戳：与站点一致，靠它穿透浏览器长缓存
+window.RLV_VERSION = '20260915a';
+</script>
+<link rel="stylesheet" href="assets/css/main.css?v=20260915a">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   资料索引 hub 页 · 独立静态页（lite.html / graph3d.html 同款先例）
+   只写布局；颜色全部走 main.css 的 token（五主题自动成立），不写死色值
+   双语显隐靠 main.css 全局规则 + span.zh / span.en，页内不写语言规则
+   ═══════════════════════════════════════════════════════════════ */
+
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font);
+  color: var(--ink);
+  background: var(--bg);
+}
+
+/* ── 顶栏（nbl-topbar / g3d-topbar 同款手法） ── */
+.res-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  height: 56px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  background: var(--topbar-bg);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+}
+.res-nav { display: flex; gap: 4px; flex: none; }
+.res-nav a {
+  color: var(--ink-2);
+  text-decoration: none;
+  font: 600 13px var(--font);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  white-space: nowrap;
+  transition: all var(--t-fast) var(--ease);
+}
+.res-nav a:hover { color: var(--ink); background: var(--bg-soft); border-color: var(--line); }
+.res-heading {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  font: 700 16px var(--display);
+  color: var(--ink);
+  overflow: hidden;
+  white-space: nowrap;
+}
+.res-heading .en { font: 500 12.5px var(--font); color: var(--ink-3); letter-spacing: .4px; }
+.res-tools { flex: none; display: flex; align-items: center; gap: 10px; }
+
+.res-lang {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-radius: 99px;
+}
+.res-lang-btn {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: 600 12px var(--font);
+  color: var(--ink-2);
+  padding: 4px 11px;
+  border-radius: 99px;
+  transition: all var(--t-fast) var(--ease);
+}
+.res-lang-btn:hover { color: var(--ink); }
+.res-lang-btn.is-active { background: var(--surface); color: var(--accent-deep); box-shadow: var(--shadow-1); }
+
+.res-themes {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 6px;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-radius: 99px;
+}
+.res-theme-btn {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 99px;
+  background: transparent;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: transform var(--t-fast) var(--ease);
+}
+.res-theme-btn:hover { transform: scale(1.14); }
+.res-theme-btn.is-active { box-shadow: 0 0 0 2px var(--bg-soft), 0 0 0 4px var(--ink-3); }
+.res-theme-dot {
+  display: block;
+  width: 13px;
+  height: 13px;
+  border-radius: 99px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 16%, transparent);
+}
+.dot-theme-chalk { background: var(--gold); }
+.dot-theme-swiss { background: var(--accent); }
+.dot-theme-quant { background: var(--cyan); }
+.dot-theme-forest { background: var(--green); }
+.dot-theme-classic { background: var(--violet); }
+
+/* ── 主体 ── */
+.res-main { flex: 1; width: 100%; max-width: 1100px; margin: 0 auto; padding: 40px 20px 64px; }
+
+.res-hero { margin-bottom: 26px; }
+.res-kicker {
+  margin: 0;
+  font: 700 11px var(--font);
+  color: var(--ink-3);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+.res-title {
+  margin: 8px 0 10px;
+  font: 700 clamp(24px, 4vw, 34px) / 1.2 var(--display);
+  color: var(--ink);
+}
+.res-lead { margin: 0 0 18px; max-width: 72ch; font: 400 15px / 1.75 var(--font); color: var(--ink-2); }
+
+.res-stats {
+  display: flex;
+  align-items: center;
+  gap: 6px 18px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  max-width: 72ch;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-1);
+  font: 600 13px var(--font);
+  color: var(--ink-2);
+}
+.res-stats b { color: var(--accent-deep); font: 700 14px var(--mono); }
+
+.res-sec-title {
+  margin: 40px 0 4px;
+  font: 700 18px var(--display);
+  color: var(--ink);
+}
+.res-sec-sub { margin: 0 0 14px; font: 400 12.5px / 1.65 var(--font); color: var(--ink-3); max-width: 76ch; }
+
+/* ── 卡片网格 ── */
+.res-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(315px, 1fr));
+  gap: 14px;
+}
+.res-card {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 16px 16px 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-1);
+  transition: transform var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+.res-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-2); border-color: var(--line-strong); }
+.res-card-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.res-tag { font: 600 11px var(--font); padding: 3px 9px; border-radius: 99px; white-space: nowrap; }
+.res-tag-official { background: var(--green-soft); color: var(--ink-2); }
+.res-tag-community { background: var(--accent-soft); color: var(--accent-deep); }
+.res-tag-external { background: var(--violet-soft); color: var(--ink-2); }
+.res-meta { margin-left: auto; font: 600 11.5px var(--mono); color: var(--ink-3); white-space: nowrap; }
+.res-name { margin: 1px 0 0; font: 700 15.5px / 1.35 var(--display); color: var(--ink); overflow-wrap: anywhere; }
+.res-name .en { display: block; font: 500 12px var(--mono); color: var(--ink-3); margin-top: 3px; letter-spacing: .2px; }
+.res-desc { margin: 0; flex: 1; font: 400 12.5px / 1.68 var(--font); color: var(--ink-2); }
+.res-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 5px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.res-host {
+  min-width: 0;
+  font: 600 11px var(--mono);
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.res-link {
+  flex: none;
+  font: 700 12px var(--font);
+  color: var(--accent-deep);
+  text-decoration: none;
+  padding: 6px 11px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  white-space: nowrap;
+  transition: all var(--t-fast) var(--ease);
+}
+.res-link:hover { background: var(--accent-soft); border-color: var(--accent); }
+
+/* ── 十讲分集对照表 ── */
+.res-tablewrap {
+  margin-top: 14px;
+  overflow-x: auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-1);
+}
+.res-table { width: 100%; border-collapse: collapse; font: 400 13px var(--font); }
+.res-table th {
+  padding: 10px 14px;
+  text-align: left;
+  font: 700 12px var(--font);
+  color: var(--ink-3);
+  background: var(--bg-soft);
+  border-bottom: 1px solid var(--line-strong);
+  white-space: nowrap;
+}
+.res-table td { padding: 9px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.res-table tr:last-child td { border-bottom: 0; }
+.res-lec { font: 600 13px var(--font); color: var(--ink); white-space: nowrap; }
+.res-lec .en { display: block; font: 400 11.5px var(--mono); color: var(--ink-3); margin-top: 2px; }
+.res-range { font: 600 12.5px var(--mono); color: var(--accent-deep); white-space: nowrap; }
+.res-tnote { font: 400 12px var(--font); color: var(--ink-3); }
+.res-table a {
+  font: 600 12.5px var(--mono);
+  color: var(--accent-deep);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--line-strong);
+  white-space: nowrap;
+}
+.res-table a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+.res-total td { font: 700 12.5px var(--font); color: var(--ink-2); background: var(--bg-soft); }
+
+/* ── 合规提醒 callout ── */
+.res-callout {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--gold);
+  border-radius: var(--radius-sm);
+  background: var(--gold-soft);
+  color: var(--ink-2);
+  font: 400 13.5px / 1.7 var(--font);
+}
+.res-callout strong { color: var(--ink); }
+.res-callout .mark { flex: none; font-size: 16px; line-height: 1.4; }
+
+/* ── 页脚 ── */
+.res-foot {
+  flex: none;
+  padding: 18px 20px 26px;
+  text-align: center;
+  font: 400 12px var(--font);
+  color: var(--ink-3);
+  border-top: 1px solid var(--line);
+}
+.res-foot a { color: var(--ink-2); text-decoration: none; border-bottom: 1px dotted var(--line-strong); }
+.res-foot a:hover { color: var(--accent-deep); }
+
+@media (max-width: 720px) {
+  .res-topbar { flex-wrap: wrap; height: auto; min-height: 56px; padding: 8px 10px; gap: 8px; }
+  .res-heading { order: 3; flex-basis: 100%; font-size: 14px; }
+  .res-main { padding: 26px 14px 48px; }
+}
+</style>
+</head>
+
+<body data-lang="both">
+
+<header class="res-topbar">
+  <nav class="res-nav" aria-label="站点导航 / Site navigation">
+    <a href="index.html"><span class="zh">← 返回课堂</span><span class="en">← Classroom</span></a>
+    <a href="graph3d.html"><span class="zh">星图</span><span class="en">Graph</span></a>
+    <a href="lite.html"><span class="zh">笔记本</span><span class="en">Notebooks</span></a>
+  </nav>
+  <h1 class="res-heading"><span class="zh">资料索引</span><span class="en">Resources</span></h1>
+  <div class="res-tools">
+    <div class="res-lang" role="group" aria-label="Language / 语言">
+      <button type="button" class="res-lang-btn" data-lang="both"><span class="zh">双语</span><span class="en">Both</span></button>
+      <button type="button" class="res-lang-btn" data-lang="zh">中</button>
+      <button type="button" class="res-lang-btn" data-lang="en">EN</button>
+    </div>
+    <div class="res-themes" role="group" aria-label="Theme / 主题">
+      <button type="button" class="res-theme-btn" data-theme="chalk" title="墨板 Chalkboard" aria-label="chalk"><span class="res-theme-dot dot-theme-chalk"></span></button>
+      <button type="button" class="res-theme-btn" data-theme="swiss" title="讲义 Swiss Notes" aria-label="swiss"><span class="res-theme-dot dot-theme-swiss"></span></button>
+      <button type="button" class="res-theme-btn" data-theme="quant" title="深空 Quant Dark" aria-label="quant"><span class="res-theme-dot dot-theme-quant"></span></button>
+      <button type="button" class="res-theme-btn" data-theme="forest" title="教科书 Forest" aria-label="forest"><span class="res-theme-dot dot-theme-forest"></span></button>
+      <button type="button" class="res-theme-btn" data-theme="classic" title="经典 Classic" aria-label="classic"><span class="res-theme-dot dot-theme-classic"></span></button>
+    </div>
+  </div>
+</header>
+
+<main class="res-main">
+
+  <section class="res-hero">
+    <p class="res-kicker">Mathematics of RL · Official &amp; Community Map</p>
+    <h2 class="res-title"><span class="zh">这门课的官方资料，一页看全</span><span class="en">Every official resource, on one page</span></h2>
+    <p class="res-lead">
+      <span class="zh">课程官方视频共 54 集，中文版与英文版同号（第 n 集就是第 n 集）；本页按七个分组收齐官方入口、视频、教材、社区实现与外部补充课程。所有链接整理于 2026-09-15 并当日实测可达。</span>
+      <span class="en">The official video course has 54 episodes — the Chinese and English releases share the same numbering. Seven groups cover official gateways, videos, the textbook, community code and companion courses. All links were verified on 2026-09-15.</span>
+    </p>
+    <div id="res-stats" class="res-stats">
+      <span><span class="zh">7 组 · 41 条资料 · 官方视频 <b>54</b> 集</span><span class="en">7 groups · 41 resources · <b>54</b> official episodes</span></span>
+      <span class="zh">链接实测：2026-09-15</span>
+      <span class="en">links verified: 2026-09-15</span>
+    </div>
+  </section>
+
+  <!-- ═══ 第 1 组 · 官方入口 ═══ -->
+  <h3 class="res-sec-title"><span class="zh">① 官方入口</span><span class="en">1 · Official gateways</span></h3>
+  <p class="res-sec-sub"><span class="zh">课程没有教务意义上的独立官网，公开的「官方」由这几个入口组成。</span><span class="en">The course has no registrar-style site of its own — these gateways together form the official presence.</span></p>
+  <div class="res-grid">
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-official"><span class="zh">官方</span><span class="en">Official</span></span></div>
+      <h4 class="res-name"><span class="zh">课程主页</span><span class="en">Open Course Page</span></h4>
+      <p class="res-desc"><span class="zh">作者个人站的 Open Course 页：L1–L10 完整讲次目录与视频链接，最完整的官方入口。</span><span class="en">The author's Open Course page: the full L1–L10 lecture list with video links — the most complete official gateway.</span></p>
+      <div class="res-card-foot"><span class="res-host">shiyuzhao.net</span><a class="res-link" href="https://www.shiyuzhao.net/opencourse" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-official"><span class="zh">官方</span><span class="en">Official</span></span></div>
+      <h4 class="res-name"><span class="zh">教学说明页</span><span class="en">Teaching Page</span></h4>
+      <p class="res-desc"><span class="zh">课题组站（westlake.edu.cn 子域）上的教学页：课程目标、教材三个版本与材料链接。</span><span class="en">Teaching page on the lab site (a westlake.edu.cn subdomain): course goals, three textbook editions, material links.</span></p>
+      <div class="res-card-foot"><span class="res-host">shiyuzhao.westlake.edu.cn</span><a class="res-link" href="https://shiyuzhao.westlake.edu.cn/Teaching.htm" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-official"><span class="zh">官方</span><span class="en">Official</span></span><span class="res-meta">★ 17.8k</span></div>
+      <h4 class="res-name"><span class="zh">材料仓库</span><span class="en">Book-Mathematical-Foundation-of-Reinforcement-Learning</span></h4>
+      <p class="res-desc"><span class="zh">官方 GitHub 仓库：全书 PDF、双版 slides、grid world 代码（约 17.8k star，持续更新）。注意：书中算法代码不提供——那是作业。</span><span class="en">The official GitHub repo: full book PDF, both slide sets, grid-world code (~17.8k stars, still updated). Note: no algorithm code — that is the homework.</span></p>
+      <div class="res-card-foot"><span class="res-host">github.com</span><a class="res-link" href="https://github.com/MathFoundationRL/Book-Mathematical-Foundation-of-Reinforcement-Learning" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-official"><span class="zh">官方</span><span class="en">Official</span></span></div>
+      <h4 class="res-name"><span class="zh">Springer 书页</span><span class="en">Springer Book Page</span></h4>
+      <p class="res-desc"><span class="zh">Springer 正式版书页（2025 年出版，10 章，与清华社联合出版）：版本信息与章节预览。</span><span class="en">The Springer edition page (published 2025, 10 chapters, co-published with Tsinghua UP): editions and chapter previews.</span></p>
+      <div class="res-card-foot"><span class="res-host">link.springer.com</span><a class="res-link" href="https://link.springer.com/book/10.1007/978-981-97-3944-8" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-official"><span class="zh">官方</span><span class="en">Official</span></span></div>
+      <h4 class="res-name"><span class="zh">中国大学 MOOC</span><span class="en">icourse163 MOOC</span></h4>
+      <p class="res-desc"><span class="zh">MOOC 平台版课程：页面注明「书籍 PDF、课程视频、PPT 全部上线」。</span><span class="en">The MOOC edition: the page notes "book PDF, course videos and slides all online".</span></p>
+      <div class="res-card-foot"><span class="res-host">icourse163.org</span><a class="res-link" href="https://www.icourse163.org/course/XHUN-1470436188" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-official"><span class="zh">官方</span><span class="en">Official</span></span></div>
+      <h4 class="res-name"><span class="zh">国家智慧教育平台</span><span class="en">National Smart Education Platform</span></h4>
+      <p class="res-desc"><span class="zh">国家高等教育智慧教育平台课程页（开课期：2026/07/06 – 2026/10/31）。</span><span class="en">Course page on the national higher-education smart platform (session: 2026/07/06 – 2026/10/31).</span></p>
+      <div class="res-card-foot"><span class="res-host">higher.smartedu.cn</span><a class="res-link" href="https://higher.smartedu.cn/course/6a4d698e40d86e7f37815899" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-official"><span class="zh">官方</span><span class="en">Official</span></span></div>
+      <h4 class="res-name"><span class="zh">知乎知学堂视频课</span><span class="en">Zhihu Video Course</span></h4>
+      <p class="res-desc"><span class="zh">知学堂视频课（60 节），与 B 站版内容对应的另一官方渠道。</span><span class="en">The Zhihu video course (60 lessons) — another official channel mirroring the Bilibili release.</span></p>
+      <div class="res-card-foot"><span class="res-host">zhihu.com</span><a class="res-link" href="https://www.zhihu.com/education/video-course/1574007679344930816" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+  </div>
+
+  <!-- ═══ 第 2 组 · 视频课程 ═══ -->
+  <h3 class="res-sec-title"><span class="zh">② 视频课程</span><span class="en">2 · Video courses</span></h3>
+  <p class="res-sec-sub"><span class="zh">中文版（B 站）与英文版（YouTube）结构一一对应：同一套英文 PPT，中文版配中文讲解 + 软字幕。</span><span class="en">The Chinese (Bilibili) and English (YouTube) releases map one-to-one: the same English slides, with Chinese narration and soft subtitles.</span></p>
+  <div class="res-grid">
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-official"><span class="zh">官方</span><span class="en">Official</span></span><span class="res-meta"><span class="zh">55 集</span><span class="en">55 vids</span></span></div>
+      <h4 class="res-name"><span class="zh">B 站合集</span><span class="en">Bilibili Collection</span></h4>
+      <p class="res-desc"><span class="zh">UP 主「西湖大学WindyLab」的合集：55 集（含 1 集 B 站独有花絮）。</span><span class="en">The collection by "西湖大学WindyLab": 55 videos (including one Bilibili-only extra).</span></p>
+      <div class="res-card-foot"><span class="res-host">space.bilibili.com</span><a class="res-link" href="https://space.bilibili.com/2044042934/channel/collectiondetail?sid=748665" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-official"><span class="zh">官方</span><span class="en">Official</span></span><span class="res-meta">54 P</span></div>
+      <h4 class="res-name"><span class="zh">B 站单视频全片</span><span class="en">Bilibili Single Video</span></h4>
+      <p class="res-desc"><span class="zh">同一内容的单视频 54 分 P 版（约 11 小时 8 分）；分 P 号与官方清单编号完全同号。</span><span class="en">The same course as one 54-part video (~11 h 08 m); part numbers match the official list exactly.</span></p>
+      <div class="res-card-foot"><span class="res-host">bilibili.com/video/BV1sd4y167NS</span><a class="res-link" href="https://www.bilibili.com/video/BV1sd4y167NS/" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-official"><span class="zh">官方</span><span class="en">Official</span></span><span class="res-meta"><span class="zh">54 集</span><span class="en">54 eps</span></span></div>
+      <h4 class="res-name"><span class="zh">YouTube 播放列表（英文版）</span><span class="en">YouTube Playlist (English)</span></h4>
+      <p class="res-desc"><span class="zh">英文版播放列表，54 集，与中文版编号一一对应。</span><span class="en">The English playlist, 54 episodes, numbered one-to-one with the Chinese release.</span></p>
+      <div class="res-card-foot"><span class="res-host">youtube.com</span><a class="res-link" href="https://youtube.com/playlist?list=PLEhdbSEZZbDaFWPX4gehhwB9vJZJ1DNm8" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-official"><span class="zh">官方</span><span class="en">Official</span></span></div>
+      <h4 class="res-name"><span class="zh">30 分钟总览</span><span class="en">Overview in 30 Minutes</span></h4>
+      <p class="res-desc"><span class="zh">官方第 1 集《Overview of Reinforcement Learning in 30 Minutes》：全书速览，所有讲共用入口。</span><span class="en">Official episode 1, "Overview of Reinforcement Learning in 30 Minutes": a whole-book speedrun and the shared entry point.</span></p>
+      <div class="res-card-foot"><span class="res-host">youtube.com/watch?v=ZHMWHr9811U</span><a class="res-link" href="https://www.youtube.com/watch?v=ZHMWHr9811U" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-official"><span class="zh">官方</span><span class="en">Official</span></span></div>
+      <h4 class="res-name"><span class="zh">B 站独有花絮</span><span class="en">Bilibili-only Extra</span></h4>
+      <p class="res-desc"><span class="zh">《课程背后的故事 + 输出到海外》：只在 B 站发布的第 55 集。</span><span class="en">"The story behind the course + going global": episode 55, published only on Bilibili.</span></p>
+      <div class="res-card-foot"><span class="res-host">bilibili.com/video/BV11S411w7R1</span><a class="res-link" href="https://www.bilibili.com/video/BV11S411w7R1" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+  </div>
+
+  <!-- 十讲分集对照表（编号数据：docs/round8-video-data.json，54 集无缺口） -->
+  <h4 class="res-sec-title" style="margin-top:26px; font-size:15.5px;"><span class="zh">十讲分集对照表</span><span class="en">Lecture ↔ episode map</span></h4>
+  <p class="res-sec-sub"><span class="zh">中文版与英文版同一编号：第 n 集就是第 n 集。入口指向每讲第一集，从那里顺序播放即可；总览为所有讲共用。</span><span class="en">Both releases share one numbering: episode n is episode n. Each entry points at a lecture's first episode — play on from there. The overview is shared by all lectures.</span></p>
+  <div class="res-tablewrap">
+    <table class="res-table">
+      <thead>
+        <tr>
+          <th><span class="zh">讲</span><span class="en">Lecture</span></th>
+          <th><span class="zh">分集范围</span><span class="en">Episodes</span></th>
+          <th><span class="zh">中文入口</span><span class="en">Chinese</span></th>
+          <th><span class="zh">英文入口</span><span class="en">English</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="res-lec"><span class="zh">总览</span><span class="en">Overview</span></td>
+          <td><span class="res-range">P1</span> <span class="res-tnote"><span class="zh">· 1 集</span><span class="en">· 1 ep</span></span></td>
+          <td><a href="https://www.bilibili.com/video/BV1sd4y167NS/?p=1" target="_blank" rel="noopener">▶ P1</a></td>
+          <td><a href="https://www.youtube.com/watch?v=ZHMWHr9811U&amp;list=PLEhdbSEZZbDaFWPX4gehhwB9vJZJ1DNm8&amp;index=1" target="_blank" rel="noopener">▶ EP1</a></td>
+        </tr>
+        <tr>
+          <td class="res-lec"><span class="zh">L1 · 基本概念</span><span class="en">L1 · Basic Concepts</span></td>
+          <td><span class="res-range">P2–P3</span> <span class="res-tnote"><span class="zh">· 2 集</span><span class="en">· 2 eps</span></span></td>
+          <td><a href="https://www.bilibili.com/video/BV1sd4y167NS/?p=2" target="_blank" rel="noopener">▶ P2</a></td>
+          <td><a href="https://www.youtube.com/watch?v=zJHtM5dN69g&amp;list=PLEhdbSEZZbDaFWPX4gehhwB9vJZJ1DNm8&amp;index=2" target="_blank" rel="noopener">▶ EP2</a></td>
+        </tr>
+        <tr>
+          <td class="res-lec"><span class="zh">L2 · Bellman 方程</span><span class="en">L2 · Bellman Equation</span></td>
+          <td><span class="res-range">P4–P8</span> <span class="res-tnote"><span class="zh">· 5 集</span><span class="en">· 5 eps</span></span></td>
+          <td><a href="https://www.bilibili.com/video/BV1sd4y167NS/?p=4" target="_blank" rel="noopener">▶ P4</a></td>
+          <td><a href="https://www.youtube.com/watch?v=XCzWrlgZCwc&amp;list=PLEhdbSEZZbDaFWPX4gehhwB9vJZJ1DNm8&amp;index=4" target="_blank" rel="noopener">▶ EP4</a></td>
+        </tr>
+        <tr>
+          <td class="res-lec"><span class="zh">L3 · Bellman 最优性方程</span><span class="en">L3 · Bellman Optimality Equation</span></td>
+          <td><span class="res-range">P9–P12</span> <span class="res-tnote"><span class="zh">· 4 集</span><span class="en">· 4 eps</span></span></td>
+          <td><a href="https://www.bilibili.com/video/BV1sd4y167NS/?p=9" target="_blank" rel="noopener">▶ P9</a></td>
+          <td><a href="https://www.youtube.com/watch?v=lXKY_Hyg4SQ&amp;list=PLEhdbSEZZbDaFWPX4gehhwB9vJZJ1DNm8&amp;index=9" target="_blank" rel="noopener">▶ EP9</a></td>
+        </tr>
+        <tr>
+          <td class="res-lec"><span class="zh">L4 · 值迭代与策略迭代</span><span class="en">L4 · Value &amp; Policy Iteration</span></td>
+          <td><span class="res-range">P13–P15</span> <span class="res-tnote"><span class="zh">· 3 集</span><span class="en">· 3 eps</span></span></td>
+          <td><a href="https://www.bilibili.com/video/BV1sd4y167NS/?p=13" target="_blank" rel="noopener">▶ P13</a></td>
+          <td><a href="https://www.youtube.com/watch?v=wMAVmLDIvQU&amp;list=PLEhdbSEZZbDaFWPX4gehhwB9vJZJ1DNm8&amp;index=13" target="_blank" rel="noopener">▶ EP13</a></td>
+        </tr>
+        <tr>
+          <td class="res-lec"><span class="zh">L5 · 蒙特卡洛学习</span><span class="en">L5 · Monte Carlo Learning</span></td>
+          <td><span class="res-range">P16–P21</span> <span class="res-tnote"><span class="zh">· 6 集</span><span class="en">· 6 eps</span></span></td>
+          <td><a href="https://www.bilibili.com/video/BV1sd4y167NS/?p=16" target="_blank" rel="noopener">▶ P16</a></td>
+          <td><a href="https://www.youtube.com/watch?v=DO1yXinAV_Q&amp;list=PLEhdbSEZZbDaFWPX4gehhwB9vJZJ1DNm8&amp;index=16" target="_blank" rel="noopener">▶ EP16</a></td>
+        </tr>
+        <tr>
+          <td class="res-lec"><span class="zh">L6 · 随机近似与 SGD</span><span class="en">L6 · Stochastic Approx. &amp; SGD</span></td>
+          <td><span class="res-range">P22–P28</span> <span class="res-tnote"><span class="zh">· 7 集</span><span class="en">· 7 eps</span></span></td>
+          <td><a href="https://www.bilibili.com/video/BV1sd4y167NS/?p=22" target="_blank" rel="noopener">▶ P22</a></td>
+          <td><a href="https://www.youtube.com/watch?v=1bMgejvWoAo&amp;list=PLEhdbSEZZbDaFWPX4gehhwB9vJZJ1DNm8&amp;index=22" target="_blank" rel="noopener">▶ EP22</a></td>
+        </tr>
+        <tr>
+          <td class="res-lec"><span class="zh">L7 · 时序差分学习</span><span class="en">L7 · Temporal-Difference Learning</span></td>
+          <td><span class="res-range">P29–P36</span> <span class="res-tnote"><span class="zh">· 8 集</span><span class="en">· 8 eps</span></span></td>
+          <td><a href="https://www.bilibili.com/video/BV1sd4y167NS/?p=29" target="_blank" rel="noopener">▶ P29</a></td>
+          <td><a href="https://www.youtube.com/watch?v=u1X-7XX3dtI&amp;list=PLEhdbSEZZbDaFWPX4gehhwB9vJZJ1DNm8&amp;index=29" target="_blank" rel="noopener">▶ EP29</a></td>
+        </tr>
+        <tr>
+          <td class="res-lec"><span class="zh">L8 · 值函数近似（含 DQN）</span><span class="en">L8 · Value Function Approx. (DQN)</span></td>
+          <td><span class="res-range">P37–P44</span> <span class="res-tnote"><span class="zh">· 8 集</span><span class="en">· 8 eps</span></span></td>
+          <td><a href="https://www.bilibili.com/video/BV1sd4y167NS/?p=37" target="_blank" rel="noopener">▶ P37</a></td>
+          <td><a href="https://www.youtube.com/watch?v=uJXcI8fcdWc&amp;list=PLEhdbSEZZbDaFWPX4gehhwB9vJZJ1DNm8&amp;index=37" target="_blank" rel="noopener">▶ EP37</a></td>
+        </tr>
+        <tr>
+          <td class="res-lec"><span class="zh">L9 · 策略梯度</span><span class="en">L9 · Policy Gradient Methods</span></td>
+          <td><span class="res-range">P45–P49</span> <span class="res-tnote"><span class="zh">· 5 集</span><span class="en">· 5 eps</span></span></td>
+          <td><a href="https://www.bilibili.com/video/BV1sd4y167NS/?p=45" target="_blank" rel="noopener">▶ P45</a></td>
+          <td><a href="https://www.youtube.com/watch?v=mtFHOj83QSo&amp;list=PLEhdbSEZZbDaFWPX4gehhwB9vJZJ1DNm8&amp;index=45" target="_blank" rel="noopener">▶ EP45</a></td>
+        </tr>
+        <tr>
+          <td class="res-lec"><span class="zh">L10 · Actor-Critic</span><span class="en">L10 · Actor-Critic Methods</span></td>
+          <td><span class="res-range">P50–P54</span> <span class="res-tnote"><span class="zh">· 5 集</span><span class="en">· 5 eps</span></span></td>
+          <td><a href="https://www.bilibili.com/video/BV1sd4y167NS/?p=50" target="_blank" rel="noopener">▶ P50</a></td>
+          <td><a href="https://www.youtube.com/watch?v=kjCZAT5Wh80&amp;list=PLEhdbSEZZbDaFWPX4gehhwB9vJZJ1DNm8&amp;index=50" target="_blank" rel="noopener">▶ EP50</a></td>
+        </tr>
+        <tr class="res-total">
+          <td colspan="2"><span class="zh">合计</span><span class="en">Total</span></td>
+          <td colspan="2"><span class="zh">54 集 · 编号无缺口</span><span class="en">54 episodes · no gaps</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ═══ 第 3 组 · 教材与勘误 ═══ -->
+  <h3 class="res-sec-title"><span class="zh">③ 教材与勘误</span><span class="en">3 · Textbook &amp; errata</span></h3>
+  <div class="res-grid">
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-official"><span class="zh">官方</span><span class="en">Official</span></span></div>
+      <h4 class="res-name"><span class="zh">Springer 正式版</span><span class="en">Springer Edition</span></h4>
+      <p class="res-desc"><span class="zh">ISBN 精装 978-981-97-3943-1 / 电子 978-981-97-3944-8；2025 年出版，10 章。（旧链 book/9789819739431 会 303 到此页。）</span><span class="en">ISBN hardcover 978-981-97-3943-1 / e-book 978-981-97-3944-8; published 2025, 10 chapters. (The old book/9789819739431 link 303-redirects here.)</span></p>
+      <div class="res-card-foot"><span class="res-host">link.springer.com</span><a class="res-link" href="https://link.springer.com/book/10.1007/978-981-97-3944-8" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-official"><span class="zh">官方</span><span class="en">Official</span></span></div>
+      <h4 class="res-name"><span class="zh">中文版公告</span><span class="en">Chinese Edition Announcement</span></h4>
+      <p class="res-desc"><span class="zh">中文版《强化学习的数学原理》：清华大学出版社 2025 年 4 月，见作者主页公告。</span><span class="en">The Chinese edition (Tsinghua UP, April 2025) — announced on the author's homepage.</span></p>
+      <div class="res-card-foot"><span class="res-host">shiyuzhao.westlake.edu.cn</span><a class="res-link" href="https://shiyuzhao.westlake.edu.cn/info/1042/1852.htm" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-official"><span class="zh">官方</span><span class="en">Official</span></span></div>
+      <h4 class="res-name"><span class="zh">Springer 版勘误</span><span class="en">Errata (Springer version)</span></h4>
+      <p class="res-desc"><span class="zh">勘误 PDF 在官方仓库内：`5 - Errata for the Springer version.pdf`。使用前先核对文件更新时间。</span><span class="en">The errata PDF lives in the official repo: "5 - Errata for the Springer version.pdf". Check its last-updated time before relying on it.</span></p>
+      <div class="res-card-foot"><span class="res-host">github.com（仓库根目录）</span><a class="res-link" href="https://github.com/MathFoundationRL/Book-Mathematical-Foundation-of-Reinforcement-Learning" target="_blank" rel="noopener"><span class="zh">去仓库 →</span><span class="en">Repo →</span></a></div>
+    </article>
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-official"><span class="zh">官方</span><span class="en">Official</span></span></div>
+      <h4 class="res-name"><span class="zh">答疑 Discussions</span><span class="en">Q&amp;A Discussions</span></h4>
+      <p class="res-desc"><span class="zh">官方仓库 Discussions 已开启（Issues 区为空）——有疑问先去搜 Discussions。</span><span class="en">Discussions are open on the official repo (Issues are empty) — search Discussions first.</span></p>
+      <div class="res-card-foot"><span class="res-host">github.com …/discussions</span><a class="res-link" href="https://github.com/MathFoundationRL/Book-Mathematical-Foundation-of-Reinforcement-Learning/discussions" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+  </div>
+
+  <!-- ═══ 第 4 组 · 社区代码实现 ═══ -->
+  <h3 class="res-sec-title"><span class="zh">④ 社区代码实现</span><span class="en">4 · Community code</span></h3>
+  <p class="res-sec-sub"><span class="zh">按 star 排序（整理于 2026-09-15）。⚠️ 这些仓库包含作业算法的完整实现——只作思路参照，用法见页尾合规提醒。</span><span class="en">Sorted by stars (as of 2026-09-15). These repos contain complete implementations of the homework algorithms — use them as references only; see the compliance note at the bottom.</span></p>
+  <div class="res-grid">
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-community"><span class="zh">社区</span><span class="en">Community</span></span><span class="res-meta">★ 912</span></div>
+      <h4 class="res-name">RL_Learning</h4>
+      <p class="res-desc"><span class="zh">代码复现标杆：覆盖第 1–9 章大部分；2023-07 起停更。</span><span class="en">The reference reproduction: most of chapters 1–9; unmaintained since 2023-07.</span></p>
+      <div class="res-card-foot"><span class="res-host">github.com/jwk1rose</span><a class="res-link" href="https://github.com/jwk1rose/RL_Learning" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-community"><span class="zh">社区</span><span class="en">Community</span></span><span class="res-meta">★ 439</span></div>
+      <h4 class="res-name">Multi-agent-RL</h4>
+      <p class="res-desc"><span class="zh">复现 + 多智能体扩展（实现在 `RL_Learning-main/` 子目录）；2026-08 仍在更新。</span><span class="en">Reproduction plus multi-agent extensions (inside the "RL_Learning-main/" folder); updated as of 2026-08.</span></p>
+      <div class="res-card-foot"><span class="res-host">github.com/Ronchy2000</span><a class="res-link" href="https://github.com/Ronchy2000/Multi-agent-RL" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-community"><span class="zh">社区</span><span class="en">Community</span></span><span class="res-meta">★ 306</span></div>
+      <h4 class="res-name">Code-of-RL-Beginning</h4>
+      <p class="res-desc"><span class="zh">代码复现 + 配套 B 站代码讲解视频。</span><span class="en">Code reproduction plus companion walkthrough videos on Bilibili.</span></p>
+      <div class="res-card-foot"><span class="res-host">github.com/ziwenhahaha</span><a class="res-link" href="https://github.com/ziwenhahaha/Code-of-RL-Beginning" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-community"><span class="zh">社区</span><span class="en">Community</span></span><span class="res-meta">★ 272</span></div>
+      <h4 class="res-name">Reinforcement-Learning-Study-Note</h4>
+      <p class="res-desc"><span class="zh">中英双语 Jupyter 笔记，覆盖范围超出本书。</span><span class="en">Bilingual (CN/EN) Jupyter notes, covering beyond the book itself.</span></p>
+      <div class="res-card-foot"><span class="res-host">github.com/Peanut-Study</span><a class="res-link" href="https://github.com/Peanut-Study/Reinforcement-Learning-Study-Note" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-community"><span class="zh">社区</span><span class="en">Community</span></span><span class="res-meta">★ 129</span></div>
+      <h4 class="res-name">minrl</h4>
+      <p class="res-desc"><span class="zh">极简教学实现 + 可定制 GridWorld。</span><span class="en">Minimal teaching implementations with a customizable GridWorld.</span></p>
+      <div class="res-card-foot"><span class="res-host">github.com/10-OASIS-01</span><a class="res-link" href="https://github.com/10-OASIS-01/minrl" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-community"><span class="zh">社区</span><span class="en">Community</span></span><span class="res-meta">★ 126</span></div>
+      <h4 class="res-name">The_Coding_Foundation_in_Reinforcement_Learning</h4>
+      <p class="res-desc"><span class="zh">作者在 README 中点名推荐："almost all examples in my book"。</span><span class="en">Explicitly recommended by the course author: "almost all examples in my book".</span></p>
+      <div class="res-card-foot"><span class="res-host">github.com/SupermanCaozh</span><a class="res-link" href="https://github.com/SupermanCaozh/The_Coding_Foundation_in_Reinforcement_Learning" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-community"><span class="zh">社区</span><span class="en">Community</span></span><span class="res-meta">★ 117</span></div>
+      <h4 class="res-name">Mathematical-Foundations-of-Reinforcement-Learning-Notes</h4>
+      <p class="res-desc"><span class="zh">中文逐章精读笔记（另有网页版 wgyhhh.top）。</span><span class="en">Chapter-by-chapter Chinese study notes (also as a web edition at wgyhhh.top).</span></p>
+      <div class="res-card-foot"><span class="res-host">github.com/wgyhhhh</span><a class="res-link" href="https://github.com/wgyhhhh/Mathematical-Foundations-of-Reinforcement-Learning-Notes" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-community"><span class="zh">社区</span><span class="en">Community</span></span><span class="res-meta">★ 24</span></div>
+      <h4 class="res-name">Math_in_RL_Visual</h4>
+      <p class="res-desc"><span class="zh">本书专属可视化：18 个算法入口，公式数值代入 + 源码高亮，不依赖 Gym。</span><span class="en">Visualizations made for this book: 18 algorithm entries, plug-in numbers for formulas, highlighted source — no Gym dependency.</span></p>
+      <div class="res-card-foot"><span class="res-host">github.com/AstonDky</span><a class="res-link" href="https://github.com/AstonDky/Math_in_RL_Visual" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-community"><span class="zh">社区</span><span class="en">Community</span></span><span class="res-meta">★ —</span></div>
+      <h4 class="res-name">reinforcement-learning-course</h4>
+      <p class="res-desc"><span class="zh">15+ 算法全复现，全中文注释，仅依赖 NumPy / PyTorch / matplotlib。</span><span class="en">15+ algorithms fully reproduced, all-Chinese comments, NumPy / PyTorch / matplotlib only.</span></p>
+      <div class="res-card-foot"><span class="res-host">github.com/Norlaner</span><a class="res-link" href="https://github.com/Norlaner/reinforcement-learning-course" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-community"><span class="zh">社区</span><span class="en">Community</span></span><span class="res-meta">★ 8</span></div>
+      <h4 class="res-name">MATLAB-Code-for-Mathematical-Foundation-of-Reinforcement-Learning</h4>
+      <p class="res-desc"><span class="zh">社区少见的 MATLAB 版全算法实现。</span><span class="en">A rare MATLAB implementation of the full algorithm set.</span></p>
+      <div class="res-card-foot"><span class="res-host">github.com/EveryDayIsaSong</span><a class="res-link" href="https://github.com/EveryDayIsaSong/MATLAB-Code-for-Mathematical-Foundation-of-Reinforcement-Learning" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-external"><span class="zh">外部</span><span class="en">External</span></span></div>
+      <h4 class="res-name"><span class="zh">RL 知识图谱可视化</span><span class="en">RL Explorer</span></h4>
+      <p class="res-desc"><span class="zh">社区做的 RL 知识图谱可视化页面，被作者 README 收录。</span><span class="en">A community RL knowledge-graph page, indexed in the author's README.</span></p>
+      <div class="res-card-foot"><span class="res-host">hanfei-hz.github.io</span><a class="res-link" href="https://hanfei-hz.github.io/assets/files/rl_explorer.html" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+  </div>
+
+  <!-- ═══ 第 5 组 · 中文笔记与精读 ═══ -->
+  <h3 class="res-sec-title"><span class="zh">⑤ 中文笔记与精读</span><span class="en">5 · Notes &amp; close readings</span></h3>
+  <div class="res-grid">
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-community"><span class="zh">社区</span><span class="en">Community</span></span><span class="res-meta"><span class="zh">13 篇</span><span class="en">13 posts</span></span></div>
+      <h4 class="res-name"><span class="zh">Hwcoder RL 笔记系列</span><span class="en">Hwcoder RL Notes</span></h4>
+      <p class="res-desc"><span class="zh">13 篇系列笔记：前 9 篇精确对应本书章节，后接 PPO / RLHF / DPO。</span><span class="en">A 13-post series: the first 9 map exactly onto the book's chapters, then continue to PPO / RLHF / DPO.</span></p>
+      <div class="res-card-foot"><span class="res-host">hwcoder.top</span><a class="res-link" href="https://hwcoder.top/RL-Note-2" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-community"><span class="zh">社区</span><span class="en">Community</span></span></div>
+      <h4 class="res-name"><span class="zh">知乎专栏 · 逐讲精读</span><span class="en">Zhihu Column</span></h4>
+      <p class="res-desc"><span class="zh">基于本课程逐讲展开的知乎专栏。</span><span class="en">A Zhihu column following the course lecture by lecture.</span></p>
+      <div class="res-card-foot"><span class="res-host">zhihu.com/column</span><a class="res-link" href="https://www.zhihu.com/column/c_1753763118961078273" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-community"><span class="zh">社区</span><span class="en">Community</span></span></div>
+      <h4 class="res-name"><span class="zh">CSDN 逐章系列（2024 春）</span><span class="en">CSDN Chapter Series (2024 spring)</span></h4>
+      <p class="res-desc"><span class="zh">《强化学习的数学原理》(2024春) 逐章笔记系列。</span><span class="en">A per-chapter notes series for "Mathematical Foundations of RL" (2024 spring).</span></p>
+      <div class="res-card-foot"><span class="res-host">blog.csdn.net</span><a class="res-link" href="https://blog.csdn.net/weixin_46034116/article/details/138874447" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-community"><span class="zh">社区</span><span class="en">Community</span></span></div>
+      <h4 class="res-name"><span class="zh">英文精读笔记（官方推荐）</span><span class="en">English Close Reading (author-recommended)</span></h4>
+      <p class="res-desc"><span class="zh">作者方推荐的英文精读笔记（lyk-love.cn，按标签聚合）。</span><span class="en">Author-recommended English study notes (lyk-love.cn, aggregated by tag).</span></p>
+      <div class="res-card-foot"><span class="res-host">lyk-love.cn</span><a class="res-link" href="https://lyk-love.cn/tags/reinforcement-learning/" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-community"><span class="zh">社区</span><span class="en">Community</span></span></div>
+      <h4 class="res-name"><span class="zh">课程资源汇总文</span><span class="en">Resource Round-up</span></h4>
+      <p class="res-desc"><span class="zh">官方链接过的资源汇总文。注意：知乎反爬会让脚本抓取返回 403，浏览器可正常访问。</span><span class="en">A resource round-up once linked officially. Note: Zhihu's anti-crawler returns 403 to scripted requests — it opens fine in a browser.</span></p>
+      <div class="res-card-foot"><span class="res-host">zhuanlan.zhihu.com</span><a class="res-link" href="https://zhuanlan.zhihu.com/p/567743051" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+  </div>
+
+  <!-- ═══ 第 6 组 · 查漏补缺外部课程 ═══ -->
+  <h3 class="res-sec-title"><span class="zh">⑥ 查漏补缺的外部课程</span><span class="en">6 · Companion courses</span></h3>
+  <p class="res-sec-sub"><span class="zh">本书讲不深或讲不到的，去这些地方补。</span><span class="en">Where to go for what this book covers lightly or leaves out.</span></p>
+  <div class="res-grid">
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-external"><span class="zh">外部</span><span class="en">External</span></span></div>
+      <h4 class="res-name"><span class="zh">Sutton &amp; Barto 第 2 版官方 PDF</span><span class="en">Sutton &amp; Barto 2nd ed. (official PDF)</span></h4>
+      <p class="res-desc"><span class="zh">补足本书着墨较少的 TD(λ) / 资格迹与历史脉络。</span><span class="en">Fills in TD(λ) / eligibility traces and the historical context the book covers lightly.</span></p>
+      <div class="res-card-foot"><span class="res-host">incompleteideas.net</span><a class="res-link" href="http://incompleteideas.net/book/the-book-2nd.html" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-external"><span class="zh">外部</span><span class="en">External</span></span></div>
+      <h4 class="res-name"><span class="zh">Sutton &amp; Barto 配套 Python 代码</span><span class="en">Sutton &amp; Barto companion code</span></h4>
+      <p class="res-desc"><span class="zh">逐章参考实现（ShangtongZhang）。</span><span class="en">Per-chapter reference implementations (ShangtongZhang).</span></p>
+      <div class="res-card-foot"><span class="res-host">github.com/ShangtongZhang</span><a class="res-link" href="https://github.com/ShangtongZhang/reinforcement-learning-an-introduction" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-external"><span class="zh">外部</span><span class="en">External</span></span></div>
+      <h4 class="res-name"><span class="zh">David Silver 课程（UCL / DeepMind）</span><span class="en">David Silver's course (UCL / DeepMind)</span></h4>
+      <p class="res-desc"><span class="zh">MDP 直觉、planning、AlphaGo。</span><span class="en">MDP intuition, planning, AlphaGo.</span></p>
+      <div class="res-card-foot"><span class="res-host">davidstarsilver.wordpress.com</span><a class="res-link" href="https://davidstarsilver.wordpress.com/teaching/" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-external"><span class="zh">外部</span><span class="en">External</span></span></div>
+      <h4 class="res-name"><span class="zh">Berkeley CS285</span><span class="en">Berkeley CS285</span></h4>
+      <p class="res-desc"><span class="zh">深度 RL 工程实践，衔接本书第 8–10 章。</span><span class="en">Deep-RL engineering practice; bridges the book's chapters 8–10.</span></p>
+      <div class="res-card-foot"><span class="res-host">rail.eecs.berkeley.edu</span><a class="res-link" href="https://rail.eecs.berkeley.edu/deeprlcourse/" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-external"><span class="zh">外部</span><span class="en">External</span></span></div>
+      <h4 class="res-name"><span class="zh">李宏毅强化学习</span><span class="en">Hung-yi Lee's RL course</span></h4>
+      <p class="res-desc"><span class="zh">策略梯度 / PPO 的中文直观讲解。</span><span class="en">Chinese-language intuitive takes on policy gradient / PPO.</span></p>
+      <div class="res-card-foot"><span class="res-host">speech.ee.ntu.edu.tw</span><a class="res-link" href="https://speech.ee.ntu.edu.tw/~tlkagk/courses_MLDS18.html" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-external"><span class="zh">外部</span><span class="en">External</span></span></div>
+      <h4 class="res-name">《动手学强化学习》</h4>
+      <p class="res-desc"><span class="zh">中文在线书：公式 → 可运行代码的桥梁。</span><span class="en">A Chinese online book: the bridge from formulas to runnable code.</span></p>
+      <div class="res-card-foot"><span class="res-host">hrl.boyuai.com</span><a class="res-link" href="https://hrl.boyuai.com/" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-external"><span class="zh">外部</span><span class="en">External</span></span></div>
+      <h4 class="res-name"><span class="zh">Easy-RL 蘑菇书</span><span class="en">Easy-RL (Datawhale)</span></h4>
+      <p class="res-desc"><span class="zh">中文速查书。</span><span class="en">A Chinese quick-reference book.</span></p>
+      <div class="res-card-foot"><span class="res-host">github.com/datawhalechina</span><a class="res-link" href="https://github.com/datawhalechina/easy-rl" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-external"><span class="zh">外部</span><span class="en">External</span></span></div>
+      <h4 class="res-name"><span class="zh">Karpathy 交互式值迭代 demo</span><span class="en">Karpathy's interactive value-iteration demo</span></h4>
+      <p class="res-desc"><span class="zh">写值迭代 / 策略迭代之前，先玩一遍找感觉。</span><span class="en">Play with it before writing value / policy iteration yourself.</span></p>
+      <div class="res-card-foot"><span class="res-host">cs.stanford.edu</span><a class="res-link" href="https://cs.stanford.edu/people/karpathy/reinforcejs/gridworld_dp.html" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+    <article class="res-card">
+      <div class="res-card-top"><span class="res-tag res-tag-official"><span class="zh">官方</span><span class="en">Official</span></span></div>
+      <h4 class="res-name"><span class="zh">PyTorch 官方 DQN 教程</span><span class="en">Official PyTorch DQN tutorial</span></h4>
+      <p class="res-desc"><span class="zh">从零写 DQN 的权威模板（有中文镜像 pytorch.ac.cn）。</span><span class="en">The authoritative template for writing DQN from scratch (Chinese mirror at pytorch.ac.cn).</span></p>
+      <div class="res-card-foot"><span class="res-host">pytorch.org</span><a class="res-link" href="https://pytorch.org/tutorials/intermediate/reinforcement_q_learning.html" target="_blank" rel="noopener"><span class="zh">访问 →</span><span class="en">Visit →</span></a></div>
+    </article>
+  </div>
+
+  <!-- ═══ 第 7 组 · 合规提醒 ═══ -->
+  <h3 class="res-sec-title"><span class="zh">⑦ 合规提醒</span><span class="en">7 · Compliance note</span></h3>
+  <div class="res-callout">
+    <span class="mark" aria-hidden="true">⚠️</span>
+    <div>
+      <span class="zh"><strong>课程明确：</strong>禁止使用现成算法工具箱，算法必须从零自己写；「明显 LLM 生成的报告 / 代码最多扣到 0 分」。上方第 4 组社区仓库包含作业算法的完整实现（值迭代、策略迭代、MC、TD、DQN、REINFORCE、A2C…）——把它们当<strong>思路参照与调试对照</strong>，不要照抄结构或注释。</span>
+      <span class="en"><strong>The course is explicit:</strong> ready-made algorithm toolboxes are forbidden and every algorithm must be written from scratch; "reports/code that are obviously LLM-generated can be graded down to 0". The community repos in group 4 contain complete implementations of the homework algorithms (value/policy iteration, MC, TD, DQN, REINFORCE, A2C…) — treat them as <strong>references for ideas and debugging</strong>, and do not copy their structure or comments.</span>
+    </div>
+  </div>
+
+</main>
+
+<footer class="res-foot">
+  <span class="zh">资料索引 · 链接整理于 2026-09-15 · 返回<a href="index.html">课堂</a>或<a href="graph3d.html">知识星图</a></span>
+  <span class="en">Resources · links verified 2026-09-15 · back to the <a href="index.html">classroom</a> or the <a href="graph3d.html">constellation</a></span>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  var THEME_KEY = 'rl-viz-theme';
+  var LANG_KEY = 'rl-viz-lang';
+
+  function lsGet(key) {
+    try { return localStorage.getItem(key); } catch (err) { return null; } // 隐私模式下用默认值
+  }
+  function lsSet(key, val) {
+    try { localStorage.setItem(key, val); } catch (err) { /* 隐私模式下静默 */ }
+  }
+
+  /* ── 主题 / 语言（照 assets/js/graph3d.js:220-240 同款机制，读写共享 localStorage 键） ── */
+  function setTheme(key) {
+    if (!key) return;
+    document.documentElement.dataset.theme = key;
+    lsSet(THEME_KEY, key);
+    document.querySelectorAll('.res-theme-btn').forEach(function (b) {
+      var on = b.dataset.theme === key;
+      b.classList.toggle('is-active', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+  function setLang(key) {
+    var k = (key === 'zh' || key === 'en') ? key : 'both';
+    document.body.dataset.lang = k;
+    lsSet(LANG_KEY, k);
+    document.documentElement.lang = k === 'en' ? 'en' : 'zh-CN';
+    document.querySelectorAll('.res-lang-btn').forEach(function (b) {
+      var on = b.dataset.lang === k;
+      b.classList.toggle('is-active', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+
+  function init() {
+    var theme = lsGet(THEME_KEY) || 'chalk';
+    var lang = lsGet(LANG_KEY) || 'both';
+
+    document.querySelectorAll('.res-theme-btn').forEach(function (b) {
+      b.addEventListener('click', function () { setTheme(b.dataset.theme); });
+    });
+    document.querySelectorAll('.res-lang-btn').forEach(function (b) {
+      b.addEventListener('click', function () { setLang(b.dataset.lang); });
+    });
+
+    setTheme(theme);
+    setLang(lang);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,11 +1,11 @@
-// 数据完整性校验（CI 用）：88 小节 / 47 组件 / 57 个公式块 katex 严格渲染零失败
+// 数据完整性校验（CI 用）：88 小节 / 48 组件 / 57 个公式块 katex 严格渲染零失败
 // 加载方式与 check_templates.js 相同：stub window → eval 核心与各讲 data/components。
 const fs = require('fs');
 const path = require('path');
 const katex = require('katex');
 
 const EXPECT_SECTIONS = 88;
-const EXPECT_COMPONENTS = 47;
+const EXPECT_COMPONENTS = 48;
 const EXPECT_FORMULAS = 57;
 
 let fail = 0;

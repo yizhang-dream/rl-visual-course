@@ -1259,6 +1259,7 @@
         <button class="btn" style="padding:11px 20px" @click="$emit('go','l7-td0')">⚖️ <span v-html="bi('直达 Q-learning','Q-learning')"></span></button>
         <a class="btn ghost" style="padding:11px 20px; text-decoration:none" href="graph3d.html">🌌 <span v-html="bi('知识星图','Knowledge Map')"></span></a>
         <a class="btn ghost" style="padding:11px 20px; text-decoration:none" href="lite.html">📓 <span v-html="bi('笔记本实验室','Notebook Lab')"></span></a>
+        <a class="btn ghost" style="padding:11px 20px; text-decoration:none" href="resources.html">📚 <span v-html="bi('资料索引','Resources')"></span></a>
       </div>
       <div class="hero-stats">
         <div class="hero-stat"><b>{{ stats.sections }}</b><span v-html="bi('个小节双语精讲','sections, bilingual')"></span></div>
@@ -1407,6 +1408,89 @@
     setup() { return { bi }; },
   };
 
+  /* ═════════════ 官方视频索引 OfficialVideos（第 8 轮新增 · 资料卡） ═════════════ */
+  // 把课程官方视频课的分集精确挂到每一讲：中文 B 站单视频分 P 与英文 YouTube
+  // 播放列表共用同一套编号，第 n 集就是第 n 集。分集数据由各讲 data-lX.js 注入
+  // window.DATA.videoSets[source]（缺数据时降级为占位提示，不报错）；
+  // 讲名取自 window.DATA.otherLectures（{no, zh, en}），取不到回退 'L'+n。
+  const OVL_CN_BASE = 'https://www.bilibili.com/video/BV1sd4y167NS/?p=';
+  const OVL_EN_BASE = 'https://www.youtube.com/watch?v=';
+  const OVL_EN_TAIL = '&list=PLEhdbSEZZbDaFWPX4gehhwB9vJZJ1DNm8&index=';
+  const OVL_OVERVIEW_EN = OVL_EN_BASE + 'ZHMWHr9811U' + OVL_EN_TAIL + '1';
+
+  const OfficialVideos = {
+    name: 'OfficialVideos',
+    props: { source: { type: String, default: '' } },
+    computed: {
+      // 单一 computed 块：讲名 / 分集区间 / 每集中英链接一次性算好，模板保持哑渲染
+      info() {
+        const src = String(this.source || '');
+        const no = Number(src.slice(1));
+        const sets = (window.DATA && window.DATA.videoSets) || {};
+        const set = sets[src] || null;
+        const lec = ((window.DATA && window.DATA.otherLectures) || [])
+          .find((l) => l && l.no === no);
+        const eps = ((set && Array.isArray(set.episodes)) ? set.episodes : [])
+          .filter((ep) => ep && ep.n && ep.yt)
+          .map((ep) => ({
+            n: ep.n,
+            title: ep.en,
+            cn: OVL_CN_BASE + ep.n,
+            en: OVL_EN_BASE + ep.yt + OVL_EN_TAIL + ep.n,
+          }));
+        const first = eps.length ? eps[0] : null;
+        return {
+          lecZh: lec ? lec.zh : 'L' + no,
+          lecEn: lec ? lec.en : 'L' + no,
+          ok: !!set,
+          min: set ? set.min : 0,
+          max: set ? set.max : 0,
+          eps,
+          cnAll: OVL_CN_BASE + (set ? set.min : 1),
+          enAll: first ? first.en : '',
+          cnOverview: OVL_CN_BASE + '1',
+          enOverview: OVL_OVERVIEW_EN,
+        };
+      },
+    },
+    setup() { return { bi }; },
+    template: `
+    <div class="lab ovl-card" :data-source="source">
+      <div class="lab-head">
+        <span class="lab-title"><span v-html="bi(info.lecZh + ' · 官方视频索引', info.lecEn + ' · Official Video Index')"></span></span>
+        <span v-if="info.ok" class="ovl-range">P{{ info.min }}–P{{ info.max }}</span>
+      </div>
+      <p v-if="!info.ok" class="bi duo ovl-empty" v-html="bi(
+        '官方视频分集数据尚未就绪（videoSets 缺失），就位后这里会列出本讲对应的全部分集与双语入口。',
+        'Official episode data is not ready yet (videoSets missing) — the bilingual per-episode links will appear here once it ships.')"></p>
+      <template v-else>
+        <p class="bi duo ovl-note" v-html="bi(
+          '官方视频课的中文版与英文版共用同一套编号：第 n 集就是第 n 集。下表是本站小节 ↔ 官方分集的对应关系，点链接直达对应一集。',
+          'The Chinese and English versions of the official video course share one numbering: episode n is episode n, always. Each row maps this lecture’s sections to their official episodes — click through to jump straight to it.')"></p>
+        <ul class="ovl-list">
+          <li v-for="ep in info.eps" :key="ep.n" class="ovl-ep">
+            <span class="ovl-ep-name">P{{ ep.n }} · {{ ep.title }}</span>
+            <span class="ovl-ep-links">
+              <a class="ovl-a ovl-a-cn" :href="ep.cn" target="_blank" rel="noopener" v-html="bi('中文版','Chinese')"></a>
+              <a class="ovl-a ovl-a-en" :href="ep.en" target="_blank" rel="noopener" v-html="bi('英文版','English')"></a>
+            </span>
+          </li>
+        </ul>
+        <div class="ovl-foot">
+          <a class="btn ghost sm ovl-all-cn" :href="info.cnAll" target="_blank" rel="noopener">▶ <span v-html="bi('中文版连播','Play all (Chinese)')"></span></a>
+          <a class="btn ghost sm ovl-all-en" :href="info.enAll" target="_blank" rel="noopener">▶ <span v-html="bi('英文版连播','Play all (English)')"></span></a>
+        </div>
+        <div class="ovl-overview">
+          <span class="ovl-ov-name" v-html="bi('总览 · 官方第 1 集（全书导览，各讲共用）','Overview · official episode 1 (whole-book tour, shared by all lectures)')"></span>
+          <span class="ovl-ov-links">
+            <a class="ovl-ov-link" :href="info.cnOverview" target="_blank" rel="noopener" v-html="bi('中文版','Chinese')"></a>
+            <a class="ovl-ov-link" :href="info.enOverview" target="_blank" rel="noopener" v-html="bi('英文版','English')"></a>
+          </span>
+        </div>
+      </template>
+    </div>`,
+  };
+
   /* ═════════════ 注册 ═════════════ */
   // 共享助手：后续 per-lecture 组件文件通过 window.RLV 复用
   window.RLV = { stepOnce, s2rc, rc2s, center, bi, TYPE_LABEL, hlPy, CELL, PAD, STAR, rng,
@@ -1425,5 +1509,6 @@
     'lecture-index': LectureIndex,
     'course-map': CourseMap,
     'how-to-use': HowToUse,
+    'official-videos': OfficialVideos,
   };
 })();

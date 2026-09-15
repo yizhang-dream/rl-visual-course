@@ -279,3 +279,37 @@ feat: 充分理论推导 + JupyterLite 笔记本实验室（第七轮）
 12. 迭代视角 v_{k+1} = r_π + γP_π v_k（不动点语言埋 L4 伏笔）
 13. 数值验证钩子：NB1 将用代码验证第 9 步矩阵形式
 14. 闭合卡：这条链每一环——γ 收敛→拆项→线性→马尔可夫→全期望→矩阵——谁也少不了谁
+
+---
+---
+
+# 第八轮施工记录（2026-09-15）
+
+> 主题：**官方资料索引 + 每讲官方视频索引**——课程官方视频与本站十讲一一对应，英文清单 54 集与 B 站中文合集（`BV1sd4y167NS`）同号（`?p=N` ↔ `index=N`），让"每一讲精确挂到官方视频的具体分集"成为可能；另补一个全书资料索引独立页。规格唯一事实源：`docs/round8-spec.md`（链接事实源：`D:\rl course\course-materials.md`；分集数据：`docs/round8-video-data.json`）。本轮**不新增小节（88 不动）、不新增公式块（57 不动）、不删任何现有 widget**；官方视频索引卡是资料卡，不计入"交互实验台"（81 不变）。
+
+## 目标
+
+1. 每讲一张官方视频索引卡：`official-videos` 组件注册进 `assets/js/components.js` 的 `window.COMPONENTS`（核心文件，十讲共用），挂每讲首个内容小节；逐集「中文版 / English」双链 + 总览集入口（官方第 1 集共用）+ 小节 ↔ 分集对照说明；DOM 钩子契约（`.ovl-card[data-source]` / `.ovl-range` / `ul.ovl-list > li.ovl-ep` / `.ovl-a-cn` / `.ovl-a-en` / `.ovl-all-cn` / `.ovl-all-en` / `.ovl-overview`）见规格第 2 节。
+2. 独立页 `resources.html`：照 `lite.html` / `graph3d.html` 纯静态先例；七组资料（官方入口 / 视频课程含十讲分集对照表 / 教材与勘误 / 社区实现 / 中文笔记 / 外部课程 / 合规提醒 callout）；`#res-stats` 含 `54`、`.res-card` ≥ 20；顶栏给 `graph3d.html` 与 `lite.html` 各加返回链接。
+3. 文档与门禁口径同步：组件 47 → **48**（本轮唯一计数改动）；README 补第七轮（此前漏记）与第八轮条目；主站三处 meta、页脚入口更新。
+
+## 改动面
+
+- 组件与内容作者（另一位负责人）：`assets/js/components.js`（official-videos + hero 第三钮）、`assets/js/data*.js`（按 `docs/round8-snippets/` 追加十讲分集数据）、`assets/css/main.css`（`ovl-` 样式段）、`resources.html`（新建）、`graph3d.html` / `lite.html`（顶栏链接）
+- 门禁与文档口径（本人）：`scripts/check_data.js`（`EXPECT_COMPONENTS 47→48` + 头注释）、`assets/js/root-template.js`（页脚 zh/en 行各加 resources.html 链接）、`index.html`（`:7` `:10` `:18` 三处 meta：48 组件 + 官方资料索引能力）、`verify_site.js`（新增 `[smoke-resources]` 断言块 7 条 + 头注释计数）、`README.md`、`PLAN.md`
+
+## 门禁
+
+- `EXPECT_SECTIONS = 88` / `EXPECT_FORMULAS = 57` 不动；navGroups / graph3d-data.js / `scripts/build_graph3d.js` 不碰
+- `verify_site.js` 现有断言一条不删（尤其 notebook-bridge / derivation-lab / graph3d 的 88 与 10）；新断言只依赖规格第 2 节的 DOM 钩子契约，不为过断言改他人文件
+- 施工期间不跑 `npm test`（`EXPECT_COMPONENTS=48` 与组件落地间存在短暂不一致，收尾验证波统一跑）
+
+## 验收结果（2026-09-15 收尾验证波回填，全部实测）
+
+- **契约门禁**：`npm test` → `sections: 88/88 · components: 48/48 · formula blocks: 57/57 · katex snippets rendered: 300, failures: 0 · fill sets: 10 · derivation sets: 9`，`ALL DATA CHECKS PASSED`；`npm run lint` → 0 error / 0 warning。
+- **端到端冒烟**：起 `http.server 8642` 后 `node verify_site.js` → **57/57 smoke asserts passed**，退出码 0，`NO CONSOLE ERRORS`。新增段实测行：`resources assert: status=200 stats54=true cards=41 l2Eps=5 l2CnHref=https://www.bilibili.com/video/BV1sd4y167NS/?p=4 l7Eps=8`；`shots/resources.png` 已生成（798 KB）。原有断言（graph3d 88/10、notebook-bridge、derivation-lab、lite、file://）全部照旧通过。
+- **数据正确性**：程序化全量比对 `data*.js` 的 (n, yt, en) 与 `docs/round8-video-data.json` → 零差异，各讲集数 L1=2…L10=5 与规格表一致、编号连续无重号；`n=1` 总览集由 `.ovl-overview` 承担，全集 54 无遗漏。
+- **独立评审（reviewer，只读）**：总 verdict `pass-with-notes`，无 blocker、无 should-fix。notes 之一（双语模式下内联链接「中文版Chinese 英文版English」黏连）**已当场修复**：`official-videos` 模板内联标签统一改用 `bi()` 助手（对齐 `notebook-bridge` 先例，`du-line` 生效），修复后重跑冒烟仍 57/57、零 console 错误，并实测 10 个链接内的 `span.zh`/`span.en` computed `display` 均为 `block`。
+- **人工目检**：`shots/resources.png`（七组资料卡 + 十讲分集对照表 + 合规 callout）、`shots/ovl-l2-after.png`（L2 卡双语模式）、`shots/ovl-l2-en.png`（英文单语）三张截图确认排版与双语切换正常。
+- **遗留口径**：`data*.js` 追加片段为 LF 行尾、原文件为 CRLF，形成混合行尾（git autocrlf 提示，功能无影响）；如后续要统一，`git add --renormalize .` 处理即可。
+

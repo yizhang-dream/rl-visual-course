@@ -1,0 +1,436 @@
+{
+  "l0": {
+    "lecture": 0,
+    "parts": [
+      1
+    ],
+    "min": 1,
+    "max": 1,
+    "count": 1,
+    "episodes": [
+      {
+        "n": 1,
+        "en": "Overview of Reinforcement Learning in 30 Minutes",
+        "yt": "ZHMWHr9811U"
+      }
+    ]
+  },
+  "l1": {
+    "lecture": 1,
+    "parts": [
+      2,
+      3
+    ],
+    "min": 2,
+    "max": 3,
+    "count": 2,
+    "episodes": [
+      {
+        "n": 2,
+        "en": "Basic Concepts (P1-State, action, policy, ...)",
+        "yt": "zJHtM5dN69g"
+      },
+      {
+        "n": 3,
+        "en": "Basic Concepts (P2-Reward,return, Markov decision process)",
+        "yt": "repVl3_GYCI"
+      }
+    ]
+  },
+  "l2": {
+    "lecture": 2,
+    "parts": [
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "min": 4,
+    "max": 8,
+    "count": 5,
+    "episodes": [
+      {
+        "n": 4,
+        "en": "Bellman Equation (P1-Motivating examples)",
+        "yt": "XCzWrlgZCwc"
+      },
+      {
+        "n": 5,
+        "en": "Bellman Equation (P2-State value)",
+        "yt": "DSvi3xEN13I"
+      },
+      {
+        "n": 6,
+        "en": "Bellman Equation (P3-Bellman equation-Derivation)",
+        "yt": "eNtId8yPWkA"
+      },
+      {
+        "n": 7,
+        "en": "Bellman Equation (P4-Matrix-vector form and solution)",
+        "yt": "EtCfBG_eP2w"
+      },
+      {
+        "n": 8,
+        "en": "Bellman Equation (P5-Action value)",
+        "yt": "zJo2sLDzfcU"
+      }
+    ]
+  },
+  "l3": {
+    "lecture": 3,
+    "parts": [
+      9,
+      10,
+      11,
+      12
+    ],
+    "min": 9,
+    "max": 12,
+    "count": 4,
+    "episodes": [
+      {
+        "n": 9,
+        "en": "Bellman Optimality Equation (P1-Motivating example)",
+        "yt": "lXKY_Hyg4SQ"
+      },
+      {
+        "n": 10,
+        "en": "Bellman Optimality Equation (P2-Optimal policy)",
+        "yt": "BxyjdHhK8a8"
+      },
+      {
+        "n": 11,
+        "en": "Bellman Optimality Equation (P3-More on BOE)",
+        "yt": "FXftTCKotC8"
+      },
+      {
+        "n": 12,
+        "en": "Bellman Optimality Equation (P4-Interesting properties)",
+        "yt": "a--bck2ow9s"
+      }
+    ]
+  },
+  "l4": {
+    "lecture": 4,
+    "parts": [
+      13,
+      14,
+      15
+    ],
+    "min": 13,
+    "max": 15,
+    "count": 3,
+    "episodes": [
+      {
+        "n": 13,
+        "en": "Value Iteration and Policy Iteration (P1-Value iteration)",
+        "yt": "wMAVmLDIvQU"
+      },
+      {
+        "n": 14,
+        "en": "Value Iteration and Policy Iteration (P2-Policy iteration)",
+        "yt": "Pka6Om0nYQ8"
+      },
+      {
+        "n": 15,
+        "en": "Value Iteration and Policy Iteration (P3-Truncated policy iteration)",
+        "yt": "tUjPFPD3Vc8"
+      }
+    ]
+  },
+  "l5": {
+    "lecture": 5,
+    "parts": [
+      16,
+      17,
+      18,
+      19,
+      20,
+      21
+    ],
+    "min": 16,
+    "max": 21,
+    "count": 6,
+    "episodes": [
+      {
+        "n": 16,
+        "en": "Monte Carlo Learning (P1-Motivating examples)",
+        "yt": "DO1yXinAV_Q"
+      },
+      {
+        "n": 17,
+        "en": "Monte Carlo Learning (P2-MC Basic-introduction)",
+        "yt": "6ShisunU0zs"
+      },
+      {
+        "n": 18,
+        "en": "Monte Carlo Learning (P3-MC Basic-examples)",
+        "yt": "axA0yns9FxU"
+      },
+      {
+        "n": 19,
+        "en": "Monte Carlo Learning (P4-MC Exploring Starts)",
+        "yt": "Qt8OMHPkLqg"
+      },
+      {
+        "n": 20,
+        "en": "Monte Carlo Learning (P5-MC Epsilon-Greedy-introduction)",
+        "yt": "dM3fYE630pY"
+      },
+      {
+        "n": 21,
+        "en": "Monte Carlo Learning (P6-MC Epsilon-Greedy-examples)",
+        "yt": "x6X_5ePT9gQ"
+      }
+    ]
+  },
+  "l6": {
+    "lecture": 6,
+    "parts": [
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28
+    ],
+    "min": 22,
+    "max": 28,
+    "count": 7,
+    "episodes": [
+      {
+        "n": 22,
+        "en": "Stochastic Approximation and SGD (P1-Motivating example)",
+        "yt": "1bMgejvWoAo"
+      },
+      {
+        "n": 23,
+        "en": "Stochastic Approximation and SGD (P2-RM algorithm: introduction)",
+        "yt": "1FTGcNUUnCE"
+      },
+      {
+        "n": 24,
+        "en": "Stochastic Approximation and SGD (P3-RM algorithm: convergence)",
+        "yt": "juNDoAFEre4"
+      },
+      {
+        "n": 25,
+        "en": "Stochastic Approximation and SGD (P4-SGD algorithm: introduction)",
+        "yt": "EZO7Iadp5m4"
+      },
+      {
+        "n": 26,
+        "en": "Stochastic Approximation and SGD (P5-SGD algorithm: examples)",
+        "yt": "BsxU_4qvvNA"
+      },
+      {
+        "n": 27,
+        "en": "Stochastic Approximation and SGD (P6-SGD algorithm: properties)",
+        "yt": "fWxX9YuEHjE"
+      },
+      {
+        "n": 28,
+        "en": "Stochastic Approximation and SGD (P7-SGD algorithm: comparison)",
+        "yt": "yNEV2cLKuzU"
+      }
+    ]
+  },
+  "l7": {
+    "lecture": 7,
+    "parts": [
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36
+    ],
+    "min": 29,
+    "max": 36,
+    "count": 8,
+    "episodes": [
+      {
+        "n": 29,
+        "en": "Temporal-Difference Learning (P1-Motivating example)",
+        "yt": "u1X-7XX3dtI"
+      },
+      {
+        "n": 30,
+        "en": "Temporal-Difference Learning (P2-TD algorithm: introduction)",
+        "yt": "XiCUsc7CCE0"
+      },
+      {
+        "n": 31,
+        "en": "Temporal-Difference Learning (P3-TD algorithm: convergence)",
+        "yt": "faWg8M91-Oo"
+      },
+      {
+        "n": 32,
+        "en": "Temporal-Difference Learning (P4-Sarsa)",
+        "yt": "jYwQufkBUPo"
+      },
+      {
+        "n": 33,
+        "en": "Temporal-Difference Learning (P5-Expected Sarsa & n-step Sarsa)",
+        "yt": "0kKzQbWZOlk"
+      },
+      {
+        "n": 34,
+        "en": "Temporal-Difference Learning (P6-Q-learning: introduction)",
+        "yt": "4BvYR2hm730"
+      },
+      {
+        "n": 35,
+        "en": "Temporal-Difference Learning (P7-Q-learning: pseudo code)",
+        "yt": "I0YhlOIFF4s"
+      },
+      {
+        "n": 36,
+        "en": "Temporal-Difference Learning (P8-Unified viewpoint and summary)",
+        "yt": "3t74lvk1GBM"
+      }
+    ]
+  },
+  "l8": {
+    "lecture": 8,
+    "parts": [
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44
+    ],
+    "min": 37,
+    "max": 44,
+    "count": 8,
+    "episodes": [
+      {
+        "n": 37,
+        "en": "Value Function Approximation (P1-Motivating example–curve fitting)",
+        "yt": "uJXcI8fcdWc"
+      },
+      {
+        "n": 38,
+        "en": "Value Function Approximation (P2-Objective function)",
+        "yt": "Z3HI1TfpJP0"
+      },
+      {
+        "n": 39,
+        "en": "Value Function Approximation (P3-Optimization algorithm)",
+        "yt": "piBDwrKt0uU"
+      },
+      {
+        "n": 40,
+        "en": "Value Function Approximation (P4-illustrative examples and analysis)",
+        "yt": "VFyBNEZxMMs"
+      },
+      {
+        "n": 41,
+        "en": "Value Function Approximation (P5-Sarsa and Q-learning)",
+        "yt": "C-HtY4-W_zw"
+      },
+      {
+        "n": 42,
+        "en": "Value Function Approximation (P6-DQN–basic idea)",
+        "yt": "lZCcbZbqVSQ"
+      },
+      {
+        "n": 43,
+        "en": "Value Function Approximation (P7-DQN–experience replay)",
+        "yt": "rynEdAdebi0"
+      },
+      {
+        "n": 44,
+        "en": "Value Function Approximation (P8-DQN–implementation and example)",
+        "yt": "vQHuCHjd6hA"
+      }
+    ]
+  },
+  "l9": {
+    "lecture": 9,
+    "parts": [
+      45,
+      46,
+      47,
+      48,
+      49
+    ],
+    "min": 45,
+    "max": 49,
+    "count": 5,
+    "episodes": [
+      {
+        "n": 45,
+        "en": "Policy Gradient Methods (P1-Basic idea)",
+        "yt": "mtFHOj83QSo"
+      },
+      {
+        "n": 46,
+        "en": "Policy Gradient Methods (P2-Metric 1–Average value)",
+        "yt": "la8jQc3hX1M"
+      },
+      {
+        "n": 47,
+        "en": "Policy Gradient Methods (P3-Metric 2–Average reward)",
+        "yt": "8RZ_rQFe69E"
+      },
+      {
+        "n": 48,
+        "en": "Policy Gradient Methods (P4-Gradients of the metrics)",
+        "yt": "MvmtPXur3Ls"
+      },
+      {
+        "n": 49,
+        "en": "Policy Gradient Methods (P5-Gradient-based algorithms & REINFORCE)",
+        "yt": "1DQnnUC8ng8"
+      }
+    ]
+  },
+  "l10": {
+    "lecture": 10,
+    "parts": [
+      50,
+      51,
+      52,
+      53,
+      54
+    ],
+    "min": 50,
+    "max": 54,
+    "count": 5,
+    "episodes": [
+      {
+        "n": 50,
+        "en": "Actor-Critic Methods (P1-The simplest Actor-Critic)",
+        "yt": "kjCZAT5Wh80"
+      },
+      {
+        "n": 51,
+        "en": "Actor-Critic Methods (P2-Advantage Actor-Critic)",
+        "yt": "vZVXJJcZNEM"
+      },
+      {
+        "n": 52,
+        "en": "Actor-Critic Methods (P3-Importance sampling & off-policy Actor-Critic)",
+        "yt": "TfO5mnsiGKc"
+      },
+      {
+        "n": 53,
+        "en": "Actor-Critic Methods (P4-Deterministic Actor-Critic)",
+        "yt": "dTjz1RNtic4"
+      },
+      {
+        "n": 54,
+        "en": "Actor-Critic Methods (P5-Summary and goodbye!)",
+        "yt": "npvnnKcXoBs"
+      }
+    ]
+  }
+}

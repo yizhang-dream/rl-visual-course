@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RL 可视化课堂 · 全书十讲 | RL Visual Classroom · Mathematical Foundation of RL</title>
-<meta name="description" content="《强化学习的数学原理》全书十讲 · 双语交互式可视化教程：88 小节 · 81 个交互实验台 · 47 个 Vue 组件 · 12 条定理交互推导，从网格世界与 Bellman 方程到策略梯度与 Actor-Critic">
+<meta name="description" content="《强化学习的数学原理》全书十讲 · 双语交互式可视化教程：88 小节 · 81 个交互实验台 · 48 个 Vue 组件 · 12 条定理交互推导，每讲附官方视频分集索引与全书官方资料索引，从网格世界与 Bellman 方程到策略梯度与 Actor-Critic">
 <link rel="canonical" href="https://rl.xn--ltr42g543b.cn/">
 <meta property="og:title" content="RL 可视化课堂 · 全书十讲 | RL Visual Classroom · Mathematical Foundation of RL">
-<meta property="og:description" content="《强化学习的数学原理》全书十讲 · 双语交互式可视化教程：88 小节 · 81 个交互实验台 · 47 个 Vue 组件 · 12 条定理交互推导，从网格世界与 Bellman 方程到策略梯度与 Actor-Critic">
+<meta property="og:description" content="《强化学习的数学原理》全书十讲 · 双语交互式可视化教程：88 小节 · 81 个交互实验台 · 48 个 Vue 组件 · 12 条定理交互推导，每讲附官方视频分集索引与全书官方资料索引，从网格世界与 Bellman 方程到策略梯度与 Actor-Critic">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://rl.xn--ltr42g543b.cn/">
 <script type="application/ld+json">
@@ -15,7 +15,7 @@
   "@context": "https://schema.org",
   "@type": "Course",
   "name": "RL 可视化课堂 · Mathematical Foundation of RL（强化学习的数学原理 · 全书十讲可视化）",
-  "description": "《强化学习的数学原理》(Mathematical Foundation of Reinforcement Learning) 全书十讲的双语交互式可视化课程：88 个小节、81 个交互实验台（含 12 条定理交互推导），从网格世界与 Bellman 方程到策略梯度与 Actor-Critic。",
+  "description": "《强化学习的数学原理》(Mathematical Foundation of Reinforcement Learning) 全书十讲的双语交互式可视化课程：88 个小节、81 个交互实验台（含 12 条定理交互推导）、48 个 Vue 组件，每讲附官方视频分集索引与全书官方资料索引，从网格世界与 Bellman 方程到策略梯度与 Actor-Critic。",
   "inLanguage": "zh-CN",
   "provider": { "@type": "Organization", "name": "RL 可视化课堂 · RL Visual Classroom" },
   "hasPart": [
@@ -37,9 +37,9 @@
 try { document.documentElement.dataset.theme = localStorage.getItem('rl-viz-theme') || 'chalk'; } catch (e) {}
 // 静态资源版本戳：发版即改。/assets/ 在 nginx 配了长缓存强缓存，靠这个参数让
 // 更新后的文件立刻穿透浏览器缓存（loader.js 动态注入也读它）
-window.RLV_VERSION = '20260914a';
+window.RLV_VERSION = '20260915a';
 </script>
-<link rel="stylesheet" href="assets/css/main.css?v=20260914a">
+<link rel="stylesheet" href="assets/css/main.css?v=20260915a">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
 </head>
 <body>
@@ -60,13 +60,13 @@ window.addEventListener('error', function (e) {
   d.textContent += '⚠ ' + e.message + '\n  ' + (e.filename || '').split('/').pop() + ':' + e.lineno + '\n';
 });
 </script>
-<script src="assets/vendor/vue.global.prod.js?v=20260914a"></script>
-<script src="assets/js/data.js?v=20260914a"></script>
-<script src="assets/js/components.js?v=20260914a"></script>
-<script src="assets/js/root-template.js?v=20260914a"></script>
-<script src="assets/js/nb-manifest.js?v=20260914a"></script>
-<script src="assets/js/loader.js?v=20260914a"></script>
-<script src="assets/js/app.js?v=20260914a"></script>
+<script src="assets/vendor/vue.global.prod.js?v=20260915a"></script>
+<script src="assets/js/data.js?v=20260915a"></script>
+<script src="assets/js/components.js?v=20260915a"></script>
+<script src="assets/js/root-template.js?v=20260915a"></script>
+<script src="assets/js/nb-manifest.js?v=20260915a"></script>
+<script src="assets/js/loader.js?v=20260915a"></script>
+<script src="assets/js/app.js?v=20260915a"></script>
 <!-- data-lX.js 与 components-lX.js（L1..L10）已改为按讲懒加载：
      首次进入该讲时由 loader.js 以经典 script 注入（file:// 可用，无 fetch/XHR）。
      旧动画库 vendor 文件已不再加载：hero 编排改 CSS 动画 + rAF（assets/vendor 文件保留备回滚）。 -->

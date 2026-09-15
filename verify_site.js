@@ -1,7 +1,8 @@
 // 无头验证：整页截图 + 控制台错误收集（驱动本机 Edge）
 // 断言计数：40 条基础冒烟 + 2 条 derivation-lab L2 冒烟（走步放行 + KaTeX 渲染）+ 2 条 L9 长链冒烟
 //   + 1 条 DATA 全量挂载扫描（L2–L10 qa 节 derivation-lab / code 节 notebook-bridge）
-//   + 2 条 notebook-bridge 冒烟（.nb-card 渲染 + 深链格式）+ 3 条 lite 冒烟（200 / 卡片数 / lab 可达）。
+//   + 2 条 notebook-bridge 冒烟（.nb-card 渲染 + 深链格式）+ 3 条 lite 冒烟（200 / 卡片数 / lab 可达）
+//   + 7 条 resources 冒烟（resources 页 200 / #res-stats 含 54 / .res-card ≥ 20 + L2 官方视频卡 3 条 + L7 抽查 1 条）。
 // 门控规则：derivation-lab 两处——window.DATA.derivationSets 注册表全空 → SKIP（内容未落，计通过）；
 //   注册表非空而 #sec-l2-qa 无 .deriv-lab → FAIL（接线错，reviewer note N2）。
 //   lite/lab/index.html 可达性——lite/ 未构建时 SKIP 并提示（PLAN 第七轮坑 7 模式）。
@@ -604,6 +605,51 @@ fs.mkdirSync(OUT, { recursive: true });
       }
     }
   } catch (e) { errors.push('[smoke-lite] ' + e.message); }
+
+  // ── resources 冒烟：资料页 200 + 54 集统计口径 + 卡片规模 + 十讲官方视频索引卡（L2 全量 3 条 + L7 抽查 1 条）──
+  try {
+    const resResp = await page.goto('http://localhost:8642/resources.html', { waitUntil: 'networkidle' });
+    ok(!!resResp && resResp.status() === 200, '[smoke-resources] resources.html status = '
+      + (resResp ? resResp.status() : 'no-response'));
+    await page.waitForTimeout(500);
+    const resStats = (await page.textContent('#res-stats')) || '';
+    ok(resStats.includes('54'), '[smoke-resources] #res-stats = "' + resStats.trim().slice(0, 80)
+      + '" (expect contains 54)');
+    const resCards = await page.locator('.res-card').count();
+    ok(resCards >= 20, '[smoke-resources] .res-card count = ' + resCards + ' (expect >= 20)');
+    await page.screenshot({ path: path.join(OUT, 'resources.png'), fullPage: true });
+
+    // 主站官方视频索引卡：L2（P4–P8，5 集）挂 #sec-l2-why
+    await page.goto('http://localhost:8642/#sec-l2-why', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1500);   // 冷深链 = 懒加载注入 data-l2 + components-l2
+    await page.evaluate(() => {
+      const el = document.getElementById('sec-l2-why');
+      if (el) el.scrollIntoView({ behavior: 'instant', block: 'start' });
+    });
+    await page.waitForTimeout(400);
+    ok(await page.isVisible('#sec-l2-why .ovl-card[data-source="l2"]'),
+      '[smoke-resources] #sec-l2-why .ovl-card[data-source="l2"] not visible');
+    const l2Eps = await page.locator('#sec-l2-why .ovl-list li.ovl-ep').count();
+    ok(l2Eps === 5, '[smoke-resources] #sec-l2-why li.ovl-ep count = ' + l2Eps + ' (expect 5, P4-P8)');
+    const cnHrefs = await page.$$eval('#sec-l2-why .ovl-list li.ovl-ep .ovl-a-cn',
+      els => els.map(e => e.getAttribute('href')));
+    ok(/BV1sd4y167NS\/\?p=4/.test(cnHrefs[0] || ''),
+      '[smoke-resources] first .ovl-a-cn href = ' + cnHrefs[0] + ' (expect BV1sd4y167NS/?p=4)');
+
+    // 抽查另一讲：L7（P29–P36，8 集）挂 #sec-l7-td0
+    await page.goto('http://localhost:8642/#sec-l7-td0', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1500);   // 冷深链 = 懒加载注入 data-l7
+    await page.evaluate(() => {
+      const el = document.getElementById('sec-l7-td0');
+      if (el) el.scrollIntoView({ behavior: 'instant', block: 'start' });
+    });
+    await page.waitForTimeout(400);
+    const l7Eps = await page.locator('#sec-l7-td0 .ovl-list li.ovl-ep').count();
+    ok(l7Eps === 8, '[smoke-resources] #sec-l7-td0 li.ovl-ep count = ' + l7Eps + ' (expect 8, P29-P36)');
+    console.log('resources assert: status=' + (resResp && resResp.status())
+      + ' stats54=' + resStats.includes('54') + ' cards=' + resCards
+      + ' l2Eps=' + l2Eps + ' l2CnHref=' + cnHrefs[0] + ' l7Eps=' + l7Eps);
+  } catch (e) { errors.push('[smoke-resources] ' + e.message); }
 
   // ── file:// 双击可用冒烟：KaTeX 相对路径 css/字体在 file 协议下可加载、公式可渲染 ──
   try {

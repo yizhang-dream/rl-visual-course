@@ -9,16 +9,17 @@
 // 主题防闪烁：在样式表生效前定好 data-theme（与 index.html 同款机制）
 try { document.documentElement.dataset.theme = localStorage.getItem('rl-viz-theme') || 'chalk'; } catch (e) {}
 // 静态资源版本戳：与站点一致，靠它穿透浏览器长缓存
-window.RLV_VERSION = '20260911a';
+window.RLV_VERSION = '20260915a';
 </script>
-<link rel="stylesheet" href="assets/css/main.css?v=20260911a">
-<link rel="stylesheet" href="assets/css/graph3d.css?v=20260911a">
+<link rel="stylesheet" href="assets/css/main.css?v=20260915a">
+<link rel="stylesheet" href="assets/css/graph3d.css?v=20260915a">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
 </head>
 <body data-lang="both">
 
 <header class="g3d-topbar">
   <a class="g3d-back" href="index.html"><span class="zh">← 返回课堂</span><span class="en">← Back</span></a>
+  <a class="g3d-back" href="resources.html"><span class="zh">资料索引</span><span class="en">Resources</span></a>
   <h1 class="g3d-heading"><span class="zh">知识星图</span><span class="en">Knowledge Constellation</span></h1>
   <div class="g3d-tools">
     <div class="g3d-lang" role="group" aria-label="Language / 语言">
@@ -131,9 +132,9 @@ window.RLV_VERSION = '20260911a';
 // 脚本缺件容忍：只记账，不抛错；graph3d.js 里全部用 typeof 守卫消费
 window.__G3D_MISS = {};
 </script>
-<script src="assets/js/graph3d-data.js?v=20260911a" onerror="window.__G3D_MISS.data=true"></script>
-<script src="assets/vendor/graph3d/3d-force-graph.min.js?v=20260911a" onerror="window.__G3D_MISS.lib=true"></script>
-<script src="assets/js/graph3d-render.js?v=20260911a" onerror="window.__G3D_MISS.render=true"></script>
-<script src="assets/js/graph3d.js?v=20260911a"></script>
+<script src="assets/js/graph3d-data.js?v=20260915a" onerror="window.__G3D_MISS.data=true"></script>
+<script src="assets/vendor/graph3d/3d-force-graph.min.js?v=20260915a" onerror="window.__G3D_MISS.lib=true"></script>
+<script src="assets/js/graph3d-render.js?v=20260915a" onerror="window.__G3D_MISS.render=true"></script>
+<script src="assets/js/graph3d.js?v=20260915a"></script>
 </body>
 </html>

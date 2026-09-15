@@ -1,7 +1,7 @@
 # RL 可视化课堂 · RL Visual Classroom
 
 《Mathematical Foundation of Reinforcement Learning》(Shiyu Zhao) **全书十讲**的双语交互式可视化教程。
-**L1–L10 全部完成**，共 88 个小节、81 个交互实验台（含十讲知识填空自测与 12 条定理交互推导）、47 个 Vue 组件。
+**L1–L10 全部完成**，共 88 个小节、81 个交互实验台（含十讲知识填空自测与 12 条定理交互推导）、48 个 Vue 组件。
 
 ## 定理推导实验室 DerivationLab
 
@@ -40,6 +40,19 @@
 - 已知限制：**浏览器刷新丢 kernel 状态**（变量需重跑）；笔记本改动存浏览器 IndexedDB，清缓存即丢；**锁外包（numpy/matplotlib 之外）在线可拉、离线不可用**（设计取舍，见 build.md）
 - NB 清单数据源：`assets/js/nb-manifest.js`（`window.NB_MANIFEST`；未加载时 hub 页用页内 fallback）
 - 源笔记本在 `notebooks/`（git 管内容）；构建产物 `lite/` 不入库——重建方式、体积实测与已知限制见 `lite-build/build.md`（uv 独立 Python 3.13 环境；**瘦身构建 ~52MB**：pyodide core + numpy/matplotlib 锁内 wheel 本地化，零 CDN 依赖）
+
+## 官方视频索引与资料页 resources.html
+
+每讲挂一张**官方视频索引卡**（`official-videos` 组件，挂在每讲首个内容小节），把本讲精确对应到课程官方视频的具体分集：
+
+- 官方视频共 **54 集**：英文 YouTube 播放列表与中文 B 站合集（`BV1sd4y167NS`）是**同一套编号**——B 站 `?p=N` 与 YouTube `index=N` 同号，第 n 集就是第 n 集
+- 每张卡给出：讲名 + 分集范围（如 L2 = P4–P8、L7 = P29–P36）+ 逐集「中文版 / English」双语链接 + 总览集入口（官方第 1 集，十讲共用）
+
+独立页 `resources.html`：全书**官方资料索引**（照 `graph3d.html` / `lite.html` 的纯静态先例，离线可用）：
+
+- 七组资料卡 ≥ 20 张：官方入口 / 视频课程（含十讲分集对照表）/ 教材与勘误 / 社区代码实现 / 中文笔记与精读 / 查漏补缺外部课程 / 合规提醒
+- 统计条 `#res-stats` 给出 54 集总口径；五主题与三语模式和主站共享 localStorage 记忆
+- 合规提醒：课程**禁止使用现成算法工具箱**（算法须从零自写，明显 LLM 生成的报告/代码最多扣到 0 分）——社区仓库只作思路参照
 
 ## 打开方式
 
@@ -129,5 +142,7 @@ rl-viz/
 | 第四轮 | 2026-09-10 | 见 git log | 结构与性能与公式工程：components 按讲拆分 + 根模板组件化 + sr()/种子化统一；按讲懒加载 + GSAP 移除（首载 1.15MB→0.40MB，-64%）；KaTeX 公式升级（57 块全 TeX 化、矩阵/分式真排版、vendor 本地按需加载）；SEO meta/JSON-LD + 打印样式；eslint + GitHub Actions CI + verify_site 26 条断言化；对比度 WCAG AA 调优（ink-3 与 chart-ink 五主题 ≥4.5:1）；27 节补 ConceptChain 复盘链（88/88 节有交互组件）；实验台口径修正为 62 |
 | 第五轮 | 2026-09-11 | 见 git log | 知识星图：3D 网状知识图独立页（88 节点+10 枢纽+40 精选关联+8 线索+知识前沿），vendor 3d-force-graph 本地化，verify_site 加 graph3d 冒烟 |
 | 第六轮 | 2026-09-12 | 见 git log | 知识填充自测系统：FillLab 组件（概念选择/数值/代码三种填空、判分即出讲解、localStorage 进度）+ 十讲题库 81 题（题源=书外延伸洞见+代码精讲要点+实验台实测数值）+ check_data fillSets 契约校验 |
+| 第七轮 | 2026-09-14 | 见 git log | 充分理论推导 + 亲手跑代码：DerivationLab 走步式定理推导（L2–L10 共 12 条承重推导，关键步答对才放行，check_data 新增 derivationSets 契约 + KaTeX 严格渲染门禁）+ JupyterLite 笔记本实验室（hub 页 lite.html + NB0–NB6 七本 assert 自检笔记本 + 讲内 NotebookBridge 深链，瘦身子站 ~52MB）；实验台口径 72→81、组件 45→47、verify_site 扩到 50 断言 |
+| 第八轮 | 2026-09-15 | 见 git log | 官方资源贯通：每讲官方视频索引卡（官方 54 集清单与十讲分集对照，B 站 `?p=N` 与 YouTube `index=N` 同号，逐集中英双链 + 总览入口）+ `resources.html` 全书资料索引页（≥20 张资料卡：官方入口/教材勘误/社区实现/中文笔记/外部课程 + 合规提醒）+ 主站 hero/页脚入口；组件 47→48、verify_site 扩到 57 断言 |
 
-**质量门禁**：`npm test`（模板编译 + 数据完整性）与 `npm run lint` 本地必过；`node verify_site.js` 40 条冒烟断言 + 零 console 错误；推送后 GitHub Actions 自动跑 check + smoke 两个 job。
+**质量门禁**：`npm test`（模板编译 + 数据完整性）与 `npm run lint` 本地必过；`node verify_site.js` 57 条冒烟断言 + 零 console 错误；推送后 GitHub Actions 自动跑 check + smoke 两个 job。
